@@ -1,1 +1,36 @@
-<p>navbar works!</p>
+<nav class="navbar">
+  <div class="container-fluid">
+    <div class="navbar-content">
+      <div class="navbar-right">
+        <div class="brand">
+          <img src="/assets/images/OmegaLogo.png" alt="Omega Logo" class="brand-logo">
+          <div class="brand-info">
+            <span class="brand-text">Omega System</span>
+            <span class="brand-subtitle">نظام الإدارة الداخلي</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="navbar-left">
+        <button class="nav-icon-btn notification-btn">
+          <i class="bi bi-bell"></i>
+          <span class="badge">3</span>
+        </button>
+
+        <div class="user-profile">
+          <div class="user-info">
+            <span class="user-name">{{ userName }}</span>
+            <span class="user-role">{{ userRole }}</span>
+          </div>
+          <div class="user-avatar">
+            <i class="bi bi-person"></i>
+          </div>
+        </div>
+
+        <button class="nav-icon-btn logout-btn" (click)="logout()">
+          <i class="bi bi-box-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</nav>

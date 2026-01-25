@@ -1,1 +1,39 @@
-<p>side-bar works!</p>
+<div class="sidebar-wrapper">
+  <button class="sidebar-toggle" (click)="toggleSidebar()">
+    <i class="bi" [ngClass]="isSidebarOpen ? 'bi-x-lg' : 'bi-list'"></i>
+  </button>
+
+  <aside class="sidebar" [class.open]="isSidebarOpen">
+    <!-- Navigation Menu -->
+    <nav class="sidebar-nav">
+      <ul class="nav-list">
+        <li *ngFor="let item of menuItems" class="nav-item">
+          <a
+            [routerLink]="item.route"
+            routerLinkActive="active"
+            class="nav-link"
+            (click)="toggleSidebar()">
+            <div class="icon-wrapper">
+              <i class="bi {{ item.icon }}"></i>
+            </div>
+            <span>{{ item.title }}</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <!-- Footer Section -->
+    <div class="sidebar-footer">
+      <button class="settings-btn">
+        <i class="bi bi-gear"></i>
+        <span>الإعدادات</span>
+      </button>
+      <button class="logout-btn" (click)="logout()">
+        <i class="bi bi-box-arrow-right"></i>
+        <span>تسجيل الخروج</span>
+      </button>
+    </div>
+  </aside>
+
+  <div class="sidebar-overlay" *ngIf="isSidebarOpen" (click)="toggleSidebar()"></div>
+</div>
