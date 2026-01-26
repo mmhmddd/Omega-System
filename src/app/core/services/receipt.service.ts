@@ -1,4 +1,5 @@
-// src/core/services/receipt.service.ts
+// src/core/services/receipt.service.ts - UPDATED WITH VEHICLE NUMBER
+
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -14,7 +15,7 @@ export interface ReceiptItem {
 }
 
 /**
- * Receipt Interface
+ * Receipt Interface - UPDATED WITH VEHICLE NUMBER
  */
 export interface Receipt {
   id: string;
@@ -27,6 +28,7 @@ export interface Receipt {
   projectCode?: string;
   workLocation?: string;
   companyNumber?: string;
+  vehicleNumber?: string; // NEW FIELD
   additionalText?: string;
   items: ReceiptItem[];
   notes?: string;
@@ -40,6 +42,7 @@ export interface Receipt {
     total?: number;
   };
   createdBy: string;
+  createdByName?: string;
   createdByRole: string;
   createdAt: string;
   updatedAt: string;
@@ -69,7 +72,7 @@ export interface SingleReceiptResponse {
 }
 
 /**
- * Create Receipt Data Interface
+ * Create Receipt Data Interface - UPDATED WITH VEHICLE NUMBER
  */
 export interface CreateReceiptData {
   to: string;
@@ -80,6 +83,7 @@ export interface CreateReceiptData {
   projectCode?: string;
   workLocation?: string;
   companyNumber?: string;
+  vehicleNumber?: string; // NEW FIELD
   additionalText?: string;
   items: ReceiptItem[];
   notes?: string;
@@ -189,14 +193,189 @@ export class ReceiptService {
   }
 
   /**
-   * Download PDF (triggers browser download)
+   * Open print dialog for PDF (creates hidden iframe and triggers print)
    */
-  downloadPDF(id: string): void {
+  openPrintDialog(id: string): void {
     const token = localStorage.getItem('token');
-    const url = token 
-      ? `${this.API_URL}/${id}/download-pdf?token=${token}`
-      : `${this.API_URL}/${id}/download-pdf`;
-    window.open(url, '_blank');
+    if (!token) {
+      alert('No authentication token found. Please login again.');
+      return;
+    }
+
+    const url = `${this.API_URL}/${id}/download-pdf`;
+    
+    fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Failed to load PDF');
+      }
+      return response.blob();
+    })
+    .then(blob => {
+      const blobUrl = URL.createObjectURL(blob);
+      
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = blobUrl;
+      document.body.appendChild(iframe);
+      
+      iframe.onload = () => {
+        setTimeout(() => {
+          try {
+            iframe.contentWindow?.print();
+          } catch (error) {
+            console.error('Print error:', error);
+            window.open(blobUrl, '_blank');
+          }
+        }, 250);
+      };
+      
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+        URL.revokeObjectURL(blobUrl);
+      }, 60000);
+    })
+    .catch(error => {
+      console.error('Error loading PDF for print:', error);
+      alert('Failed to load PDF for printing. Please try again.');
+    });
+  }
+
+  /**
+   * Get PDF as Blob for viewer (requires token)
+   */
+  getPDFBlob(id: string): Observable<Blob> {
+    const url = `${this.API_URL}/${id}/download-pdf`;
+    return this.http.get(url, { 
+      responseType: 'blob'
+    });
+  }
+
+  /**
+   * View PDF in new tab (opens PDF directly in browser)
+   */
+  viewPDFInNewTab(id: string, autoPrint: boolean = false): void {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('No authentication token found. Please login again.');
+      return;
+    }
+
+    const url = `${this.API_URL}/${id}/download-pdf`;
+    
+    fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Failed to load PDF');
+      }
+      return response.blob();
+    })
+    .then(blob => {
+      const blobUrl = URL.createObjectURL(blob);
+      const newWindow = window.open(blobUrl, '_blank');
+      
+      if (autoPrint && newWindow) {
+        newWindow.onload = () => {
+          setTimeout(() => {
+            newWindow.print();
+          }, 500);
+        };
+      }
+      
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    })
+    .catch(error => {
+      console.error('Error viewing PDF:', error);
+      alert('Failed to view PDF. Please try again.');
+    });
+  }
+
+  /**
+   * View PDF in new tab (requires token)
+   */
+  viewPDF(id: string): void {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('No authentication token found. Please login again.');
+      return;
+    }
+
+    const url = `${this.API_URL}/${id}/download-pdf`;
+    
+    fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Failed to load PDF');
+      }
+      return response.blob();
+    })
+    .then(blob => {
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank');
+      
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+    })
+    .catch(error => {
+      console.error('Error viewing PDF:', error);
+      alert('Failed to view PDF. Please try again.');
+    });
+  }
+
+  /**
+   * Download PDF (triggers browser download with exact backend filename)
+   */
+  downloadPDF(id: string, pdfFilename: string): void {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('No authentication token found. Please login again.');
+      return;
+    }
+
+    const url = `${this.API_URL}/${id}/download-pdf`;
+    
+    fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Failed to download PDF');
+      }
+      return response.blob();
+    })
+    .then((blob) => {
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = pdfFilename;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+    })
+    .catch(error => {
+      console.error('Error downloading PDF:', error);
+      alert('Failed to download PDF. Please try again.');
+    });
   }
 
   /**

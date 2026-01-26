@@ -1,3 +1,5 @@
+<!-- receipts.component.html - UPDATED WITH REQUIRED ITEMS VALIDATION -->
+
 <div class="receipts-container">
   
   <!-- LIST VIEW -->
@@ -33,21 +35,18 @@
     </div>
 
     <!-- Search and Filter -->
-    <!-- Search and Filter -->
-<!-- Search and Filter -->
-<!-- Search and Filter -->
-<div class="search-filter-section">
-  <div class="search-box main-search">
-    <i class="bi bi-search"></i>
-    <input 
-      type="text" 
-      [placeholder]="formLanguage === 'ar' ? 'بحث برقم الإشعار، إلى، المشروع ...' : 'Search by number, to, project ...'"
-      [(ngModel)]="searchTerm"
-      (ngModelChange)="onSearchChange()"
-      (keyup.enter)="onSearch()"
-    />
-  </div>
-</div>
+    <div class="search-filter-section" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
+      <div class="search-box main-search">
+        <i class="bi bi-search"></i>
+        <input 
+          type="text" 
+          [placeholder]="formLanguage === 'ar' ? 'بحث برقم الإشعار، إلى، المشروع ...' : 'Search by number, to, project ...'"
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="onSearchChange()"
+          (keyup.enter)="onSearch()"
+        />
+      </div>
+    </div>
 
     <!-- Table -->
     <div class="table-container">
@@ -58,7 +57,8 @@
             <th class="text-center">{{ formLanguage === 'ar' ? 'إلى' : 'To' }}</th>
             <th class="text-center">{{ formLanguage === 'ar' ? 'التاريخ' : 'Date' }}</th>
             <th class="text-center">{{ formLanguage === 'ar' ? 'رمز المشروع' : 'Project Code' }}</th>
-            <th class="text-center">{{ formLanguage === 'ar' ? 'العناصر' : 'Items' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'منشئ' : 'Created By' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'الدور' : 'Role' }}</th>
             <th class="text-center">{{ formLanguage === 'ar' ? 'الحالة' : 'Status' }}</th>
             <th class="text-center">{{ formLanguage === 'ar' ? 'الإجراءات' : 'Actions' }}</th>
           </tr>
@@ -69,46 +69,62 @@
             <td class="receipt-to text-center">{{ receipt.to }}</td>
             <td class="text-center">{{ receipt.date }}</td>
             <td class="text-center">{{ receipt.projectCode || '-' }}</td>
-            <td class="text-center">{{ receipt.items.length }}</td>
+            <td class="text-center">{{ getCreatorName(receipt) }}</td>
+            <td class="text-center">
+              <span class="role-badge" [ngClass]="getRoleClass(receipt.createdByRole)">
+                {{ getRoleText(receipt.createdByRole) }}
+              </span>
+            </td>
             <td class="text-center">
               <span class="status-badge" [ngClass]="getStatusClass(receipt)">
                 {{ getStatusText(receipt) }}
               </span>
             </td>
             <td class="actions-cell text-center">
-              <button class="btn-icon" (click)="viewReceipt(receipt)" [title]="formLanguage === 'ar' ? 'عرض' : 'View'">
+              <button 
+                class="btn-icon btn-view" 
+                (click)="viewPDF(receipt)" 
+                [title]="formLanguage === 'ar' ? 'عرض PDF' : 'View PDF'">
                 <i class="bi bi-eye"></i>
               </button>
-              <button class="btn-icon" (click)="editReceipt(receipt)" [title]="formLanguage === 'ar' ? 'تعديل' : 'Edit'">
-                <i class="bi bi-pencil"></i>
+              <button 
+                class="btn-icon btn-print" 
+                (click)="printReceiptPDF(receipt)" 
+                [title]="formLanguage === 'ar' ? 'طباعة' : 'Print'">
+                <i class="bi bi-printer"></i>
               </button>
               <button 
-                *ngIf="hasPDF(receipt)" 
-                class="btn-icon" 
+                class="btn-icon btn-download" 
                 (click)="downloadPDF(receipt)" 
                 [title]="formLanguage === 'ar' ? 'تحميل PDF' : 'Download PDF'">
                 <i class="bi bi-download"></i>
               </button>
               <button 
-                *ngIf="!hasPDF(receipt)" 
-                class="btn-icon" 
-                (click)="openPDFModal(receipt)" 
-                [title]="formLanguage === 'ar' ? 'إنشاء PDF' : 'Generate PDF'">
-                <i class="bi bi-file-earmark-pdf"></i>
+                class="btn-icon btn-edit" 
+                (click)="editReceipt(receipt)" 
+                [title]="formLanguage === 'ar' ? 'تعديل' : 'Edit'">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button 
+                *ngIf="isSuperAdmin()" 
+                class="btn-icon btn-delete" 
+                (click)="deleteReceipt(receipt)" 
+                [title]="formLanguage === 'ar' ? 'حذف' : 'Delete'">
+                <i class="bi bi-trash"></i>
               </button>
             </td>
           </tr>
         </tbody>
         <tbody *ngIf="loading">
           <tr>
-            <td colspan="7" class="text-center loading-cell">
+            <td colspan="8" class="text-center loading-cell">
               <i class="bi bi-arrow-clockwise spin"></i> {{ formLanguage === 'ar' ? 'جاري التحميل...' : 'Loading...' }}
             </td>
           </tr>
         </tbody>
         <tbody *ngIf="!loading && receipts.length === 0">
           <tr>
-            <td colspan="7" class="text-center empty-cell">
+            <td colspan="8" class="text-center empty-cell">
               {{ formLanguage === 'ar' ? 'لا توجد إشعارات' : 'No receipts found' }}
             </td>
           </tr>
@@ -139,7 +155,10 @@
   </div>
 
   <!-- CREATE/EDIT VIEW -->
-  <div *ngIf="currentView === 'create' || currentView === 'edit'" class="form-view">
+  <div 
+    *ngIf="currentView === 'create' || currentView === 'edit'" 
+    class="form-view"
+    [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
     <!-- Header -->
     <div class="form-header">
       <h1 class="form-title">
@@ -149,8 +168,6 @@
         }}
       </h1>
       <div class="form-header-actions">
-        <!-- Language Toggle -->
-        
         <div class="form-actions">
           <button class="btn-secondary" (click)="backToList()">
             {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
@@ -188,9 +205,10 @@
         <button 
           class="sidebar-step"
           [class.active]="currentStep === 'items'"
+          [class.has-error]="fieldErrors['items']"
           (click)="currentStep = 'items'">
           {{ formLanguage === 'ar' ? 'العناصر' : 'Items' }}
-          <span class="item-count">{{ getItemsCount() }}</span>
+          <span class="item-count" [class.error-count]="fieldErrors['items']">{{ getItemsCount() }}</span>
         </button>
       </div>
 
@@ -201,8 +219,9 @@
         <div *ngIf="currentStep === 'basic'" class="step-content">
           <h2 class="step-title">{{ formLanguage === 'ar' ? 'المعلومات الأساسية' : 'Basic Info' }}</h2>
 
+          <!-- Date and Project Code Row -->
           <div class="form-row">
-            <div class="form-group half">
+            <div class="form-group">
               <label>
                 <i class="bi bi-calendar"></i>
                 {{ formLanguage === 'ar' ? 'التاريخ' : 'Date' }} 
@@ -220,20 +239,29 @@
                 {{ fieldErrors['date'] }}
               </small>
             </div>
-            <div class="form-group half">
+            
+            <div class="form-group">
               <label>
                 <i class="bi bi-bookmark"></i>
                 {{ formLanguage === 'ar' ? 'رمز المشروع' : 'Project Code' }}
+                <span class="required">*</span>
               </label>
               <input 
                 type="text" 
                 [(ngModel)]="receiptForm.projectCode"
                 [placeholder]="formLanguage === 'ar' ? 'مثال: PRJ-2024-001' : 'e.g. PRJ-2024-001'"
                 class="form-control"
+                [class.error]="fieldErrors['projectCode']"
+                required
               />
+              <small class="error-message" *ngIf="fieldErrors['projectCode']">
+                <i class="bi bi-exclamation-circle"></i>
+                {{ fieldErrors['projectCode'] }}
+              </small>
             </div>
           </div>
 
+          <!-- To Field (Full Width) -->
           <div class="form-group">
             <label>
               <i class="bi bi-person"></i>
@@ -254,107 +282,261 @@
             </small>
           </div>
 
+          <!-- Address Field (Full Width) -->
           <div class="form-group">
             <label>
               <i class="bi bi-geo-alt"></i>
               {{ formLanguage === 'ar' ? 'العنوان' : 'Address' }}
+              <span class="required">*</span>
             </label>
             <textarea 
               [(ngModel)]="receiptForm.address"
               [placeholder]="formLanguage === 'ar' ? 'أدخل العنوان الكامل' : 'Enter full address'"
               class="form-control"
+              [class.error]="fieldErrors['address']"
               rows="3"
+              required
             ></textarea>
+            <small class="error-message" *ngIf="fieldErrors['address']">
+              <i class="bi bi-exclamation-circle"></i>
+              {{ fieldErrors['address'] }}
+            </small>
           </div>
 
+          <!-- Work Location and Attention Row -->
           <div class="form-row">
-            <div class="form-group half">
+            <div class="form-group">
               <label>
                 <i class="bi bi-pin-map"></i>
                 {{ formLanguage === 'ar' ? 'موقع العمل' : 'Work Location' }}
+                <span class="required">*</span>
               </label>
               <input 
                 type="text" 
                 [(ngModel)]="receiptForm.workLocation"
                 [placeholder]="formLanguage === 'ar' ? 'موقع تنفيذ العمل' : 'Work execution location'"
                 class="form-control"
+                [class.error]="fieldErrors['workLocation']"
+                required
               />
+              <small class="error-message" *ngIf="fieldErrors['workLocation']">
+                <i class="bi bi-exclamation-circle"></i>
+                {{ fieldErrors['workLocation'] }}
+              </small>
             </div>
-            <div class="form-group half">
+            
+            <div class="form-group">
               <label>
                 <i class="bi bi-person-badge"></i>
                 {{ formLanguage === 'ar' ? 'عناية' : 'Attention' }}
+                <span class="required">*</span>
               </label>
               <input 
                 type="text" 
                 [(ngModel)]="receiptForm.attention"
                 [placeholder]="formLanguage === 'ar' ? 'اسم الشخص المعني' : 'Concerned person name'"
                 class="form-control"
+                [class.error]="fieldErrors['attention']"
+                required
               />
+              <small class="error-message" *ngIf="fieldErrors['attention']">
+                <i class="bi bi-exclamation-circle"></i>
+                {{ fieldErrors['attention'] }}
+              </small>
             </div>
           </div>
 
+          <!-- Vehicle Number Field (Full Width) -->
           <div class="form-group">
             <label>
-              <i class="bi bi-chat-left-text"></i>
-              {{ formLanguage === 'ar' ? 'ملاحظات' : 'Notes' }}
+              <i class="bi bi-truck"></i>
+              {{ formLanguage === 'ar' ? 'رقم المركبة' : 'Vehicle Number' }}
+              <span class="required">*</span>
+            </label>
+            <input 
+              type="text" 
+              [(ngModel)]="receiptForm.vehicleNumber"
+              [placeholder]="formLanguage === 'ar' ? 'مثال: ABC-1234' : 'e.g. ABC-1234'"
+              class="form-control"
+              [class.error]="fieldErrors['vehicleNumber']"
+              required
+            />
+            <small class="error-message" *ngIf="fieldErrors['vehicleNumber']">
+              <i class="bi bi-exclamation-circle"></i>
+              {{ fieldErrors['vehicleNumber'] }}
+            </small>
+          </div>
+
+          <!-- Additional Text Field (OPTIONAL) -->
+          <div class="form-group">
+            <label>
+              <i class="bi bi-file-text"></i>
+              {{ formLanguage === 'ar' ? 'نص إضافي (اختياري)' : 'Additional Text (Optional)' }}
             </label>
             <textarea 
-              [(ngModel)]="receiptForm.notes"
-              [placeholder]="formLanguage === 'ar' ? 'ملاحظات إضافية' : 'Additional notes'"
+              [(ngModel)]="receiptForm.additionalText"
+              [placeholder]="formLanguage === 'ar' ? 'يرجى استلام ما تم ادراجه ادناه:' : 'Please receive what is listed below:'"
               class="form-control"
               rows="3"
             ></textarea>
           </div>
 
+          <!-- Notes Field -->
+          <div class="form-group">
+            <label>
+              <i class="bi bi-chat-left-text"></i>
+              {{ formLanguage === 'ar' ? 'ملاحظات' : 'Notes' }}
+              <span class="required">*</span>
+            </label>
+            <textarea 
+              [(ngModel)]="receiptForm.notes"
+              [placeholder]="formLanguage === 'ar' ? 'ملاحظات إضافية' : 'Additional notes'"
+              class="form-control"
+              [class.error]="fieldErrors['notes']"
+              rows="3"
+              required
+            ></textarea>
+            <small class="error-message" *ngIf="fieldErrors['notes']">
+              <i class="bi bi-exclamation-circle"></i>
+              {{ fieldErrors['notes'] }}
+            </small>
+          </div>
+
+          <!-- PDF Attachment Upload (OPTIONAL) -->
+          <div class="form-group">
+            <label>
+              <i class="bi bi-paperclip"></i>
+              {{ formLanguage === 'ar' ? 'إرفاق ملف PDF (اختياري)' : 'Attach PDF File (Optional)' }}
+            </label>
+            
+            <div class="file-upload-wrapper">
+              <input 
+                type="file" 
+                id="form-pdf-attachment"
+                accept=".pdf"
+                (change)="onFormPdfAttachmentSelected($event)"
+                class="file-input"
+              />
+              <label for="form-pdf-attachment" class="file-upload-label">
+                <i class="bi bi-cloud-upload"></i>
+                <span>{{ formLanguage === 'ar' ? 'اختر ملف PDF' : 'Choose PDF File' }}</span>
+              </label>
+            </div>
+            
+            <div *ngIf="formPdfAttachment" class="file-selected">
+              <i class="bi bi-check-circle-fill"></i>
+              <span class="file-name">{{ formPdfAttachment.name }}</span>
+              <button class="btn-remove-file" (click)="removeFormPdfAttachment()" type="button">
+                <i class="bi bi-x"></i>
+              </button>
+            </div>
+            
+            <small class="help-text">
+              {{ formLanguage === 'ar' 
+                ? 'الحد الأقصى لحجم الملف: 10 ميجابايت. سيتم دمج الملف المرفق مع الإشعار.'
+                : 'Maximum file size: 10MB. The attached file will be merged with the receipt.' 
+              }}
+            </small>
+          </div>
+
           <div class="form-navigation">
             <button class="btn-primary btn-next" (click)="nextStep()">
               {{ formLanguage === 'ar' ? 'التالي' : 'Next' }}
-              <i class="bi bi-arrow-right"></i>
+              <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-left' : 'bi-arrow-right'"></i>
             </button>
           </div>
         </div>
 
-        <!-- STEP 2: Items -->
+        <!-- STEP 2: Items (REQUIRED) -->
         <div *ngIf="currentStep === 'items'" class="step-content">
-          <h2 class="step-title">{{ formLanguage === 'ar' ? 'العناصر' : 'Items' }}</h2>
+          <h2 class="step-title">
+            {{ formLanguage === 'ar' ? 'العناصر' : 'Items' }}
+            <span class="required">*</span>
+          </h2>
+
+          <!-- Items Required Error -->
+          <div class="error-alert" *ngIf="fieldErrors['items']" style="margin-bottom: 1.5rem;">
+            <i class="bi bi-exclamation-circle"></i>
+            <span>{{ fieldErrors['items'] }}</span>
+          </div>
 
           <div class="items-section">
             <div class="items-header">
-              <div class="header-cell">{{ formLanguage === 'ar' ? 'الكمية' : 'Quantity' }}</div>
-              <div class="header-cell">{{ formLanguage === 'ar' ? 'الوصف' : 'Description' }}</div>
-              <div class="header-cell">{{ formLanguage === 'ar' ? 'العنصر' : 'Element' }}</div>
+              <div class="header-cell">
+                {{ formLanguage === 'ar' ? 'الكمية' : 'Quantity' }}
+                <span class="required">*</span>
+              </div>
+              <div class="header-cell">
+                {{ formLanguage === 'ar' ? 'الوصف' : 'Description' }}
+                <span class="required">*</span>
+              </div>
+              <div class="header-cell">
+                {{ formLanguage === 'ar' ? 'العنصر' : 'Element' }}
+                <span class="required">*</span>
+              </div>
               <div class="header-cell-action"></div>
             </div>
 
             <div class="items-body" *ngIf="receiptForm.items.length > 0">
-              <div class="item-row" *ngFor="let item of receiptForm.items; let i = index">
-                <input 
-                  type="text" 
-                  [(ngModel)]="item.quantity"
-                  class="item-input small"
-                  [placeholder]="formLanguage === 'ar' ? 'العدد' : 'Qty'"
-                />
-                <input 
-                  type="text" 
-                  [(ngModel)]="item.description"
-                  class="item-input"
-                  [placeholder]="formLanguage === 'ar' ? 'الوصف' : 'Description'"
-                />
-                <input 
-                  type="text" 
-                  [(ngModel)]="item.element"
-                  class="item-input"
-                  [placeholder]="formLanguage === 'ar' ? 'العنصر' : 'Element'"
-                />
-                <button class="btn-remove" (click)="removeItem(i)" type="button">
-                  <i class="bi bi-trash"></i>
-                </button>
-              </div>
+              <ng-container *ngFor="let item of receiptForm.items; let i = index">
+                <div class="item-row">
+                  <div class="item-field">
+                    <input 
+                      type="text" 
+                      [(ngModel)]="item.quantity"
+                      class="item-input small"
+                      [class.error]="fieldErrors['item_' + i + '_quantity']"
+                      [placeholder]="formLanguage === 'ar' ? 'العدد' : 'Qty'"
+                      required
+                    />
+                    <small class="error-message" *ngIf="fieldErrors['item_' + i + '_quantity']">
+                      <i class="bi bi-exclamation-circle"></i>
+                      {{ fieldErrors['item_' + i + '_quantity'] }}
+                    </small>
+                  </div>
+                  
+                  <div class="item-field">
+                    <input 
+                      type="text" 
+                      [(ngModel)]="item.description"
+                      class="item-input"
+                      [class.error]="fieldErrors['item_' + i + '_description']"
+                      [placeholder]="formLanguage === 'ar' ? 'الوصف' : 'Description'"
+                      required
+                    />
+                    <small class="error-message" *ngIf="fieldErrors['item_' + i + '_description']">
+                      <i class="bi bi-exclamation-circle"></i>
+                      {{ fieldErrors['item_' + i + '_description'] }}
+                    </small>
+                  </div>
+                  
+                  <div class="item-field">
+                    <input 
+                      type="text" 
+                      [(ngModel)]="item.element"
+                      class="item-input"
+                      [class.error]="fieldErrors['item_' + i + '_element']"
+                      [placeholder]="formLanguage === 'ar' ? 'العنصر' : 'Element'"
+                      required
+                    />
+                    <small class="error-message" *ngIf="fieldErrors['item_' + i + '_element']">
+                      <i class="bi bi-exclamation-circle"></i>
+                      {{ fieldErrors['item_' + i + '_element'] }}
+                    </small>
+                  </div>
+                  
+                  <button class="btn-remove" (click)="removeItem(i)" type="button">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </ng-container>
             </div>
 
             <div class="items-empty" *ngIf="receiptForm.items.length === 0">
-              {{ formLanguage === 'ar' ? 'لم يتم إضافة عناصر' : 'No items added' }}
+              <i class="bi bi-inbox" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
+              <p style="margin: 0; color: #64748b;">
+                {{ formLanguage === 'ar' ? 'لم يتم إضافة عناصر. يجب إضافة عنصر واحد على الأقل.' : 'No items added. At least one item is required.' }}
+              </p>
             </div>
 
             <button class="btn-add-item" (click)="addItem()" type="button">
@@ -365,7 +547,7 @@
 
           <div class="form-navigation">
             <button class="btn-secondary btn-back" (click)="previousStep()" type="button">
-              <i class="bi bi-arrow-left"></i>
+              <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
               {{ formLanguage === 'ar' ? 'السابق' : 'Back' }}
             </button>
           </div>
@@ -375,194 +557,98 @@
     </div>
   </div>
 
-  <!-- VIEW RECEIPT MODAL -->
-  <div *ngIf="currentView === 'view' && selectedReceipt" class="modal-overlay" (click)="backToList()">
-    <div class="modal-content view-modal" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h2>{{ formLanguage === 'ar' ? 'تفاصيل الإشعار' : 'Receipt Details' }}</h2>
-        <button class="btn-close" (click)="backToList()">
-          <i class="bi bi-x-lg"></i>
-        </button>
-      </div>
-      <div class="modal-body">
-        <div class="detail-row">
-          <span class="detail-label">{{ formLanguage === 'ar' ? 'رقم الإشعار:' : 'Receipt Number:' }}</span>
-          <span class="detail-value">{{ selectedReceipt.receiptNumber }}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">{{ formLanguage === 'ar' ? 'إلى:' : 'To:' }}</span>
-          <span class="detail-value">{{ selectedReceipt.to }}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">{{ formLanguage === 'ar' ? 'التاريخ:' : 'Date:' }}</span>
-          <span class="detail-value">{{ selectedReceipt.date }}</span>
-        </div>
-        <div class="detail-row" *ngIf="selectedReceipt.projectCode">
-          <span class="detail-label">{{ formLanguage === 'ar' ? 'رمز المشروع:' : 'Project Code:' }}</span>
-          <span class="detail-value">{{ selectedReceipt.projectCode }}</span>
-        </div>
-        <div class="detail-row" *ngIf="selectedReceipt.address">
-          <span class="detail-label">{{ formLanguage === 'ar' ? 'العنوان:' : 'Address:' }}</span>
-          <span class="detail-value">{{ selectedReceipt.address }}</span>
-        </div>
-        <div class="detail-row" *ngIf="selectedReceipt.workLocation">
-          <span class="detail-label">{{ formLanguage === 'ar' ? 'موقع العمل:' : 'Location:' }}</span>
-          <span class="detail-value">{{ selectedReceipt.workLocation }}</span>
-        </div>
-        <div class="detail-row" *ngIf="selectedReceipt.attention">
-          <span class="detail-label">{{ formLanguage === 'ar' ? 'عناية:' : 'Attention:' }}</span>
-          <span class="detail-value">{{ selectedReceipt.attention }}</span>
-        </div>
-        
-        <div class="items-preview" *ngIf="selectedReceipt.items.length > 0">
-          <h3>{{ formLanguage === 'ar' ? 'العناصر' : 'Items' }} ({{ selectedReceipt.items.length }})</h3>
-          <table class="items-table">
-            <thead>
-              <tr>
-                <th>{{ formLanguage === 'ar' ? 'الكمية' : 'Quantity' }}</th>
-                <th>{{ formLanguage === 'ar' ? 'الوصف' : 'Description' }}</th>
-                <th>{{ formLanguage === 'ar' ? 'العنصر' : 'Element' }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let item of selectedReceipt.items">
-                <td>{{ item.quantity }}</td>
-                <td>{{ item.description }}</td>
-                <td>{{ item.element }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="detail-row" *ngIf="selectedReceipt.notes">
-          <span class="detail-label">{{ formLanguage === 'ar' ? 'ملاحظات:' : 'Notes:' }}</span>
-          <span class="detail-value">{{ selectedReceipt.notes }}</span>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" (click)="backToList()">
-          {{ formLanguage === 'ar' ? 'إغلاق' : 'Close' }}
-        </button>
-        <button class="btn-primary" (click)="editReceipt(selectedReceipt)">
-          {{ formLanguage === 'ar' ? 'تعديل' : 'Edit' }}
-        </button>
-      </div>
-    </div>
-  </div>
-
   <!-- PDF GENERATION MODAL -->
-  <div *ngIf="showPDFModal" class="modal-overlay" (click)="showPDFModal = false">
+  <div *ngIf="showPDFModal" class="modal-overlay" (click)="closePDFModal()">
     <div class="modal-content pdf-modal" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <h2>{{ formLanguage === 'ar' ? 'إنشاء PDF' : 'Generate PDF' }}</h2>
-        <button class="btn-close" (click)="showPDFModal = false">
+        <div class="modal-title-section">
+          <i class="bi bi-file-earmark-pdf modal-icon"></i>
+          <h2>{{ formLanguage === 'ar' ? 'إنشاء ملف PDF' : 'Generate PDF Document' }}</h2>
+        </div>
+        <button class="btn-close" (click)="closePDFModal()">
           <i class="bi bi-x-lg"></i>
         </button>
       </div>
+      
       <div class="modal-body">
-        <p>{{ formLanguage === 'ar' 
-          ? 'إنشاء ملف PDF لهذا الإشعار. يمكنك إرفاق ملف PDF إضافي اختيارياً.'
-          : 'Generate PDF for this receipt. Optionally attach additional PDF pages.' 
-        }}</p>
+        <div class="info-box">
+          <i class="bi bi-info-circle"></i>
+          <p>{{ formLanguage === 'ar' 
+            ? 'سيتم إنشاء ملف PDF لهذا الإشعار. يمكنك إرفاق ملف PDF إضافي اختيارياً ليتم دمجه مع الإشعار.'
+            : 'A PDF document will be generated for this receipt. You can optionally attach an additional PDF file to be merged with the receipt.' 
+          }}</p>
+        </div>
+        
+        <div class="pdf-info-card">
+          <div class="pdf-info-row">
+            <span class="pdf-info-label">
+              <i class="bi bi-hash"></i>
+              {{ formLanguage === 'ar' ? 'رقم الإشعار' : 'Receipt Number' }}
+            </span>
+            <span class="pdf-info-value">{{ selectedReceiptNumber }}</span>
+          </div>
+          <div class="pdf-info-row">
+            <span class="pdf-info-label">
+              <i class="bi bi-file-text"></i>
+              {{ formLanguage === 'ar' ? 'اسم الملف' : 'File Name' }}
+            </span>
+            <span class="pdf-info-value">{{ getPDFFilename() }}</span>
+          </div>
+        </div>
         
         <div class="form-group">
-          <label>
-            <i class="bi bi-file-pdf"></i>
-            {{ formLanguage === 'ar' ? 'إرفاق PDF (اختياري)' : 'Attach PDF (optional)' }}
+          <label class="upload-label">
+            <i class="bi bi-paperclip"></i>
+            {{ formLanguage === 'ar' ? 'إرفاق ملف PDF إضافي (اختياري)' : 'Attach Additional PDF (Optional)' }}
           </label>
-          <input 
-            type="file" 
-            accept=".pdf"
-            (change)="onPDFFileSelected($event)"
-            class="form-control"
-          />
-          <small *ngIf="pdfAttachment">
-            {{ formLanguage === 'ar' ? 'تم اختيار:' : 'Selected:' }} {{ pdfAttachment.name }}
+          
+          <div class="file-upload-wrapper">
+            <input 
+              type="file" 
+              id="pdf-attachment"
+              accept=".pdf"
+              (change)="onPDFFileSelected($event)"
+              class="file-input"
+              #fileInput
+            />
+            <label for="pdf-attachment" class="file-upload-label">
+              <i class="bi bi-cloud-upload"></i>
+              <span>{{ formLanguage === 'ar' ? 'اختر ملف PDF' : 'Choose PDF File' }}</span>
+            </label>
+          </div>
+          
+          <div *ngIf="pdfAttachment" class="file-selected">
+            <i class="bi bi-check-circle-fill"></i>
+            <span class="file-name">{{ pdfAttachment.name }}</span>
+            <button class="btn-remove-file" (click)="removePDFAttachment()" type="button">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+          
+          <small class="help-text">
+            <i class="bi bi-exclamation-circle"></i>
+            {{ formLanguage === 'ar' 
+              ? 'الحد الأقصى لحجم الملف: 10 ميجابايت. سيتم دمج الملف المرفق مع الإشعار.'
+              : 'Maximum file size: 10MB. The attached file will be merged with the receipt.' 
+            }}
           </small>
         </div>
       </div>
+      
       <div class="modal-footer">
-        <button class="btn-secondary" (click)="showPDFModal = false">
+        <button class="btn-secondary" (click)="closePDFModal()" [disabled]="generatingPDF">
+          <i class="bi bi-x-circle"></i>
           {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
         </button>
         <button 
-          class="btn-primary" 
+          class="btn-primary btn-generate" 
           (click)="generatePDF()"
           [disabled]="generatingPDF">
-          <i class="bi" [ngClass]="generatingPDF ? 'bi-arrow-clockwise spin' : 'bi-file-pdf'"></i>
+          <i class="bi" [ngClass]="generatingPDF ? 'bi-arrow-clockwise spin' : 'bi-file-earmark-pdf'"></i>
           {{ generatingPDF 
             ? (formLanguage === 'ar' ? 'جاري الإنشاء...' : 'Generating...') 
             : (formLanguage === 'ar' ? 'إنشاء PDF' : 'Generate PDF') 
           }}
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- FILTER MODAL -->
-  <div *ngIf="showFilterModal" class="modal-overlay" (click)="showFilterModal = false">
-    <div class="modal-content filter-modal" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h2>{{ formLanguage === 'ar' ? 'تصفية الإشعارات' : 'Filter Receipts' }}</h2>
-        <button class="btn-close" (click)="showFilterModal = false">
-          <i class="bi bi-x-lg"></i>
-        </button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label>
-            <i class="bi bi-hash"></i>
-            {{ formLanguage === 'ar' ? 'رقم الإشعار' : 'Receipt Number' }}
-          </label>
-          <input 
-            type="text" 
-            [(ngModel)]="filters.receiptNumber"
-            class="form-control"
-            placeholder="RN-2024-001"
-          />
-        </div>
-        <div class="form-group">
-          <label>
-            <i class="bi bi-person"></i>
-            {{ formLanguage === 'ar' ? 'إلى' : 'To' }}
-          </label>
-          <input 
-            type="text" 
-            [(ngModel)]="filters.to"
-            class="form-control"
-          />
-        </div>
-        <div class="form-row">
-          <div class="form-group half">
-            <label>
-              <i class="bi bi-calendar"></i>
-              {{ formLanguage === 'ar' ? 'من تاريخ' : 'Start Date' }}
-            </label>
-            <input 
-              type="date" 
-              [(ngModel)]="filters.startDate"
-              class="form-control"
-            />
-          </div>
-          <div class="form-group half">
-            <label>
-              <i class="bi bi-calendar-check"></i>
-              {{ formLanguage === 'ar' ? 'إلى تاريخ' : 'End Date' }}
-            </label>
-            <input 
-              type="date" 
-              [(ngModel)]="filters.endDate"
-              class="form-control"
-            />
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" (click)="clearFilters()">
-          {{ formLanguage === 'ar' ? 'مسح' : 'Clear' }}
-        </button>
-        <button class="btn-primary" (click)="applyFilters()">
-          {{ formLanguage === 'ar' ? 'تطبيق الفلاتر' : 'Apply Filters' }}
         </button>
       </div>
     </div>

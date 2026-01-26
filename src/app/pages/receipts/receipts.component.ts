@@ -1,9 +1,12 @@
+// receipts.component.ts - UPDATED WITH VEHICLE NUMBER & REQUIRED ITEMS
+
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ReceiptService, Receipt, ReceiptItem, CreateReceiptData } from '../../core/services/receipt.service';
 import { AuthService } from '../../core/services/auth.service';
 
@@ -22,7 +25,7 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
   // View states
   currentView: ViewMode = 'list';
   currentStep: FormStep = 'basic';
-  formLanguage: FormLanguage = 'ar'; // Default to Arabic
+  formLanguage: FormLanguage = 'ar';
   
   // Data
   receipts: Receipt[] = [];
@@ -56,7 +59,7 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
   formError: string = '';
   fieldErrors: { [key: string]: string } = {};
   
-  // Form data
+  // Form data - UPDATED WITH VEHICLE NUMBER
   receiptForm: CreateReceiptData = {
     to: '',
     date: this.getTodayDate(),
@@ -66,6 +69,7 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     projectCode: '',
     workLocation: '',
     companyNumber: '',
+    vehicleNumber: '', // NEW FIELD
     additionalText: '',
     items: [],
     notes: ''
@@ -75,23 +79,38 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
   showPDFModal: boolean = false;
   pdfAttachment: File | null = null;
   pdfReceiptId: string = '';
+  selectedReceiptNumber: string = '';
+  
+  // Form PDF Attachment - NEW
+  formPdfAttachment: File | null = null;
   
   // User role
   userRole: string = '';
   
-  // Translation object
+  // Translation object - UPDATED WITH ITEMS VALIDATION
   private translations = {
     ar: {
       errors: {
         required: 'هذا الحقل مطلوب',
         dateRequired: 'التاريخ مطلوب',
         toRequired: 'حقل "إلى" مطلوب',
+        addressRequired: 'العنوان مطلوب',
+        attentionRequired: 'حقل "عناية" مطلوب',
+        projectCodeRequired: 'رمز المشروع مطلوب',
+        workLocationRequired: 'موقع العمل مطلوب',
+        vehicleNumberRequired: 'رقم المركبة مطلوب',
+        notesRequired: 'الملاحظات مطلوبة',
+        itemsRequired: 'يجب إضافة عنصر واحد على الأقل',
+        itemQuantityRequired: 'الكمية مطلوبة للعنصر',
+        itemDescriptionRequired: 'الوصف مطلوب للعنصر',
+        itemElementRequired: 'العنصر مطلوب للعنصر',
         invalidDate: 'تاريخ غير صالح',
         loadFailed: 'فشل تحميل البيانات',
         saveFailed: 'فشل حفظ البيانات',
         deleteFailed: 'فشل حذف الإشعار',
         pdfFailed: 'فشل إنشاء PDF',
-        networkError: 'خطأ في الاتصال بالخادم'
+        networkError: 'خطأ في الاتصال بالخادم',
+        invalidPdfFile: 'يرجى اختيار ملف PDF صالح'
       },
       messages: {
         deleteConfirm: 'هل أنت متأكد من حذف إشعار الاستلام',
@@ -105,12 +124,23 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
         required: 'This field is required',
         dateRequired: 'Date is required',
         toRequired: 'To field is required',
+        addressRequired: 'Address is required',
+        attentionRequired: 'Attention field is required',
+        projectCodeRequired: 'Project Code is required',
+        workLocationRequired: 'Work Location is required',
+        vehicleNumberRequired: 'Vehicle Number is required',
+        notesRequired: 'Notes are required',
+        itemsRequired: 'At least one item must be added',
+        itemQuantityRequired: 'Quantity is required for item',
+        itemDescriptionRequired: 'Description is required for item',
+        itemElementRequired: 'Element is required for item',
         invalidDate: 'Invalid date',
         loadFailed: 'Failed to load data',
         saveFailed: 'Failed to save data',
         deleteFailed: 'Failed to delete receipt',
         pdfFailed: 'Failed to generate PDF',
-        networkError: 'Server connection error'
+        networkError: 'Server connection error',
+        invalidPdfFile: 'Please select a valid PDF file'
       },
       messages: {
         deleteConfirm: 'Are you sure you want to delete receipt',
@@ -124,7 +154,8 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
   constructor(
     private receiptService: ReceiptService,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private sanitizer: DomSanitizer
   ) {}
 
   ngOnInit(): void {
@@ -132,56 +163,38 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     const user = this.authService.currentUserValue;
     this.userRole = user ? user.role : '';
     
-    // Set default direction to RTL (Arabic)
     this.updateDirection();
     
-    // Setup debounced search
     this.searchSubject.pipe(
-      debounceTime(500), // Wait 500ms after user stops typing
-      distinctUntilChanged() // Only if search term changed
+      debounceTime(500),
+      distinctUntilChanged()
     ).subscribe(() => {
       this.currentPage = 1;
       this.loadReceipts();
     });
   }
 
-  /**
-   * Toggle form language (Arabic/English) and direction
-   */
   toggleFormLanguage(lang: FormLanguage): void {
     this.formLanguage = lang;
     this.updateDirection();
     
-    // Re-validate if there are errors to update error messages
     if (Object.keys(this.fieldErrors).length > 0) {
       this.validateForm();
     }
   }
 
-  /**
-   * Update HTML direction based on language
-   */
   private updateDirection(): void {
     const direction = this.formLanguage === 'ar' ? 'rtl' : 'ltr';
     document.documentElement.setAttribute('dir', direction);
     document.body.setAttribute('dir', direction);
   }
 
-  /**
-   * Reset direction when leaving component
-   */
   ngOnDestroy(): void {
-    // Complete search subject
     this.searchSubject.complete();
-    
-    // Reset to default RTL when leaving receipts page
     document.documentElement.setAttribute('dir', 'rtl');
     document.body.setAttribute('dir', 'rtl');
   }
 
-  /**
-   * Get translated text
-   */
   private t(key: string): string {
     const keys = key.split('.');
     let value: any = this.translations[this.formLanguage];
@@ -194,46 +207,93 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Validate form fields
+   * UPDATED VALIDATION - ALL FIELDS REQUIRED INCLUDING ITEMS
    */
   private validateForm(): boolean {
     this.fieldErrors = {};
     this.formError = '';
     let isValid = true;
 
-    // Validate required: To
+    // Required fields validation
     if (!this.receiptForm.to || this.receiptForm.to.trim() === '') {
       this.fieldErrors['to'] = this.t('errors.toRequired');
       isValid = false;
     }
 
-    // Validate required: Date
     if (!this.receiptForm.date) {
       this.fieldErrors['date'] = this.t('errors.dateRequired');
       isValid = false;
     }
 
+    if (!this.receiptForm.address || this.receiptForm.address.trim() === '') {
+      this.fieldErrors['address'] = this.t('errors.addressRequired');
+      isValid = false;
+    }
+
+    if (!this.receiptForm.attention || this.receiptForm.attention.trim() === '') {
+      this.fieldErrors['attention'] = this.t('errors.attentionRequired');
+      isValid = false;
+    }
+
+    if (!this.receiptForm.projectCode || this.receiptForm.projectCode.trim() === '') {
+      this.fieldErrors['projectCode'] = this.t('errors.projectCodeRequired');
+      isValid = false;
+    }
+
+    if (!this.receiptForm.workLocation || this.receiptForm.workLocation.trim() === '') {
+      this.fieldErrors['workLocation'] = this.t('errors.workLocationRequired');
+      isValid = false;
+    }
+
+    // Vehicle Number validation
+    if (!this.receiptForm.vehicleNumber || this.receiptForm.vehicleNumber.trim() === '') {
+      this.fieldErrors['vehicleNumber'] = this.t('errors.vehicleNumberRequired');
+      isValid = false;
+    }
+
+    if (!this.receiptForm.notes || this.receiptForm.notes.trim() === '') {
+      this.fieldErrors['notes'] = this.t('errors.notesRequired');
+      isValid = false;
+    }
+
+    // NEW: Items validation - at least one item required
+    if (!this.receiptForm.items || this.receiptForm.items.length === 0) {
+      this.fieldErrors['items'] = this.t('errors.itemsRequired');
+      isValid = false;
+    } else {
+      // Validate each item has all required fields
+      this.receiptForm.items.forEach((item, index) => {
+        if (!item.quantity || item.quantity.toString().trim() === '') {
+          this.fieldErrors[`item_${index}_quantity`] = this.t('errors.itemQuantityRequired');
+          isValid = false;
+        }
+        if (!item.description || item.description.trim() === '') {
+          this.fieldErrors[`item_${index}_description`] = this.t('errors.itemDescriptionRequired');
+          isValid = false;
+        }
+        if (!item.element || item.element.trim() === '') {
+          this.fieldErrors[`item_${index}_element`] = this.t('errors.itemElementRequired');
+          isValid = false;
+        }
+      });
+    }
+
+    // additionalText is OPTIONAL - no validation
+
     return isValid;
   }
 
-  /**
-   * Clear all errors
-   */
   private clearErrors(): void {
     this.formError = '';
     this.fieldErrors = {};
   }
 
-  /**
-   * Handle backend errors
-   */
   private handleBackendError(error: any): void {
     console.error('Backend error:', error);
     
     if (error.status === 0) {
       this.formError = this.t('errors.networkError');
     } else if (error.status === 400 && error.error?.errors) {
-      // Handle field-specific errors from backend
       const backendErrors = error.error.errors;
       Object.keys(backendErrors).forEach(key => {
         this.fieldErrors[key] = backendErrors[key];
@@ -246,8 +306,39 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Load receipts from API with search/filter
+   * Handle form PDF attachment selection
    */
+  onFormPdfAttachmentSelected(event: any): void {
+    const file = event.target.files[0];
+    if (file && file.type === 'application/pdf') {
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxSize) {
+        const errorMsg = this.formLanguage === 'ar' 
+          ? 'حجم الملف كبير جداً. الحد الأقصى 10 ميجابايت'
+          : 'File size is too large. Maximum 10MB allowed';
+        alert(errorMsg);
+        event.target.value = '';
+        return;
+      }
+      
+      this.formPdfAttachment = file;
+    } else {
+      alert(this.t('errors.invalidPdfFile'));
+      event.target.value = '';
+    }
+  }
+
+  /**
+   * Remove form PDF attachment
+   */
+  removeFormPdfAttachment(): void {
+    this.formPdfAttachment = null;
+    const fileInput = document.getElementById('form-pdf-attachment') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  }
+
   loadReceipts(): void {
     this.loading = true;
     this.clearErrors();
@@ -279,33 +370,21 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Search receipts - triggers on Enter key
-   */
   onSearch(): void {
     this.currentPage = 1;
     this.loadReceipts();
   }
 
-  /**
-   * Real-time search as user types (with debounce)
-   */
   onSearchChange(): void {
     this.searchSubject.next(this.searchTerm);
   }
 
-  /**
-   * Apply filters
-   */
   applyFilters(): void {
     this.currentPage = 1;
     this.showFilterModal = false;
     this.loadReceipts();
   }
 
-  /**
-   * Clear filters
-   */
   clearFilters(): void {
     this.filters = {
       receiptNumber: '',
@@ -318,9 +397,6 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     this.loadReceipts();
   }
 
-  /**
-   * Pagination
-   */
   goToPage(page: number): void {
     if (page >= 1 && page <= this.totalPages) {
       this.currentPage = page;
@@ -328,30 +404,62 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Get status badge class
-   */
   getStatusClass(receipt: Receipt): string {
     return receipt.pdfFilename ? 'status-generated' : 'status-draft';
   }
 
-  /**
-   * Get status text
-   */
   getStatusText(receipt: Receipt): string {
-    return receipt.pdfFilename ? 'generated' : 'draft';
+    if (receipt.pdfFilename) {
+      return this.formLanguage === 'ar' ? 'تم الإنشاء' : 'Generated';
+    }
+    return this.formLanguage === 'ar' ? 'مسودة' : 'Draft';
   }
 
-  /**
-   * Check if PDF exists
-   */
+  getRoleClass(role: string): string {
+    if (role === 'super_admin') return 'role-super';
+    if (role === 'admin') return 'role-admin';
+    return 'role-user';
+  }
+
+  getRoleText(role: string): string {
+    if (this.formLanguage === 'ar') {
+      if (role === 'super_admin') return 'مدير عام';
+      if (role === 'admin') return 'مدير';
+      return 'مستخدم';
+    }
+    if (role === 'super_admin') return 'Super Admin';
+    if (role === 'admin') return 'Admin';
+    return 'User';
+  }
+
   hasPDF(receipt: Receipt): boolean {
     return !!receipt.pdfFilename;
   }
 
-  /**
-   * Navigate to create receipt
-   */
+  viewPDF(receipt: Receipt): void {
+    if (!receipt.pdfFilename) {
+      const errorMsg = this.formLanguage === 'ar'
+        ? 'لم يتم إنشاء PDF بعد'
+        : 'PDF not generated yet';
+      alert(errorMsg);
+      return;
+    }
+
+    this.receiptService.viewPDFInNewTab(receipt.id);
+  }
+
+  printReceiptPDF(receipt: Receipt): void {
+    if (!receipt.pdfFilename) {
+      const errorMsg = this.formLanguage === 'ar'
+        ? 'لم يتم إنشاء PDF بعد'
+        : 'PDF not generated yet';
+      alert(errorMsg);
+      return;
+    }
+
+    this.receiptService.openPrintDialog(receipt.id);
+  }
+
   createReceipt(): void {
     this.currentView = 'create';
     this.currentStep = 'basic';
@@ -359,21 +467,9 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     this.clearErrors();
   }
 
-  /**
-   * View receipt details
-   */
-  viewReceipt(receipt: Receipt): void {
-    this.selectedReceipt = receipt;
-    this.currentView = 'view';
-  }
-
-  /**
-   * Edit receipt - Fetch fresh data from backend
-   */
   editReceipt(receipt: Receipt): void {
     this.clearErrors();
     
-    // Fetch fresh data from backend
     this.receiptService.getReceiptById(receipt.id).subscribe({
       next: (response: any) => {
         const freshReceipt = response.data;
@@ -381,7 +477,6 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
         this.currentView = 'edit';
         this.currentStep = 'basic';
         
-        // Populate form with fresh backend data
         this.receiptForm = {
           to: freshReceipt.to || '',
           date: freshReceipt.date || this.getTodayDate(),
@@ -391,8 +486,9 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
           projectCode: freshReceipt.projectCode || '',
           workLocation: freshReceipt.workLocation || '',
           companyNumber: freshReceipt.companyNumber || '',
+          vehicleNumber: freshReceipt.vehicleNumber || '',
           additionalText: freshReceipt.additionalText || '',
-          items: JSON.parse(JSON.stringify(freshReceipt.items || [])), // Deep copy
+          items: JSON.parse(JSON.stringify(freshReceipt.items || [])),
           notes: freshReceipt.notes || ''
         };
       },
@@ -403,9 +499,6 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Delete receipt
-   */
   deleteReceipt(receipt: Receipt): void {
     const confirmMessage = `${this.t('messages.deleteConfirm')} ${receipt.receiptNumber}?`;
     
@@ -423,18 +516,38 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Generate PDF
-   */
   openPDFModal(receipt: Receipt): void {
     this.pdfReceiptId = receipt.id;
+    this.selectedReceiptNumber = receipt.receiptNumber;
     this.showPDFModal = true;
     this.pdfAttachment = null;
+  }
+
+  closePDFModal(): void {
+    this.showPDFModal = false;
+    this.pdfAttachment = null;
+    this.pdfReceiptId = '';
+    this.selectedReceiptNumber = '';
+  }
+
+  getPDFFilename(): string {
+    if (!this.selectedReceiptNumber) return '';
+    return `${this.selectedReceiptNumber}.pdf`;
   }
 
   onPDFFileSelected(event: any): void {
     const file = event.target.files[0];
     if (file && file.type === 'application/pdf') {
+      const maxSize = 10 * 1024 * 1024;
+      if (file.size > maxSize) {
+        const errorMsg = this.formLanguage === 'ar' 
+          ? 'حجم الملف كبير جداً. الحد الأقصى 10 ميجابايت'
+          : 'File size is too large. Maximum 10MB allowed';
+        alert(errorMsg);
+        event.target.value = '';
+        return;
+      }
+      
       this.pdfAttachment = file;
     } else {
       const errorMsg = this.formLanguage === 'ar' 
@@ -445,42 +558,108 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     }
   }
 
+  removePDFAttachment(): void {
+    this.pdfAttachment = null;
+    const fileInput = document.getElementById('pdf-attachment') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  }
+
   generatePDF(): void {
     this.generatingPDF = true;
     
     this.receiptService.generatePDF(this.pdfReceiptId, this.pdfAttachment || undefined).subscribe({
       next: (response: any) => {
         this.generatingPDF = false;
-        this.showPDFModal = false;
-        alert(response.message);
+        this.closePDFModal();
+        
+        const successMsg = this.formLanguage === 'ar'
+          ? 'تم إنشاء ملف PDF بنجاح'
+          : 'PDF generated successfully';
+        alert(successMsg);
+        
         this.loadReceipts();
       },
       error: (error: any) => {
         console.error('Error generating PDF:', error);
         this.generatingPDF = false;
-        alert(this.t('errors.pdfFailed'));
+        
+        const errorMsg = error.error?.message || this.t('errors.pdfFailed');
+        alert(errorMsg);
       }
     });
   }
 
-  /**
-   * Download PDF
-   */
   downloadPDF(receipt: Receipt): void {
     if (receipt.pdfFilename) {
-      this.receiptService.downloadPDF(receipt.id);
+      this.receiptService.downloadPDF(receipt.id, receipt.pdfFilename);
+    }
+  }
+
+  nextStep(): void {
+    if (this.currentStep === 'basic') {
+      // Clear items-related errors when moving to next step
+      const itemsErrorKeys = Object.keys(this.fieldErrors).filter(key => 
+        key === 'items' || key.startsWith('item_')
+      );
+      itemsErrorKeys.forEach(key => delete this.fieldErrors[key]);
+      
+      if (this.validateBasicFields()) {
+        this.currentStep = 'items';
+      }
     }
   }
 
   /**
-   * Form navigation
+   * NEW: Validate only basic fields (without items)
    */
-  nextStep(): void {
-    if (this.currentStep === 'basic') {
-      if (this.validateForm()) {
-        this.currentStep = 'items';
-      }
+  private validateBasicFields(): boolean {
+    this.fieldErrors = {};
+    this.formError = '';
+    let isValid = true;
+
+    if (!this.receiptForm.to || this.receiptForm.to.trim() === '') {
+      this.fieldErrors['to'] = this.t('errors.toRequired');
+      isValid = false;
     }
+
+    if (!this.receiptForm.date) {
+      this.fieldErrors['date'] = this.t('errors.dateRequired');
+      isValid = false;
+    }
+
+    if (!this.receiptForm.address || this.receiptForm.address.trim() === '') {
+      this.fieldErrors['address'] = this.t('errors.addressRequired');
+      isValid = false;
+    }
+
+    if (!this.receiptForm.attention || this.receiptForm.attention.trim() === '') {
+      this.fieldErrors['attention'] = this.t('errors.attentionRequired');
+      isValid = false;
+    }
+
+    if (!this.receiptForm.projectCode || this.receiptForm.projectCode.trim() === '') {
+      this.fieldErrors['projectCode'] = this.t('errors.projectCodeRequired');
+      isValid = false;
+    }
+
+    if (!this.receiptForm.workLocation || this.receiptForm.workLocation.trim() === '') {
+      this.fieldErrors['workLocation'] = this.t('errors.workLocationRequired');
+      isValid = false;
+    }
+
+    if (!this.receiptForm.vehicleNumber || this.receiptForm.vehicleNumber.trim() === '') {
+      this.fieldErrors['vehicleNumber'] = this.t('errors.vehicleNumberRequired');
+      isValid = false;
+    }
+
+    if (!this.receiptForm.notes || this.receiptForm.notes.trim() === '') {
+      this.fieldErrors['notes'] = this.t('errors.notesRequired');
+      isValid = false;
+    }
+
+    return isValid;
   }
 
   previousStep(): void {
@@ -489,9 +668,6 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Items management
-   */
   addItem(): void {
     this.receiptForm.items.push({
       quantity: '',
@@ -502,14 +678,29 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
 
   removeItem(index: number): void {
     this.receiptForm.items.splice(index, 1);
+    
+    // Clear errors for this item
+    delete this.fieldErrors[`item_${index}_quantity`];
+    delete this.fieldErrors[`item_${index}_description`];
+    delete this.fieldErrors[`item_${index}_element`];
+    
+    // If items are now empty, add items error
+    if (this.receiptForm.items.length === 0) {
+      this.fieldErrors['items'] = this.t('errors.itemsRequired');
+    }
   }
 
   /**
-   * Save receipt (Create or Update)
+   * Save receipt with full validation including items
    */
   saveReceipt(): void {
-    // Validate form
     if (!this.validateForm()) {
+      // If validation fails, scroll to the error
+      if (this.fieldErrors['items'] || Object.keys(this.fieldErrors).some(key => key.startsWith('item_'))) {
+        this.currentStep = 'items';
+      } else {
+        this.currentStep = 'basic';
+      }
       return;
     }
 
@@ -519,13 +710,37 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     const receiptData = { ...this.receiptForm };
 
     if (this.currentView === 'create') {
-      // CREATE
       this.receiptService.createReceipt(receiptData).subscribe({
         next: (response: any) => {
-          this.savingReceipt = false;
-          alert(this.t('messages.created'));
-          this.backToList();
-          this.loadReceipts();
+          const createdReceipt = response.data;
+          
+          const creatingMsg = this.formLanguage === 'ar'
+            ? 'جاري إنشاء الإشعار وملف PDF...'
+            : 'Creating receipt and generating PDF...';
+          console.log(creatingMsg);
+          
+          // Generate PDF with optional attachment
+          this.receiptService.generatePDF(createdReceipt.id, this.formPdfAttachment || undefined).subscribe({
+            next: (pdfResponse: any) => {
+              this.savingReceipt = false;
+              const successMsg = this.formLanguage === 'ar'
+                ? 'تم إنشاء الإشعار وملف PDF بنجاح'
+                : 'Receipt and PDF created successfully';
+              alert(successMsg);
+              this.backToList();
+              this.loadReceipts();
+            },
+            error: (pdfError: any) => {
+              console.error('Error generating PDF:', pdfError);
+              this.savingReceipt = false;
+              const warningMsg = this.formLanguage === 'ar'
+                ? 'تم إنشاء الإشعار ولكن فشل إنشاء PDF. يمكنك إنشاءه لاحقاً.'
+                : 'Receipt created but PDF generation failed. You can generate it later.';
+              alert(warningMsg);
+              this.backToList();
+              this.loadReceipts();
+            }
+          });
         },
         error: (error: any) => {
           this.savingReceipt = false;
@@ -533,13 +748,31 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
         }
       });
     } else if (this.currentView === 'edit' && this.selectedReceipt) {
-      // UPDATE
       this.receiptService.updateReceipt(this.selectedReceipt.id, receiptData).subscribe({
         next: (response: any) => {
-          this.savingReceipt = false;
-          alert(this.t('messages.updated'));
-          this.backToList();
-          this.loadReceipts();
+          const updatedReceipt = response.data;
+          
+          this.receiptService.generatePDF(updatedReceipt.id, this.formPdfAttachment || undefined).subscribe({
+            next: (pdfResponse: any) => {
+              this.savingReceipt = false;
+              const successMsg = this.formLanguage === 'ar'
+                ? 'تم تحديث الإشعار وملف PDF بنجاح'
+                : 'Receipt and PDF updated successfully';
+              alert(successMsg);
+              this.backToList();
+              this.loadReceipts();
+            },
+            error: (pdfError: any) => {
+              console.error('Error regenerating PDF:', pdfError);
+              this.savingReceipt = false;
+              const warningMsg = this.formLanguage === 'ar'
+                ? 'تم تحديث الإشعار ولكن فشل تحديث PDF'
+                : 'Receipt updated but PDF regeneration failed';
+              alert(warningMsg);
+              this.backToList();
+              this.loadReceipts();
+            }
+          });
         },
         error: (error: any) => {
           this.savingReceipt = false;
@@ -549,20 +782,15 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Cancel and go back
-   */
   backToList(): void {
     this.currentView = 'list';
     this.currentStep = 'basic';
     this.selectedReceipt = null;
     this.resetForm();
     this.clearErrors();
+    this.formPdfAttachment = null;
   }
 
-  /**
-   * Reset form
-   */
   resetForm(): void {
     this.receiptForm = {
       to: '',
@@ -573,31 +801,31 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
       projectCode: '',
       workLocation: '',
       companyNumber: '',
+      vehicleNumber: '',
       additionalText: '',
       items: [],
       notes: ''
     };
+    this.formPdfAttachment = null;
     this.clearErrors();
   }
 
-  /**
-   * Get today's date in YYYY-MM-DD format
-   */
   getTodayDate(): string {
     return this.receiptService.getTodayDate();
   }
 
-  /**
-   * Check if user is super admin
-   */
   isSuperAdmin(): boolean {
     return this.userRole === 'super_admin';
   }
 
-  /**
-   * Get items count
-   */
   getItemsCount(): number {
     return this.receiptForm.items.length;
+  }
+
+  getCreatorName(receipt: Receipt): string {
+    if (receipt.createdByName && receipt.createdByName.trim() !== '') {
+      return receipt.createdByName;
+    }
+    return receipt.createdBy || '-';
   }
 }
