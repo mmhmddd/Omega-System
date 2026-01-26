@@ -1,7 +1,37 @@
-<!-- receipts.component.html - UPDATED WITH REQUIRED ITEMS VALIDATION -->
+<!-- receipts.component.html - WITH INLINE TOAST AND CONFIRMATION MODAL -->
 
 <div class="receipts-container">
   
+  <!-- TOAST NOTIFICATIONS CONTAINER -->
+  <div class="toast-container" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
+    <div 
+      *ngFor="let toast of toasts" 
+      class="toast"
+      [class.toast-success]="toast.type === 'success'"
+      [class.toast-error]="toast.type === 'error'"
+      [class.toast-info]="toast.type === 'info'"
+      [class.toast-warning]="toast.type === 'warning'">
+      
+      <div class="toast-icon">
+        <i class="bi" 
+           [ngClass]="{
+             'bi-check-circle-fill': toast.type === 'success',
+             'bi-x-circle-fill': toast.type === 'error',
+             'bi-info-circle-fill': toast.type === 'info',
+             'bi-exclamation-triangle-fill': toast.type === 'warning'
+           }"></i>
+      </div>
+      
+      <div class="toast-content">
+        <p class="toast-message">{{ toast.message }}</p>
+      </div>
+      
+      <button class="toast-close" (click)="removeToast(toast.id)">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+  </div>
+
   <!-- LIST VIEW -->
   <div *ngIf="currentView === 'list'" class="list-view">
     <!-- Header -->
@@ -108,7 +138,7 @@
               <button 
                 *ngIf="isSuperAdmin()" 
                 class="btn-icon btn-delete" 
-                (click)="deleteReceipt(receipt)" 
+                (click)="showDeleteConfirmation(receipt)" 
                 [title]="formLanguage === 'ar' ? 'حذف' : 'Delete'">
                 <i class="bi bi-trash"></i>
               </button>
@@ -261,7 +291,7 @@
             </div>
           </div>
 
-          <!-- To Field (Full Width) -->
+          <!-- To Field -->
           <div class="form-group">
             <label>
               <i class="bi bi-person"></i>
@@ -282,7 +312,7 @@
             </small>
           </div>
 
-          <!-- Address Field (Full Width) -->
+          <!-- Address Field -->
           <div class="form-group">
             <label>
               <i class="bi bi-geo-alt"></i>
@@ -346,7 +376,7 @@
             </div>
           </div>
 
-          <!-- Vehicle Number Field (Full Width) -->
+          <!-- Vehicle Number Field -->
           <div class="form-group">
             <label>
               <i class="bi bi-truck"></i>
@@ -367,7 +397,7 @@
             </small>
           </div>
 
-          <!-- Additional Text Field (OPTIONAL) -->
+          <!-- Additional Text Field -->
           <div class="form-group">
             <label>
               <i class="bi bi-file-text"></i>
@@ -402,7 +432,7 @@
             </small>
           </div>
 
-          <!-- PDF Attachment Upload (OPTIONAL) -->
+          <!-- PDF Attachment Upload -->
           <div class="form-group">
             <label>
               <i class="bi bi-paperclip"></i>
@@ -447,14 +477,13 @@
           </div>
         </div>
 
-        <!-- STEP 2: Items (REQUIRED) -->
+        <!-- STEP 2: Items -->
         <div *ngIf="currentStep === 'items'" class="step-content">
           <h2 class="step-title">
             {{ formLanguage === 'ar' ? 'العناصر' : 'Items' }}
             <span class="required">*</span>
           </h2>
 
-          <!-- Items Required Error -->
           <div class="error-alert" *ngIf="fieldErrors['items']" style="margin-bottom: 1.5rem;">
             <i class="bi bi-exclamation-circle"></i>
             <span>{{ fieldErrors['items'] }}</span>
@@ -609,7 +638,6 @@
               accept=".pdf"
               (change)="onPDFFileSelected($event)"
               class="file-input"
-              #fileInput
             />
             <label for="pdf-attachment" class="file-upload-label">
               <i class="bi bi-cloud-upload"></i>
@@ -653,5 +681,32 @@
       </div>
     </div>
   </div>
+
+  <!-- INLINE CONFIRMATION MODAL -->
+<div *ngIf="showConfirmationModal" class="confirmation-overlay" (click)="cancelConfirmation()">
+  <div class="confirmation-modal" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'" (click)="$event.stopPropagation()">
+    <div class="modal-header danger">
+      <div class="modal-icon">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+      </div>
+      <h3 class="modal-title">{{ confirmationTitle }}</h3>
+    </div>
+    
+    <div class="modal-body">
+      <p class="modal-message">{{ confirmationMessage }}</p>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="cancelConfirmation()">
+        <i class="bi bi-x-circle"></i>
+        {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
+      </button>
+      <button class="btn-confirm danger" (click)="confirmAction()">
+        <i class="bi bi-check-circle"></i>
+        {{ formLanguage === 'ar' ? 'حذف' : 'Delete' }}
+      </button>
+    </div>
+  </div>
+</div>
 
 </div>

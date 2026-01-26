@@ -1,4 +1,4 @@
-// receipts.component.ts - UPDATED WITH VEHICLE NUMBER & REQUIRED ITEMS
+// receipts.component.ts - COMPLETE WITH INLINE TOAST & CONFIRMATION
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -13,6 +13,13 @@ import { AuthService } from '../../core/services/auth.service';
 type ViewMode = 'list' | 'create' | 'edit' | 'view';
 type FormStep = 'basic' | 'items';
 type FormLanguage = 'ar' | 'en';
+type ToastType = 'success' | 'error' | 'info' | 'warning';
+
+interface Toast {
+  id: string;
+  type: ToastType;
+  message: string;
+}
 
 @Component({
   selector: 'app-receipts',
@@ -37,7 +44,7 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
   totalReceipts: number = 0;
   limit: number = 10;
   
-  // Search and filters
+  // Search
   searchTerm: string = '';
   showFilterModal: boolean = false;
   filters = {
@@ -47,7 +54,6 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     to: ''
   };
   
-  // Search debounce
   private searchSubject = new Subject<string>();
   
   // Loading states
@@ -59,7 +65,7 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
   formError: string = '';
   fieldErrors: { [key: string]: string } = {};
   
-  // Form data - UPDATED WITH VEHICLE NUMBER
+  // Form data
   receiptForm: CreateReceiptData = {
     to: '',
     date: this.getTodayDate(),
@@ -69,7 +75,7 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     projectCode: '',
     workLocation: '',
     companyNumber: '',
-    vehicleNumber: '', // NEW FIELD
+    vehicleNumber: '',
     additionalText: '',
     items: [],
     notes: ''
@@ -80,14 +86,22 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
   pdfAttachment: File | null = null;
   pdfReceiptId: string = '';
   selectedReceiptNumber: string = '';
-  
-  // Form PDF Attachment - NEW
   formPdfAttachment: File | null = null;
   
   // User role
   userRole: string = '';
   
-  // Translation object - UPDATED WITH ITEMS VALIDATION
+  // INLINE TOAST STATE
+  toasts: Toast[] = [];
+  private toastTimeouts: Map<string, any> = new Map();
+  
+  // INLINE CONFIRMATION STATE
+  showConfirmationModal: boolean = false;
+  confirmationTitle: string = '';
+  confirmationMessage: string = '';
+  private confirmationCallback: (() => void) | null = null;
+  
+  // Translations
   private translations = {
     ar: {
       errors: {
@@ -104,19 +118,26 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
         itemQuantityRequired: 'الكمية مطلوبة للعنصر',
         itemDescriptionRequired: 'الوصف مطلوب للعنصر',
         itemElementRequired: 'العنصر مطلوب للعنصر',
-        invalidDate: 'تاريخ غير صالح',
         loadFailed: 'فشل تحميل البيانات',
         saveFailed: 'فشل حفظ البيانات',
         deleteFailed: 'فشل حذف الإشعار',
         pdfFailed: 'فشل إنشاء PDF',
         networkError: 'خطأ في الاتصال بالخادم',
-        invalidPdfFile: 'يرجى اختيار ملف PDF صالح'
+        invalidPdfFile: 'يرجى اختيار ملف PDF صالح',
+        fileTooLarge: 'حجم الملف كبير جداً. الحد الأقصى 10 ميجابايت',
+        pdfNotGenerated: 'لم يتم إنشاء PDF بعد',
+        pdfGenerationWarning: 'تم إنشاء الإشعار ولكن فشل إنشاء PDF',
+        pdfUpdateWarning: 'تم تحديث الإشعار ولكن فشل تحديث PDF'
       },
       messages: {
-        deleteConfirm: 'هل أنت متأكد من حذف إشعار الاستلام',
+        deleteConfirmTitle: 'تأكيد الحذف',
+        deleteConfirmMessage: 'هل أنت متأكد من حذف إشعار الاستلام',
         created: 'تم إنشاء الإشعار بنجاح',
         updated: 'تم تحديث الإشعار بنجاح',
-        deleted: 'تم حذف الإشعار بنجاح'
+        deleted: 'تم حذف الإشعار بنجاح',
+        pdfGenerated: 'تم إنشاء ملف PDF بنجاح',
+        createdWithPdf: 'تم إنشاء الإشعار وملف PDF بنجاح',
+        updatedWithPdf: 'تم تحديث الإشعار وملف PDF بنجاح'
       }
     },
     en: {
@@ -134,19 +155,26 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
         itemQuantityRequired: 'Quantity is required for item',
         itemDescriptionRequired: 'Description is required for item',
         itemElementRequired: 'Element is required for item',
-        invalidDate: 'Invalid date',
         loadFailed: 'Failed to load data',
         saveFailed: 'Failed to save data',
         deleteFailed: 'Failed to delete receipt',
         pdfFailed: 'Failed to generate PDF',
         networkError: 'Server connection error',
-        invalidPdfFile: 'Please select a valid PDF file'
+        invalidPdfFile: 'Please select a valid PDF file',
+        fileTooLarge: 'File size is too large. Maximum 10MB',
+        pdfNotGenerated: 'PDF not generated yet',
+        pdfGenerationWarning: 'Receipt created but PDF failed',
+        pdfUpdateWarning: 'Receipt updated but PDF failed'
       },
       messages: {
-        deleteConfirm: 'Are you sure you want to delete receipt',
+        deleteConfirmTitle: 'Confirm Delete',
+        deleteConfirmMessage: 'Are you sure you want to delete receipt',
         created: 'Receipt created successfully',
         updated: 'Receipt updated successfully',
-        deleted: 'Receipt deleted successfully'
+        deleted: 'Receipt deleted successfully',
+        pdfGenerated: 'PDF generated successfully',
+        createdWithPdf: 'Receipt and PDF created successfully',
+        updatedWithPdf: 'Receipt and PDF updated successfully'
       }
     }
   };
@@ -174,10 +202,87 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     });
   }
 
+  ngOnDestroy(): void {
+    this.searchSubject.complete();
+    this.toastTimeouts.forEach(timeout => clearTimeout(timeout));
+    this.toastTimeouts.clear();
+    document.documentElement.setAttribute('dir', 'rtl');
+    document.body.setAttribute('dir', 'rtl');
+  }
+
+  // ========================================
+  // INLINE TOAST METHODS
+  // ========================================
+  
+  showToast(type: ToastType, message: string, duration: number = 3000): void {
+    const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const toast: Toast = { id, type, message };
+    
+    this.toasts.push(toast);
+    
+    // Auto-remove
+    if (duration > 0) {
+      const timeout = setTimeout(() => {
+        this.removeToast(id);
+      }, duration);
+      this.toastTimeouts.set(id, timeout);
+    }
+    
+    // Limit to 5 toasts
+    if (this.toasts.length > 5) {
+      const oldestToast = this.toasts[0];
+      this.removeToast(oldestToast.id);
+    }
+  }
+
+  removeToast(id: string): void {
+    const index = this.toasts.findIndex(t => t.id === id);
+    if (index > -1) {
+      this.toasts.splice(index, 1);
+      const timeout = this.toastTimeouts.get(id);
+      if (timeout) {
+        clearTimeout(timeout);
+        this.toastTimeouts.delete(id);
+      }
+    }
+  }
+
+  // ========================================
+  // INLINE CONFIRMATION METHODS
+  // ========================================
+  
+  showConfirmation(title: string, message: string, callback: () => void): void {
+    this.confirmationTitle = title;
+    this.confirmationMessage = message;
+    this.confirmationCallback = callback;
+    this.showConfirmationModal = true;
+  }
+
+  confirmAction(): void {
+    if (this.confirmationCallback) {
+      this.confirmationCallback();
+    }
+    this.closeConfirmationModal();
+  }
+
+  cancelConfirmation(): void {
+    this.closeConfirmationModal();
+  }
+
+  private closeConfirmationModal(): void {
+    this.showConfirmationModal = false;
+    this.confirmationTitle = '';
+    this.confirmationMessage = '';
+    this.confirmationCallback = null;
+  }
+
+  // ========================================
+  // HELPER METHODS
+  // ========================================
+
   toggleFormLanguage(lang: FormLanguage): void {
     this.formLanguage = lang;
     this.updateDirection();
-    
     if (Object.keys(this.fieldErrors).length > 0) {
       this.validateForm();
     }
@@ -189,79 +294,56 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     document.body.setAttribute('dir', direction);
   }
 
-  ngOnDestroy(): void {
-    this.searchSubject.complete();
-    document.documentElement.setAttribute('dir', 'rtl');
-    document.body.setAttribute('dir', 'rtl');
-  }
-
   private t(key: string): string {
     const keys = key.split('.');
     let value: any = this.translations[this.formLanguage];
-    
     for (const k of keys) {
       value = value?.[k];
     }
-    
     return value || key;
   }
 
-  /**
-   * UPDATED VALIDATION - ALL FIELDS REQUIRED INCLUDING ITEMS
-   */
   private validateForm(): boolean {
     this.fieldErrors = {};
     this.formError = '';
     let isValid = true;
 
-    // Required fields validation
     if (!this.receiptForm.to || this.receiptForm.to.trim() === '') {
       this.fieldErrors['to'] = this.t('errors.toRequired');
       isValid = false;
     }
-
     if (!this.receiptForm.date) {
       this.fieldErrors['date'] = this.t('errors.dateRequired');
       isValid = false;
     }
-
     if (!this.receiptForm.address || this.receiptForm.address.trim() === '') {
       this.fieldErrors['address'] = this.t('errors.addressRequired');
       isValid = false;
     }
-
     if (!this.receiptForm.attention || this.receiptForm.attention.trim() === '') {
       this.fieldErrors['attention'] = this.t('errors.attentionRequired');
       isValid = false;
     }
-
     if (!this.receiptForm.projectCode || this.receiptForm.projectCode.trim() === '') {
       this.fieldErrors['projectCode'] = this.t('errors.projectCodeRequired');
       isValid = false;
     }
-
     if (!this.receiptForm.workLocation || this.receiptForm.workLocation.trim() === '') {
       this.fieldErrors['workLocation'] = this.t('errors.workLocationRequired');
       isValid = false;
     }
-
-    // Vehicle Number validation
     if (!this.receiptForm.vehicleNumber || this.receiptForm.vehicleNumber.trim() === '') {
       this.fieldErrors['vehicleNumber'] = this.t('errors.vehicleNumberRequired');
       isValid = false;
     }
-
     if (!this.receiptForm.notes || this.receiptForm.notes.trim() === '') {
       this.fieldErrors['notes'] = this.t('errors.notesRequired');
       isValid = false;
     }
-
-    // NEW: Items validation - at least one item required
     if (!this.receiptForm.items || this.receiptForm.items.length === 0) {
       this.fieldErrors['items'] = this.t('errors.itemsRequired');
       isValid = false;
     } else {
-      // Validate each item has all required fields
       this.receiptForm.items.forEach((item, index) => {
         if (!item.quantity || item.quantity.toString().trim() === '') {
           this.fieldErrors[`item_${index}_quantity`] = this.t('errors.itemQuantityRequired');
@@ -277,9 +359,46 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
         }
       });
     }
+    return isValid;
+  }
 
-    // additionalText is OPTIONAL - no validation
+  private validateBasicFields(): boolean {
+    this.fieldErrors = {};
+    this.formError = '';
+    let isValid = true;
 
+    if (!this.receiptForm.to || this.receiptForm.to.trim() === '') {
+      this.fieldErrors['to'] = this.t('errors.toRequired');
+      isValid = false;
+    }
+    if (!this.receiptForm.date) {
+      this.fieldErrors['date'] = this.t('errors.dateRequired');
+      isValid = false;
+    }
+    if (!this.receiptForm.address || this.receiptForm.address.trim() === '') {
+      this.fieldErrors['address'] = this.t('errors.addressRequired');
+      isValid = false;
+    }
+    if (!this.receiptForm.attention || this.receiptForm.attention.trim() === '') {
+      this.fieldErrors['attention'] = this.t('errors.attentionRequired');
+      isValid = false;
+    }
+    if (!this.receiptForm.projectCode || this.receiptForm.projectCode.trim() === '') {
+      this.fieldErrors['projectCode'] = this.t('errors.projectCodeRequired');
+      isValid = false;
+    }
+    if (!this.receiptForm.workLocation || this.receiptForm.workLocation.trim() === '') {
+      this.fieldErrors['workLocation'] = this.t('errors.workLocationRequired');
+      isValid = false;
+    }
+    if (!this.receiptForm.vehicleNumber || this.receiptForm.vehicleNumber.trim() === '') {
+      this.fieldErrors['vehicleNumber'] = this.t('errors.vehicleNumberRequired');
+      isValid = false;
+    }
+    if (!this.receiptForm.notes || this.receiptForm.notes.trim() === '') {
+      this.fieldErrors['notes'] = this.t('errors.notesRequired');
+      isValid = false;
+    }
     return isValid;
   }
 
@@ -290,9 +409,9 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
 
   private handleBackendError(error: any): void {
     console.error('Backend error:', error);
-    
     if (error.status === 0) {
       this.formError = this.t('errors.networkError');
+      this.showToast('error', this.t('errors.networkError'));
     } else if (error.status === 400 && error.error?.errors) {
       const backendErrors = error.error.errors;
       Object.keys(backendErrors).forEach(key => {
@@ -300,37 +419,33 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
       });
     } else if (error.error?.message) {
       this.formError = error.error.message;
+      this.showToast('error', error.error.message);
     } else {
       this.formError = this.t('errors.saveFailed');
+      this.showToast('error', this.t('errors.saveFailed'));
     }
   }
 
-  /**
-   * Handle form PDF attachment selection
-   */
+  // ========================================
+  // FILE HANDLERS
+  // ========================================
+
   onFormPdfAttachmentSelected(event: any): void {
     const file = event.target.files[0];
     if (file && file.type === 'application/pdf') {
-      const maxSize = 10 * 1024 * 1024; // 10MB
+      const maxSize = 10 * 1024 * 1024;
       if (file.size > maxSize) {
-        const errorMsg = this.formLanguage === 'ar' 
-          ? 'حجم الملف كبير جداً. الحد الأقصى 10 ميجابايت'
-          : 'File size is too large. Maximum 10MB allowed';
-        alert(errorMsg);
+        this.showToast('error', this.t('errors.fileTooLarge'));
         event.target.value = '';
         return;
       }
-      
       this.formPdfAttachment = file;
     } else {
-      alert(this.t('errors.invalidPdfFile'));
+      this.showToast('error', this.t('errors.invalidPdfFile'));
       event.target.value = '';
     }
   }
 
-  /**
-   * Remove form PDF attachment
-   */
   removeFormPdfAttachment(): void {
     this.formPdfAttachment = null;
     const fileInput = document.getElementById('form-pdf-attachment') as HTMLInputElement;
@@ -338,6 +453,34 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
       fileInput.value = '';
     }
   }
+
+  onPDFFileSelected(event: any): void {
+    const file = event.target.files[0];
+    if (file && file.type === 'application/pdf') {
+      const maxSize = 10 * 1024 * 1024;
+      if (file.size > maxSize) {
+        this.showToast('error', this.t('errors.fileTooLarge'));
+        event.target.value = '';
+        return;
+      }
+      this.pdfAttachment = file;
+    } else {
+      this.showToast('error', this.t('errors.invalidPdfFile'));
+      event.target.value = '';
+    }
+  }
+
+  removePDFAttachment(): void {
+    this.pdfAttachment = null;
+    const fileInput = document.getElementById('pdf-attachment') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  }
+
+  // ========================================
+  // DATA OPERATIONS
+  // ========================================
 
   loadReceipts(): void {
     this.loading = true;
@@ -366,6 +509,7 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
         console.error('Error loading receipts:', error);
         this.loading = false;
         this.formError = this.t('errors.loadFailed');
+        this.showToast('error', this.t('errors.loadFailed'));
       }
     });
   }
@@ -379,29 +523,289 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     this.searchSubject.next(this.searchTerm);
   }
 
-  applyFilters(): void {
-    this.currentPage = 1;
-    this.showFilterModal = false;
-    this.loadReceipts();
-  }
-
-  clearFilters(): void {
-    this.filters = {
-      receiptNumber: '',
-      startDate: '',
-      endDate: '',
-      to: ''
-    };
-    this.searchTerm = '';
-    this.currentPage = 1;
-    this.loadReceipts();
-  }
-
   goToPage(page: number): void {
     if (page >= 1 && page <= this.totalPages) {
       this.currentPage = page;
       this.loadReceipts();
     }
+  }
+
+  createReceipt(): void {
+    this.currentView = 'create';
+    this.currentStep = 'basic';
+    this.resetForm();
+    this.clearErrors();
+  }
+
+  editReceipt(receipt: Receipt): void {
+    this.clearErrors();
+    this.receiptService.getReceiptById(receipt.id).subscribe({
+      next: (response: any) => {
+        const freshReceipt = response.data;
+        this.selectedReceipt = freshReceipt;
+        this.currentView = 'edit';
+        this.currentStep = 'basic';
+        this.receiptForm = {
+          to: freshReceipt.to || '',
+          date: freshReceipt.date || this.getTodayDate(),
+          address: freshReceipt.address || '',
+          addressTitle: freshReceipt.addressTitle || '',
+          attention: freshReceipt.attention || '',
+          projectCode: freshReceipt.projectCode || '',
+          workLocation: freshReceipt.workLocation || '',
+          companyNumber: freshReceipt.companyNumber || '',
+          vehicleNumber: freshReceipt.vehicleNumber || '',
+          additionalText: freshReceipt.additionalText || '',
+          items: JSON.parse(JSON.stringify(freshReceipt.items || [])),
+          notes: freshReceipt.notes || ''
+        };
+      },
+      error: (error: any) => {
+        console.error('Error fetching receipt:', error);
+        this.formError = this.t('errors.loadFailed');
+        this.showToast('error', this.t('errors.loadFailed'));
+      }
+    });
+  }
+
+  showDeleteConfirmation(receipt: Receipt): void {
+    const title = this.t('messages.deleteConfirmTitle');
+    const message = `${this.t('messages.deleteConfirmMessage')} ${receipt.receiptNumber}?`;
+    this.showConfirmation(title, message, () => {
+      this.performDelete(receipt);
+    });
+  }
+
+  private performDelete(receipt: Receipt): void {
+    this.receiptService.deleteReceipt(receipt.id).subscribe({
+      next: () => {
+        this.showToast('success', this.t('messages.deleted'));
+        this.loadReceipts();
+      },
+      error: (error: any) => {
+        console.error('Error deleting receipt:', error);
+        this.showToast('error', this.t('errors.deleteFailed'));
+      }
+    });
+  }
+
+  saveReceipt(): void {
+    if (!this.validateForm()) {
+      if (this.fieldErrors['items'] || Object.keys(this.fieldErrors).some(key => key.startsWith('item_'))) {
+        this.currentStep = 'items';
+      } else {
+        this.currentStep = 'basic';
+      }
+      return;
+    }
+
+    this.savingReceipt = true;
+    this.clearErrors();
+    const receiptData = { ...this.receiptForm };
+
+    if (this.currentView === 'create') {
+      this.receiptService.createReceipt(receiptData).subscribe({
+        next: (response: any) => {
+          const createdReceipt = response.data;
+          this.receiptService.generatePDF(createdReceipt.id, this.formPdfAttachment || undefined).subscribe({
+            next: () => {
+              this.savingReceipt = false;
+              this.showToast('success', this.t('messages.createdWithPdf'));
+              this.backToList();
+              this.loadReceipts();
+            },
+            error: () => {
+              this.savingReceipt = false;
+              this.showToast('warning', this.t('errors.pdfGenerationWarning'));
+              this.backToList();
+              this.loadReceipts();
+            }
+          });
+        },
+        error: (error: any) => {
+          this.savingReceipt = false;
+          this.handleBackendError(error);
+        }
+      });
+    } else if (this.currentView === 'edit' && this.selectedReceipt) {
+      this.receiptService.updateReceipt(this.selectedReceipt.id, receiptData).subscribe({
+        next: (response: any) => {
+          const updatedReceipt = response.data;
+          this.receiptService.generatePDF(updatedReceipt.id, this.formPdfAttachment || undefined).subscribe({
+            next: () => {
+              this.savingReceipt = false;
+              this.showToast('success', this.t('messages.updatedWithPdf'));
+              this.backToList();
+              this.loadReceipts();
+            },
+            error: () => {
+              this.savingReceipt = false;
+              this.showToast('warning', this.t('errors.pdfUpdateWarning'));
+              this.backToList();
+              this.loadReceipts();
+            }
+          });
+        },
+        error: (error: any) => {
+          this.savingReceipt = false;
+          this.handleBackendError(error);
+        }
+      });
+    }
+  }
+
+  // ========================================
+  // PDF OPERATIONS
+  // ========================================
+
+  viewPDF(receipt: Receipt): void {
+    if (!receipt.pdfFilename) {
+      this.showToast('error', this.t('errors.pdfNotGenerated'));
+      return;
+    }
+    this.receiptService.viewPDFInNewTab(receipt.id);
+  }
+
+  printReceiptPDF(receipt: Receipt): void {
+    if (!receipt.pdfFilename) {
+      this.showToast('error', this.t('errors.pdfNotGenerated'));
+      return;
+    }
+    this.receiptService.openPrintDialog(receipt.id);
+  }
+
+  downloadPDF(receipt: Receipt): void {
+    if (receipt.pdfFilename) {
+      this.receiptService.downloadPDF(receipt.id, receipt.pdfFilename);
+    }
+  }
+
+  openPDFModal(receipt: Receipt): void {
+    this.pdfReceiptId = receipt.id;
+    this.selectedReceiptNumber = receipt.receiptNumber;
+    this.showPDFModal = true;
+    this.pdfAttachment = null;
+  }
+
+  closePDFModal(): void {
+    this.showPDFModal = false;
+    this.pdfAttachment = null;
+    this.pdfReceiptId = '';
+    this.selectedReceiptNumber = '';
+  }
+
+  getPDFFilename(): string {
+    if (!this.selectedReceiptNumber) return '';
+    return `${this.selectedReceiptNumber}.pdf`;
+  }
+
+  generatePDF(): void {
+    this.generatingPDF = true;
+    this.receiptService.generatePDF(this.pdfReceiptId, this.pdfAttachment || undefined).subscribe({
+      next: () => {
+        this.generatingPDF = false;
+        this.closePDFModal();
+        this.showToast('success', this.t('messages.pdfGenerated'));
+        this.loadReceipts();
+      },
+      error: (error: any) => {
+        console.error('Error generating PDF:', error);
+        this.generatingPDF = false;
+        const errorMsg = error.error?.message || this.t('errors.pdfFailed');
+        this.showToast('error', errorMsg);
+      }
+    });
+  }
+
+  // ========================================
+  // FORM NAVIGATION
+  // ========================================
+
+  nextStep(): void {
+    if (this.currentStep === 'basic') {
+      const itemsErrorKeys = Object.keys(this.fieldErrors).filter(key => 
+        key === 'items' || key.startsWith('item_')
+      );
+      itemsErrorKeys.forEach(key => delete this.fieldErrors[key]);
+      if (this.validateBasicFields()) {
+        this.currentStep = 'items';
+      }
+    }
+  }
+
+  previousStep(): void {
+    if (this.currentStep === 'items') {
+      this.currentStep = 'basic';
+    }
+  }
+
+  addItem(): void {
+    this.receiptForm.items.push({
+      quantity: '',
+      description: '',
+      element: ''
+    });
+  }
+
+  removeItem(index: number): void {
+    this.receiptForm.items.splice(index, 1);
+    delete this.fieldErrors[`item_${index}_quantity`];
+    delete this.fieldErrors[`item_${index}_description`];
+    delete this.fieldErrors[`item_${index}_element`];
+    if (this.receiptForm.items.length === 0) {
+      this.fieldErrors['items'] = this.t('errors.itemsRequired');
+    }
+  }
+
+  backToList(): void {
+    this.currentView = 'list';
+    this.currentStep = 'basic';
+    this.selectedReceipt = null;
+    this.resetForm();
+    this.clearErrors();
+    this.formPdfAttachment = null;
+  }
+
+  resetForm(): void {
+    this.receiptForm = {
+      to: '',
+      date: this.getTodayDate(),
+      address: '',
+      addressTitle: '',
+      attention: '',
+      projectCode: '',
+      workLocation: '',
+      companyNumber: '',
+      vehicleNumber: '',
+      additionalText: '',
+      items: [],
+      notes: ''
+    };
+    this.formPdfAttachment = null;
+    this.clearErrors();
+  }
+
+  // ========================================
+  // UTILITIES
+  // ========================================
+
+  getTodayDate(): string {
+    return this.receiptService.getTodayDate();
+  }
+
+  isSuperAdmin(): boolean {
+    return this.userRole === 'super_admin';
+  }
+
+  getItemsCount(): number {
+    return this.receiptForm.items.length;
+  }
+
+  getCreatorName(receipt: Receipt): string {
+    if (receipt.createdByName && receipt.createdByName.trim() !== '') {
+      return receipt.createdByName;
+    }
+    return receipt.createdBy || '-';
   }
 
   getStatusClass(receipt: Receipt): string {
@@ -434,398 +838,5 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
 
   hasPDF(receipt: Receipt): boolean {
     return !!receipt.pdfFilename;
-  }
-
-  viewPDF(receipt: Receipt): void {
-    if (!receipt.pdfFilename) {
-      const errorMsg = this.formLanguage === 'ar'
-        ? 'لم يتم إنشاء PDF بعد'
-        : 'PDF not generated yet';
-      alert(errorMsg);
-      return;
-    }
-
-    this.receiptService.viewPDFInNewTab(receipt.id);
-  }
-
-  printReceiptPDF(receipt: Receipt): void {
-    if (!receipt.pdfFilename) {
-      const errorMsg = this.formLanguage === 'ar'
-        ? 'لم يتم إنشاء PDF بعد'
-        : 'PDF not generated yet';
-      alert(errorMsg);
-      return;
-    }
-
-    this.receiptService.openPrintDialog(receipt.id);
-  }
-
-  createReceipt(): void {
-    this.currentView = 'create';
-    this.currentStep = 'basic';
-    this.resetForm();
-    this.clearErrors();
-  }
-
-  editReceipt(receipt: Receipt): void {
-    this.clearErrors();
-    
-    this.receiptService.getReceiptById(receipt.id).subscribe({
-      next: (response: any) => {
-        const freshReceipt = response.data;
-        this.selectedReceipt = freshReceipt;
-        this.currentView = 'edit';
-        this.currentStep = 'basic';
-        
-        this.receiptForm = {
-          to: freshReceipt.to || '',
-          date: freshReceipt.date || this.getTodayDate(),
-          address: freshReceipt.address || '',
-          addressTitle: freshReceipt.addressTitle || '',
-          attention: freshReceipt.attention || '',
-          projectCode: freshReceipt.projectCode || '',
-          workLocation: freshReceipt.workLocation || '',
-          companyNumber: freshReceipt.companyNumber || '',
-          vehicleNumber: freshReceipt.vehicleNumber || '',
-          additionalText: freshReceipt.additionalText || '',
-          items: JSON.parse(JSON.stringify(freshReceipt.items || [])),
-          notes: freshReceipt.notes || ''
-        };
-      },
-      error: (error: any) => {
-        console.error('Error fetching receipt:', error);
-        this.formError = this.t('errors.loadFailed');
-      }
-    });
-  }
-
-  deleteReceipt(receipt: Receipt): void {
-    const confirmMessage = `${this.t('messages.deleteConfirm')} ${receipt.receiptNumber}?`;
-    
-    if (confirm(confirmMessage)) {
-      this.receiptService.deleteReceipt(receipt.id).subscribe({
-        next: () => {
-          alert(this.t('messages.deleted'));
-          this.loadReceipts();
-        },
-        error: (error: any) => {
-          console.error('Error deleting receipt:', error);
-          alert(this.t('errors.deleteFailed'));
-        }
-      });
-    }
-  }
-
-  openPDFModal(receipt: Receipt): void {
-    this.pdfReceiptId = receipt.id;
-    this.selectedReceiptNumber = receipt.receiptNumber;
-    this.showPDFModal = true;
-    this.pdfAttachment = null;
-  }
-
-  closePDFModal(): void {
-    this.showPDFModal = false;
-    this.pdfAttachment = null;
-    this.pdfReceiptId = '';
-    this.selectedReceiptNumber = '';
-  }
-
-  getPDFFilename(): string {
-    if (!this.selectedReceiptNumber) return '';
-    return `${this.selectedReceiptNumber}.pdf`;
-  }
-
-  onPDFFileSelected(event: any): void {
-    const file = event.target.files[0];
-    if (file && file.type === 'application/pdf') {
-      const maxSize = 10 * 1024 * 1024;
-      if (file.size > maxSize) {
-        const errorMsg = this.formLanguage === 'ar' 
-          ? 'حجم الملف كبير جداً. الحد الأقصى 10 ميجابايت'
-          : 'File size is too large. Maximum 10MB allowed';
-        alert(errorMsg);
-        event.target.value = '';
-        return;
-      }
-      
-      this.pdfAttachment = file;
-    } else {
-      const errorMsg = this.formLanguage === 'ar' 
-        ? 'يرجى اختيار ملف PDF صالح'
-        : 'Please select a valid PDF file';
-      alert(errorMsg);
-      event.target.value = '';
-    }
-  }
-
-  removePDFAttachment(): void {
-    this.pdfAttachment = null;
-    const fileInput = document.getElementById('pdf-attachment') as HTMLInputElement;
-    if (fileInput) {
-      fileInput.value = '';
-    }
-  }
-
-  generatePDF(): void {
-    this.generatingPDF = true;
-    
-    this.receiptService.generatePDF(this.pdfReceiptId, this.pdfAttachment || undefined).subscribe({
-      next: (response: any) => {
-        this.generatingPDF = false;
-        this.closePDFModal();
-        
-        const successMsg = this.formLanguage === 'ar'
-          ? 'تم إنشاء ملف PDF بنجاح'
-          : 'PDF generated successfully';
-        alert(successMsg);
-        
-        this.loadReceipts();
-      },
-      error: (error: any) => {
-        console.error('Error generating PDF:', error);
-        this.generatingPDF = false;
-        
-        const errorMsg = error.error?.message || this.t('errors.pdfFailed');
-        alert(errorMsg);
-      }
-    });
-  }
-
-  downloadPDF(receipt: Receipt): void {
-    if (receipt.pdfFilename) {
-      this.receiptService.downloadPDF(receipt.id, receipt.pdfFilename);
-    }
-  }
-
-  nextStep(): void {
-    if (this.currentStep === 'basic') {
-      // Clear items-related errors when moving to next step
-      const itemsErrorKeys = Object.keys(this.fieldErrors).filter(key => 
-        key === 'items' || key.startsWith('item_')
-      );
-      itemsErrorKeys.forEach(key => delete this.fieldErrors[key]);
-      
-      if (this.validateBasicFields()) {
-        this.currentStep = 'items';
-      }
-    }
-  }
-
-  /**
-   * NEW: Validate only basic fields (without items)
-   */
-  private validateBasicFields(): boolean {
-    this.fieldErrors = {};
-    this.formError = '';
-    let isValid = true;
-
-    if (!this.receiptForm.to || this.receiptForm.to.trim() === '') {
-      this.fieldErrors['to'] = this.t('errors.toRequired');
-      isValid = false;
-    }
-
-    if (!this.receiptForm.date) {
-      this.fieldErrors['date'] = this.t('errors.dateRequired');
-      isValid = false;
-    }
-
-    if (!this.receiptForm.address || this.receiptForm.address.trim() === '') {
-      this.fieldErrors['address'] = this.t('errors.addressRequired');
-      isValid = false;
-    }
-
-    if (!this.receiptForm.attention || this.receiptForm.attention.trim() === '') {
-      this.fieldErrors['attention'] = this.t('errors.attentionRequired');
-      isValid = false;
-    }
-
-    if (!this.receiptForm.projectCode || this.receiptForm.projectCode.trim() === '') {
-      this.fieldErrors['projectCode'] = this.t('errors.projectCodeRequired');
-      isValid = false;
-    }
-
-    if (!this.receiptForm.workLocation || this.receiptForm.workLocation.trim() === '') {
-      this.fieldErrors['workLocation'] = this.t('errors.workLocationRequired');
-      isValid = false;
-    }
-
-    if (!this.receiptForm.vehicleNumber || this.receiptForm.vehicleNumber.trim() === '') {
-      this.fieldErrors['vehicleNumber'] = this.t('errors.vehicleNumberRequired');
-      isValid = false;
-    }
-
-    if (!this.receiptForm.notes || this.receiptForm.notes.trim() === '') {
-      this.fieldErrors['notes'] = this.t('errors.notesRequired');
-      isValid = false;
-    }
-
-    return isValid;
-  }
-
-  previousStep(): void {
-    if (this.currentStep === 'items') {
-      this.currentStep = 'basic';
-    }
-  }
-
-  addItem(): void {
-    this.receiptForm.items.push({
-      quantity: '',
-      description: '',
-      element: ''
-    });
-  }
-
-  removeItem(index: number): void {
-    this.receiptForm.items.splice(index, 1);
-    
-    // Clear errors for this item
-    delete this.fieldErrors[`item_${index}_quantity`];
-    delete this.fieldErrors[`item_${index}_description`];
-    delete this.fieldErrors[`item_${index}_element`];
-    
-    // If items are now empty, add items error
-    if (this.receiptForm.items.length === 0) {
-      this.fieldErrors['items'] = this.t('errors.itemsRequired');
-    }
-  }
-
-  /**
-   * Save receipt with full validation including items
-   */
-  saveReceipt(): void {
-    if (!this.validateForm()) {
-      // If validation fails, scroll to the error
-      if (this.fieldErrors['items'] || Object.keys(this.fieldErrors).some(key => key.startsWith('item_'))) {
-        this.currentStep = 'items';
-      } else {
-        this.currentStep = 'basic';
-      }
-      return;
-    }
-
-    this.savingReceipt = true;
-    this.clearErrors();
-
-    const receiptData = { ...this.receiptForm };
-
-    if (this.currentView === 'create') {
-      this.receiptService.createReceipt(receiptData).subscribe({
-        next: (response: any) => {
-          const createdReceipt = response.data;
-          
-          const creatingMsg = this.formLanguage === 'ar'
-            ? 'جاري إنشاء الإشعار وملف PDF...'
-            : 'Creating receipt and generating PDF...';
-          console.log(creatingMsg);
-          
-          // Generate PDF with optional attachment
-          this.receiptService.generatePDF(createdReceipt.id, this.formPdfAttachment || undefined).subscribe({
-            next: (pdfResponse: any) => {
-              this.savingReceipt = false;
-              const successMsg = this.formLanguage === 'ar'
-                ? 'تم إنشاء الإشعار وملف PDF بنجاح'
-                : 'Receipt and PDF created successfully';
-              alert(successMsg);
-              this.backToList();
-              this.loadReceipts();
-            },
-            error: (pdfError: any) => {
-              console.error('Error generating PDF:', pdfError);
-              this.savingReceipt = false;
-              const warningMsg = this.formLanguage === 'ar'
-                ? 'تم إنشاء الإشعار ولكن فشل إنشاء PDF. يمكنك إنشاءه لاحقاً.'
-                : 'Receipt created but PDF generation failed. You can generate it later.';
-              alert(warningMsg);
-              this.backToList();
-              this.loadReceipts();
-            }
-          });
-        },
-        error: (error: any) => {
-          this.savingReceipt = false;
-          this.handleBackendError(error);
-        }
-      });
-    } else if (this.currentView === 'edit' && this.selectedReceipt) {
-      this.receiptService.updateReceipt(this.selectedReceipt.id, receiptData).subscribe({
-        next: (response: any) => {
-          const updatedReceipt = response.data;
-          
-          this.receiptService.generatePDF(updatedReceipt.id, this.formPdfAttachment || undefined).subscribe({
-            next: (pdfResponse: any) => {
-              this.savingReceipt = false;
-              const successMsg = this.formLanguage === 'ar'
-                ? 'تم تحديث الإشعار وملف PDF بنجاح'
-                : 'Receipt and PDF updated successfully';
-              alert(successMsg);
-              this.backToList();
-              this.loadReceipts();
-            },
-            error: (pdfError: any) => {
-              console.error('Error regenerating PDF:', pdfError);
-              this.savingReceipt = false;
-              const warningMsg = this.formLanguage === 'ar'
-                ? 'تم تحديث الإشعار ولكن فشل تحديث PDF'
-                : 'Receipt updated but PDF regeneration failed';
-              alert(warningMsg);
-              this.backToList();
-              this.loadReceipts();
-            }
-          });
-        },
-        error: (error: any) => {
-          this.savingReceipt = false;
-          this.handleBackendError(error);
-        }
-      });
-    }
-  }
-
-  backToList(): void {
-    this.currentView = 'list';
-    this.currentStep = 'basic';
-    this.selectedReceipt = null;
-    this.resetForm();
-    this.clearErrors();
-    this.formPdfAttachment = null;
-  }
-
-  resetForm(): void {
-    this.receiptForm = {
-      to: '',
-      date: this.getTodayDate(),
-      address: '',
-      addressTitle: '',
-      attention: '',
-      projectCode: '',
-      workLocation: '',
-      companyNumber: '',
-      vehicleNumber: '',
-      additionalText: '',
-      items: [],
-      notes: ''
-    };
-    this.formPdfAttachment = null;
-    this.clearErrors();
-  }
-
-  getTodayDate(): string {
-    return this.receiptService.getTodayDate();
-  }
-
-  isSuperAdmin(): boolean {
-    return this.userRole === 'super_admin';
-  }
-
-  getItemsCount(): number {
-    return this.receiptForm.items.length;
-  }
-
-  getCreatorName(receipt: Receipt): string {
-    if (receipt.createdByName && receipt.createdByName.trim() !== '') {
-      return receipt.createdByName;
-    }
-    return receipt.createdBy || '-';
   }
 }
