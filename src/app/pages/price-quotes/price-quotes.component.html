@@ -1,1 +1,677 @@
-<p>price-quotes works!</p>
+<div class="price-quotes-container">
+
+  <!-- ============================================ -->
+  <!-- LIST VIEW -->
+  <!-- ============================================ -->
+  <div *ngIf="currentView === 'list'" class="list-view">
+    <!-- Header -->
+    <div class="page-header">
+      <h1 class="page-title">{{ formLanguage === 'ar' ? 'عروض الأسعار' : 'Price Quotes' }}</h1>
+      <div class="header-actions">
+        <!-- Language Toggle -->
+        <div class="language-toggle">
+          <button
+            type="button"
+            class="lang-btn"
+            [class.active]="formLanguage === 'ar'"
+            (click)="toggleFormLanguage('ar')">
+            <i class="bi bi-translate"></i>
+            عربي
+          </button>
+          <button
+            type="button"
+            class="lang-btn"
+            [class.active]="formLanguage === 'en'"
+            (click)="toggleFormLanguage('en')">
+            <i class="bi bi-translate"></i>
+            English
+          </button>
+        </div>
+        <button class="btn-primary" (click)="createQuote()">
+          <i class="bi bi-plus-lg"></i>
+          {{ formLanguage === 'ar' ? 'إنشاء عرض سعر' : 'Create Quote' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Success Message -->
+    <div class="alert alert-success" *ngIf="successMessage">
+      <i class="bi bi-check-circle-fill"></i>
+      <span>{{ successMessage }}</span>
+    </div>
+
+    <!-- Error Message -->
+    <div class="alert alert-error" *ngIf="errorMessage">
+      <i class="bi bi-exclamation-circle-fill"></i>
+      <span>{{ errorMessage }}</span>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="search-filter-section" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
+      <div class="search-box main-search">
+        <i class="bi bi-search"></i>
+        <input
+          type="text"
+          [placeholder]="formLanguage === 'ar' ? 'بحث برقم العرض، اسم العميل...' : 'Search by quote number, client name...'"
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="onSearchChange()"
+          (keyup.enter)="onSearch()"
+        />
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-container">
+      <table class="quotes-table">
+        <thead>
+          <tr>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'رقم العرض' : 'Quote #' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'اسم العميل' : 'Client Name' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'الهاتف' : 'Phone' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'التاريخ' : 'Date' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'المجموع' : 'Total' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'اللغة' : 'Language' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'الإجراءات' : 'Actions' }}</th>
+          </tr>
+        </thead>
+        <tbody *ngIf="!loading && quotes.length > 0">
+          <tr *ngFor="let quote of quotes">
+            <td class="quote-number text-center">{{ quote.quoteNumber }}</td>
+            <td class="text-center">{{ quote.clientName }}</td>
+            <td class="text-center">{{ quote.clientPhone }}</td>
+            <td class="text-center">{{ formatDate(quote.date) }}</td>
+            <td class="text-center">
+              <span class="total-amount">{{ formatCurrency(quote.total) }}</span>
+            </td>
+            <td class="text-center">
+              <span class="language-badge" [class.lang-ar]="quote.language === 'arabic'" [class.lang-en]="quote.language === 'english'">
+                {{ getLanguageLabel(quote.language) }}
+              </span>
+            </td>
+            <td class="actions-cell text-center">
+              <button
+                class="btn-icon btn-view"
+                (click)="viewPDF(quote)"
+                [title]="formLanguage === 'ar' ? 'عرض PDF' : 'View PDF'">
+                <i class="bi bi-eye"></i>
+              </button>
+              <button
+                class="btn-icon btn-print"
+                (click)="printPDF(quote)"
+                [title]="formLanguage === 'ar' ? 'طباعة' : 'Print'">
+                <i class="bi bi-printer"></i>
+              </button>
+              <button
+                class="btn-icon btn-download"
+                (click)="downloadPDF(quote)"
+                [title]="formLanguage === 'ar' ? 'تحميل PDF' : 'Download PDF'">
+                <i class="bi bi-download"></i>
+              </button>
+              <button
+                *ngIf="canEditQuote(quote)"
+                class="btn-icon btn-edit"
+                (click)="editQuote(quote)"
+                [title]="formLanguage === 'ar' ? 'تعديل' : 'Edit'">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button
+                *ngIf="isSuperAdmin()"
+                class="btn-icon btn-delete"
+                (click)="openDeleteModal(quote)"
+                [title]="formLanguage === 'ar' ? 'حذف' : 'Delete'">
+                <i class="bi bi-trash"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+        <tbody *ngIf="loading">
+          <tr>
+            <td colspan="7" class="text-center loading-cell">
+              <i class="bi bi-arrow-clockwise spin"></i> {{ formLanguage === 'ar' ? 'جاري التحميل...' : 'Loading...' }}
+            </td>
+          </tr>
+        </tbody>
+        <tbody *ngIf="!loading && quotes.length === 0">
+          <tr>
+            <td colspan="7" class="text-center empty-cell">
+              {{ formLanguage === 'ar' ? 'لا توجد عروض أسعار' : 'No quotes found' }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button
+        class="btn-page"
+        [disabled]="currentPage === 1"
+        (click)="goToPage(currentPage - 1)">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+
+      <span class="page-info">
+        {{ formLanguage === 'ar' ? 'صفحة' : 'Page' }} {{ currentPage }} {{ formLanguage === 'ar' ? 'من' : 'of' }} {{ totalPages }}
+      </span>
+
+      <button
+        class="btn-page"
+        [disabled]="currentPage === totalPages"
+        (click)="goToPage(currentPage + 1)">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- CREATE/EDIT VIEW -->
+  <!-- ============================================ -->
+  <div
+    *ngIf="currentView === 'create' || currentView === 'edit'"
+    class="form-view"
+    [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
+    <!-- Header -->
+    <div class="form-header">
+      <h1 class="form-title">
+        {{ currentView === 'create'
+          ? (formLanguage === 'ar' ? 'إنشاء عرض سعر جديد' : 'Create New Quote')
+          : (formLanguage === 'ar' ? 'تعديل عرض السعر' : 'Edit Quote')
+        }}
+      </h1>
+      <div class="form-header-actions">
+        <div class="form-actions">
+          <button class="btn-secondary" (click)="backToList()">
+            {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
+          </button>
+          <button
+            class="btn-primary"
+            (click)="saveQuote()"
+            [disabled]="savingQuote">
+            <i class="bi bi-save"></i>
+            {{ savingQuote
+              ? (formLanguage === 'ar' ? 'جاري الحفظ...' : 'Saving...')
+              : (formLanguage === 'ar' ? 'حفظ' : 'Save')
+            }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Alert -->
+    <div class="error-alert" *ngIf="formError">
+      <i class="bi bi-exclamation-circle"></i>
+      <span>{{ formError }}</span>
+    </div>
+
+    <!-- Form Content -->
+    <div class="form-content">
+      <!-- Sidebar Navigation -->
+      <div class="form-sidebar">
+        <button
+          class="sidebar-step"
+          [class.active]="currentStep === 'basic'"
+          (click)="currentStep = 'basic'">
+          {{ formLanguage === 'ar' ? 'المعلومات الأساسية' : 'Basic Info' }}
+        </button>
+        <button
+          class="sidebar-step"
+          [class.active]="currentStep === 'items'"
+          [class.has-error]="fieldErrors['items']"
+          (click)="currentStep = 'items'">
+          {{ formLanguage === 'ar' ? 'العناصر' : 'Items' }}
+          <span class="item-count" [class.error-count]="fieldErrors['items']">{{ getItemsCount() }}</span>
+        </button>
+        <button
+          class="sidebar-step"
+          [class.active]="currentStep === 'tax'"
+          (click)="currentStep = 'tax'">
+          {{ formLanguage === 'ar' ? 'الضريبة والإجمالي' : 'Tax & Total' }}
+        </button>
+      </div>
+
+      <!-- Form Fields -->
+      <div class="form-fields">
+
+        <!-- STEP 1: Basic Info -->
+        <div *ngIf="currentStep === 'basic'" class="step-content">
+          <h2 class="step-title">{{ formLanguage === 'ar' ? 'المعلومات الأساسية' : 'Basic Information' }}</h2>
+
+          <!-- Client Name -->
+          <div class="form-group">
+            <label>
+              <i class="bi bi-person"></i>
+              {{ formLanguage === 'ar' ? 'اسم العميل' : 'Client Name' }}
+              <span class="required">*</span>
+            </label>
+            <input
+              type="text"
+              [(ngModel)]="quoteForm.clientName"
+              [placeholder]="formLanguage === 'ar' ? 'أدخل اسم العميل' : 'Enter client name'"
+              class="form-control"
+              [class.error]="fieldErrors['clientName']"
+              required
+            />
+            <small class="error-message" *ngIf="fieldErrors['clientName']">
+              <i class="bi bi-exclamation-circle"></i>
+              {{ fieldErrors['clientName'] }}
+            </small>
+          </div>
+
+          <!-- Phone and Date Row -->
+          <div class="form-row">
+            <div class="form-group">
+              <label>
+                <i class="bi bi-telephone"></i>
+                {{ formLanguage === 'ar' ? 'رقم الهاتف' : 'Phone Number' }}
+                <span class="required">*</span>
+              </label>
+              <input
+                type="tel"
+                [(ngModel)]="quoteForm.clientPhone"
+                [placeholder]="formLanguage === 'ar' ? '+962791234567' : '+962791234567'"
+                class="form-control"
+                [class.error]="fieldErrors['clientPhone']"
+                required
+              />
+              <small class="error-message" *ngIf="fieldErrors['clientPhone']">
+                <i class="bi bi-exclamation-circle"></i>
+                {{ fieldErrors['clientPhone'] }}
+              </small>
+            </div>
+
+            <div class="form-group">
+              <label>
+                <i class="bi bi-calendar"></i>
+                {{ formLanguage === 'ar' ? 'التاريخ' : 'Date' }}
+                <span class="required">*</span>
+              </label>
+              <input
+                type="date"
+                [(ngModel)]="quoteForm.date"
+                class="form-control"
+                [class.error]="fieldErrors['date']"
+                required
+              />
+              <small class="error-message" *ngIf="fieldErrors['date']">
+                <i class="bi bi-exclamation-circle"></i>
+                {{ fieldErrors['date'] }}
+              </small>
+            </div>
+          </div>
+
+          <!-- Address -->
+          <div class="form-group">
+            <label>
+              <i class="bi bi-geo-alt"></i>
+              {{ formLanguage === 'ar' ? 'العنوان' : 'Address' }}
+            </label>
+            <input
+              type="text"
+              [(ngModel)]="quoteForm.clientAddress"
+              [placeholder]="formLanguage === 'ar' ? 'أدخل العنوان (اختياري)' : 'Enter address (optional)'"
+              class="form-control"
+            />
+          </div>
+
+          <!-- City and Rev Number Row -->
+          <div class="form-row">
+            <div class="form-group">
+              <label>
+                <i class="bi bi-building"></i>
+                {{ formLanguage === 'ar' ? 'المدينة' : 'City' }}
+              </label>
+              <input
+                type="text"
+                [(ngModel)]="quoteForm.clientCity"
+                [placeholder]="formLanguage === 'ar' ? 'أدخل المدينة (اختياري)' : 'Enter city (optional)'"
+                class="form-control"
+              />
+            </div>
+
+            <div class="form-group">
+              <label>
+                <i class="bi bi-hash"></i>
+                {{ formLanguage === 'ar' ? 'رقم المراجعة' : 'Revision Number' }}
+              </label>
+              <input
+                type="text"
+                [(ngModel)]="quoteForm.revNumber"
+                placeholder="00"
+                class="form-control"
+              />
+            </div>
+          </div>
+
+          <!-- Valid For Days -->
+          <div class="form-group">
+            <label>
+              <i class="bi bi-clock-history"></i>
+              {{ formLanguage === 'ar' ? 'صالح لمدة (بالأيام)' : 'Valid For (Days)' }}
+            </label>
+            <input
+              type="number"
+              [(ngModel)]="quoteForm.validForDays"
+              [placeholder]="formLanguage === 'ar' ? '30' : '30'"
+              class="form-control"
+              min="1"
+            />
+          </div>
+
+          <!-- Custom Notes -->
+          <div class="form-group">
+            <label>
+              <i class="bi bi-chat-left-text"></i>
+              {{ formLanguage === 'ar' ? 'ملاحظات إضافية' : 'Custom Notes' }}
+            </label>
+            <textarea
+              [(ngModel)]="quoteForm.customNotes"
+              [placeholder]="formLanguage === 'ar' ? 'ملاحظات أو شروط إضافية...' : 'Additional notes or terms...'"
+              class="form-control"
+              rows="4"
+            ></textarea>
+          </div>
+
+          <!-- PDF Attachment -->
+          <div class="form-group">
+            <label>
+              <i class="bi bi-paperclip"></i>
+              {{ formLanguage === 'ar' ? 'إرفاق ملف PDF (اختياري)' : 'Attach PDF File (Optional)' }}
+            </label>
+
+            <div class="file-upload-wrapper">
+              <input
+                type="file"
+                id="pdf-attachment-input"
+                accept=".pdf"
+                (change)="onPdfAttachmentSelected($event)"
+                class="file-input"
+              />
+              <label for="pdf-attachment-input" class="file-upload-label">
+                <i class="bi bi-cloud-upload"></i>
+                <span>{{ formLanguage === 'ar' ? 'اختر ملف PDF' : 'Choose PDF File' }}</span>
+              </label>
+            </div>
+
+            <div *ngIf="pdfAttachment" class="file-selected">
+              <i class="bi bi-check-circle-fill"></i>
+              <span class="file-name">{{ pdfAttachment.name }}</span>
+              <button class="btn-remove-file" (click)="removePdfAttachment()" type="button">
+                <i class="bi bi-x"></i>
+              </button>
+            </div>
+
+            <small class="help-text">
+              {{ formLanguage === 'ar'
+                ? 'الحد الأقصى لحجم الملف: 10 ميجابايت. سيتم دمج الملف المرفق مع عرض السعر.'
+                : 'Maximum file size: 10MB. The attached file will be merged with the quote.'
+              }}
+            </small>
+          </div>
+
+          <div class="form-navigation">
+            <button class="btn-primary btn-next" (click)="nextStep()">
+              {{ formLanguage === 'ar' ? 'التالي' : 'Next' }}
+              <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-left' : 'bi-arrow-right'"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 2: Items -->
+        <div *ngIf="currentStep === 'items'" class="step-content">
+          <h2 class="step-title">
+            {{ formLanguage === 'ar' ? 'عناصر العرض' : 'Quote Items' }}
+            <span class="required">*</span>
+          </h2>
+
+          <!-- Items Required Error -->
+          <div class="error-alert" *ngIf="fieldErrors['items']" style="margin-bottom: 1.5rem;">
+            <i class="bi bi-exclamation-circle"></i>
+            <span>{{ fieldErrors['items'] }}</span>
+          </div>
+
+          <div class="items-section">
+            <div class="items-header">
+              <div class="header-cell">{{ formLanguage === 'ar' ? '#' : '#' }}</div>
+              <div class="header-cell">
+                {{ formLanguage === 'ar' ? 'الوصف' : 'Description' }}
+                <span class="required">*</span>
+              </div>
+              <div class="header-cell">
+                {{ formLanguage === 'ar' ? 'الوحدة' : 'Unit' }}
+                <span class="required">*</span>
+              </div>
+              <div class="header-cell">
+                {{ formLanguage === 'ar' ? 'الكمية' : 'Quantity' }}
+                <span class="required">*</span>
+              </div>
+              <div class="header-cell">
+                {{ formLanguage === 'ar' ? 'سعر الوحدة' : 'Unit Price' }}
+                <span class="required">*</span>
+              </div>
+              <div class="header-cell">{{ formLanguage === 'ar' ? 'المجموع' : 'Total' }}</div>
+              <div class="header-cell-action"></div>
+            </div>
+
+            <div class="items-body" *ngIf="quoteForm.items.length > 0">
+              <ng-container *ngFor="let item of quoteForm.items; let i = index">
+                <div class="item-row">
+                  <div class="item-field index-field">
+                    <span class="item-index">{{ i + 1 }}</span>
+                  </div>
+
+                  <div class="item-field">
+                    <input
+                      type="text"
+                      [(ngModel)]="item.description"
+                      class="item-input"
+                      [class.error]="fieldErrors['item_' + i + '_description']"
+                      [placeholder]="formLanguage === 'ar' ? 'الوصف' : 'Description'"
+                      required
+                    />
+                    <small class="error-message" *ngIf="fieldErrors['item_' + i + '_description']">
+                      <i class="bi bi-exclamation-circle"></i>
+                      {{ fieldErrors['item_' + i + '_description'] }}
+                    </small>
+                  </div>
+
+                  <div class="item-field">
+                    <input
+                      type="text"
+                      [(ngModel)]="item.unit"
+                      class="item-input small"
+                      [class.error]="fieldErrors['item_' + i + '_unit']"
+                      [placeholder]="formLanguage === 'ar' ? 'قطعة' : 'pcs'"
+                      required
+                    />
+                    <small class="error-message" *ngIf="fieldErrors['item_' + i + '_unit']">
+                      <i class="bi bi-exclamation-circle"></i>
+                      {{ fieldErrors['item_' + i + '_unit'] }}
+                    </small>
+                  </div>
+
+                  <div class="item-field">
+                    <input
+                      type="number"
+                      [(ngModel)]="item.quantity"
+                      class="item-input small"
+                      [class.error]="fieldErrors['item_' + i + '_quantity']"
+                      placeholder="0"
+                      min="0"
+                      step="0.01"
+                      required
+                    />
+                    <small class="error-message" *ngIf="fieldErrors['item_' + i + '_quantity']">
+                      <i class="bi bi-exclamation-circle"></i>
+                      {{ fieldErrors['item_' + i + '_quantity'] }}
+                    </small>
+                  </div>
+
+                  <div class="item-field">
+                    <input
+                      type="number"
+                      [(ngModel)]="item.unitPrice"
+                      class="item-input small"
+                      [class.error]="fieldErrors['item_' + i + '_unitPrice']"
+                      placeholder="0.00"
+                      min="0"
+                      step="0.01"
+                      required
+                    />
+                    <small class="error-message" *ngIf="fieldErrors['item_' + i + '_unitPrice']">
+                      <i class="bi bi-exclamation-circle"></i>
+                      {{ fieldErrors['item_' + i + '_unitPrice'] }}
+                    </small>
+                  </div>
+
+                  <div class="item-field total-field">
+                    <span class="item-total">{{ calculateItemTotal(item).toFixed(2) }}</span>
+                  </div>
+
+                  <button class="btn-remove" (click)="removeItem(i)" type="button">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </ng-container>
+            </div>
+
+            <div class="items-empty" *ngIf="quoteForm.items.length === 0">
+              <i class="bi bi-inbox" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
+              <p style="margin: 0; color: #64748b;">
+                {{ formLanguage === 'ar' ? 'لم يتم إضافة عناصر. يجب إضافة عنصر واحد على الأقل.' : 'No items added. At least one item is required.' }}
+              </p>
+            </div>
+
+            <button class="btn-add-item" (click)="addItem()" type="button">
+              <i class="bi bi-plus-lg"></i>
+              {{ formLanguage === 'ar' ? 'إضافة عنصر' : 'Add Item' }}
+            </button>
+          </div>
+
+          <div class="form-navigation">
+            <button class="btn-secondary btn-back" (click)="previousStep()" type="button">
+              <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
+              {{ formLanguage === 'ar' ? 'السابق' : 'Back' }}
+            </button>
+            <button class="btn-primary btn-next" (click)="nextStep()">
+              {{ formLanguage === 'ar' ? 'التالي' : 'Next' }}
+              <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-left' : 'bi-arrow-right'"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 3: Tax & Total -->
+        <div *ngIf="currentStep === 'tax'" class="step-content">
+          <h2 class="step-title">{{ formLanguage === 'ar' ? 'الضريبة والإجمالي' : 'Tax & Total' }}</h2>
+
+          <!-- Include Tax Toggle -->
+          <div class="form-group">
+            <label class="checkbox-label large">
+              <input
+                type="checkbox"
+                [(ngModel)]="quoteForm.includeTax"
+                (ngModelChange)="toggleTax($event)"
+              />
+              <div class="checkbox-info">
+                <span class="checkbox-title">{{ formLanguage === 'ar' ? 'تضمين الضريبة' : 'Include Tax' }}</span>
+                <span class="checkbox-description">{{ formLanguage === 'ar' ? 'إضافة ضريبة على الإجمالي الفرعي' : 'Add tax to the subtotal' }}</span>
+              </div>
+            </label>
+          </div>
+
+          <!-- Tax Rate (if tax is included) -->
+          <div class="form-group" *ngIf="quoteForm.includeTax">
+            <label>
+              <i class="bi bi-percent"></i>
+              {{ formLanguage === 'ar' ? 'نسبة الضريبة' : 'Tax Rate' }}
+              <span class="required">*</span>
+            </label>
+            <input
+              type="number"
+              [(ngModel)]="quoteForm.taxRate"
+              [placeholder]="formLanguage === 'ar' ? '16' : '16'"
+              class="form-control"
+              [class.error]="fieldErrors['taxRate']"
+              min="0"
+              max="100"
+              step="0.01"
+            />
+            <small class="error-message" *ngIf="fieldErrors['taxRate']">
+              <i class="bi bi-exclamation-circle"></i>
+              {{ fieldErrors['taxRate'] }}
+            </small>
+          </div>
+
+          <!-- Totals Summary -->
+          <div class="totals-summary">
+            <div class="total-row">
+              <span class="total-label">{{ formLanguage === 'ar' ? 'المجموع الفرعي:' : 'Subtotal:' }}</span>
+              <span class="total-value">{{ formatCurrency(calculatedTotals.subtotal) }}</span>
+            </div>
+            <div class="total-row" *ngIf="quoteForm.includeTax">
+              <span class="total-label">{{ formLanguage === 'ar' ? 'الضريبة' : 'Tax' }} ({{ quoteForm.taxRate }}%):</span>
+              <span class="total-value">{{ formatCurrency(calculatedTotals.taxAmount) }}</span>
+            </div>
+            <div class="total-row final-total">
+              <span class="total-label">{{ formLanguage === 'ar' ? 'المجموع الإجمالي:' : 'Total:' }}</span>
+              <span class="total-value">{{ formatCurrency(calculatedTotals.total) }}</span>
+            </div>
+          </div>
+
+          <div class="form-navigation">
+            <button class="btn-secondary btn-back" (click)="previousStep()" type="button">
+              <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
+              {{ formLanguage === 'ar' ? 'السابق' : 'Back' }}
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- DELETE CONFIRMATION MODAL -->
+  <!-- ============================================ -->
+  <div class="modal-overlay" *ngIf="showDeleteModal" (click)="closeDeleteModal()">
+    <div class="modal-content modal-small" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title">
+          <i class="bi bi-exclamation-triangle text-danger"></i>
+          {{ formLanguage === 'ar' ? 'تأكيد الحذف' : 'Confirm Delete' }}
+        </h2>
+        <button class="modal-close" (click)="closeDeleteModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p class="delete-message">
+          {{ formLanguage === 'ar'
+            ? 'هل أنت متأكد من حذف عرض السعر'
+            : 'Are you sure you want to delete quote'
+          }}
+          <strong>{{ selectedQuote?.quoteNumber }}</strong>؟
+          <br>
+          <span class="text-warning">
+            {{ formLanguage === 'ar' ? 'لا يمكن التراجع عن هذا الإجراء!' : 'This action cannot be undone!' }}
+          </span>
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeDeleteModal()" [disabled]="deletingQuote">
+          {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
+        </button>
+        <button type="button" class="btn-danger" (click)="confirmDelete()" [disabled]="deletingQuote">
+          <i class="bi bi-trash" *ngIf="!deletingQuote"></i>
+          <i class="bi bi-arrow-clockwise spin" *ngIf="deletingQuote"></i>
+          {{ deletingQuote
+            ? (formLanguage === 'ar' ? 'جاري الحذف...' : 'Deleting...')
+            : (formLanguage === 'ar' ? 'حذف' : 'Delete')
+          }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>

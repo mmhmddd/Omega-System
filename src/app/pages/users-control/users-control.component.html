@@ -1,1 +1,671 @@
-<p>users-control works!</p>
+<div class="users-control-container">
+  <!-- ============================================ -->
+  <!-- HEADER SECTION -->
+  <!-- ============================================ -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="page-title">
+          <i class="bi bi-people-fill"></i>
+          إدارة المستخدمين
+        </h1>
+        <p class="page-subtitle">إضافة وتعديل وإدارة مستخدمي النظام</p>
+      </div>
+      <div class="header-actions">
+        <button
+          class="btn btn-primary"
+          (click)="openCreateModal()"
+          *ngIf="canCreateUsers">
+          <i class="bi bi-plus-lg"></i>
+          إضافة مستخدم جديد
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SUCCESS MESSAGE -->
+  <!-- ============================================ -->
+  <div class="alert alert-success" *ngIf="successMessage">
+    <i class="bi bi-check-circle-fill"></i>
+    <span>{{ successMessage }}</span>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- ERROR MESSAGE -->
+  <!-- ============================================ -->
+  <div class="alert alert-error" *ngIf="errorMessage">
+    <i class="bi bi-exclamation-circle-fill"></i>
+    <span>{{ errorMessage }}</span>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- FILTERS SECTION -->
+  <!-- ============================================ -->
+  <div class="filters-section">
+    <div class="filters-grid">
+      <!-- Search -->
+      <div class="filter-group search-group">
+        <label class="filter-label">
+          <i class="bi bi-search"></i>
+          البحث
+        </label>
+        <input
+          type="text"
+          class="filter-input"
+          placeholder="ابحث بالاسم، البريد الإلكتروني، أو اسم المستخدم..."
+          [(ngModel)]="searchTerm"
+          (input)="onSearchChange()"
+        />
+      </div>
+
+      <!-- Role Filter -->
+      <div class="filter-group">
+        <label class="filter-label">
+          <i class="bi bi-person-badge"></i>
+          الدور الوظيفي
+        </label>
+        <select
+          class="filter-select"
+          [(ngModel)]="selectedRole"
+          (change)="onRoleFilterChange()">
+          <option value="">جميع الأدوار</option>
+          <option *ngFor="let role of userRoles" [value]="role.value">
+            {{ role.label }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Status Filter -->
+      <div class="filter-group">
+        <label class="filter-label">
+          <i class="bi bi-toggle-on"></i>
+          الحالة
+        </label>
+        <select
+          class="filter-select"
+          [(ngModel)]="selectedStatus"
+          (change)="onStatusFilterChange()">
+          <option *ngFor="let status of statusFilters" [value]="status.value">
+            {{ status.label }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Clear Filters -->
+      <div class="filter-group">
+        <label class="filter-label">&nbsp;</label>
+        <button class="btn btn-secondary" (click)="clearFilters()">
+          <i class="bi bi-x-circle"></i>
+          مسح الفلاتر
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- STATISTICS BAR -->
+  <!-- ============================================ -->
+  <div class="statistics-bar">
+    <div class="stat-item">
+      <i class="bi bi-people"></i>
+      <div>
+        <span class="stat-value">{{ totalUsers }}</span>
+        <span class="stat-label">إجمالي المستخدمين</span>
+      </div>
+    </div>
+    <div class="stat-item">
+      <i class="bi bi-person-check"></i>
+      <div>
+        <span class="stat-value">{{ countUsersByStatus(true) }}</span>
+        <span class="stat-label">نشط</span>
+      </div>
+    </div>
+    <div class="stat-item">
+      <i class="bi bi-person-x"></i>
+      <div>
+        <span class="stat-value">{{ countUsersByStatus(false) }}</span>
+        <span class="stat-label">غير نشط</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- TABLE SECTION -->
+  <!-- ============================================ -->
+  <div class="table-container">
+    <!-- Loading State -->
+    <div class="loading-overlay" *ngIf="loading">
+      <div class="spinner">
+        <i class="bi bi-arrow-clockwise spin"></i>
+      </div>
+      <p>جاري التحميل...</p>
+    </div>
+
+    <!-- Users Table -->
+    <table class="users-table">
+      <thead>
+        <tr>
+          <th>المستخدم</th>
+          <th>البريد الإلكتروني</th>
+          <th>اسم المستخدم</th>
+          <th>الدور</th>
+          <th>الحالة</th>
+          <th>تاريخ الإنشاء</th>
+          <th>الإجراءات</th>
+        </tr>
+      </thead>
+
+      <tbody *ngIf="!loading && filteredUsers.length > 0">
+        <tr *ngFor="let user of filteredUsers" [class.inactive-row]="!user.active">
+          <!-- User Info -->
+          <td>
+            <div class="user-cell">
+              <div class="user-avatar" [style.background-color]="getRoleColor(user.role)">
+                {{ user.name.charAt(0).toUpperCase() }}
+              </div>
+              <div class="user-info">
+                <span class="user-name">{{ user.name }}</span>
+              </div>
+            </div>
+          </td>
+
+          <!-- Email -->
+          <td>
+            <span class="user-email">{{ user.email }}</span>
+          </td>
+
+          <!-- Username -->
+          <td>
+            <span class="username-badge">{{ user.username }}</span>
+          </td>
+
+          <!-- Role -->
+          <td>
+            <span class="role-badge" [style.background-color]="getRoleColor(user.role)">
+              {{ getRoleLabel(user.role) }}
+            </span>
+          </td>
+
+          <!-- Status -->
+          <td>
+            <span class="status-badge" [class.status-active]="user.active" [class.status-inactive]="!user.active">
+              <i class="bi" [class.bi-check-circle]="user.active" [class.bi-x-circle]="!user.active"></i>
+              {{ user.active ? 'نشط' : 'غير نشط' }}
+            </span>
+          </td>
+
+          <!-- Created Date -->
+          <td>
+            <span class="date-text">{{ user.createdAt | date:'dd/MM/yyyy' }}</span>
+          </td>
+
+          <!-- Actions Dropdown Menu -->
+          <td>
+            <div class="actions-dropdown">
+              <button
+                class="actions-trigger"
+                type="button"
+                [attr.data-user-id]="user.id"
+                (click)="toggleActionsMenu(user.id); $event.stopPropagation()"
+              >
+                <i class="bi bi-three-dots-vertical"></i>
+              </button>
+
+              <div
+                class="actions-menu"
+                [ngClass]="{ 'open-upward': menuShouldOpenUp[user.id] }"
+                *ngIf="activeActionsMenu === user.id"
+              >
+                <button type="button" class="action-menu-item" (click)="openEditModal(user); closeActionsMenu(); $event.stopPropagation()">
+                  <i class="bi bi-pencil"></i>
+                  <span>تعديل</span>
+                </button>
+
+                <button
+                  type="button"
+                  class="action-menu-item"
+                  (click)="openRouteAccessModal(user); closeActionsMenu(); $event.stopPropagation()"
+                  *ngIf="user.role === 'employee'">
+                  <i class="bi bi-diagram-3"></i>
+                  <span>صلاحيات المسارات</span>
+                </button>
+
+                <button type="button" class="action-menu-item" (click)="openSystemAccessModal(user); closeActionsMenu(); $event.stopPropagation()">
+                  <i class="bi bi-gear"></i>
+                  <span>صلاحيات النظام</span>
+                </button>
+
+                <button
+                  type="button"
+                  class="action-menu-item"
+                  (click)="toggleUserActive(user); closeActionsMenu(); $event.stopPropagation()">
+                  <i class="bi" [class.bi-toggle-on]="user.active" [class.bi-toggle-off]="!user.active"></i>
+                  <span>{{ user.active ? 'إلغاء التفعيل' : 'تفعيل' }}</span>
+                </button>
+
+                <div class="menu-divider"></div>
+
+                <button type="button" class="action-menu-item danger" (click)="openDeleteModal(user); closeActionsMenu(); $event.stopPropagation()">
+                  <i class="bi bi-trash"></i>
+                  <span>حذف</span>
+                </button>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+
+      <tbody *ngIf="loading">
+        <tr>
+          <td colspan="7" class="loading-cell">
+            <i class="bi bi-arrow-clockwise spin"></i> جاري التحميل...
+          </td>
+        </tr>
+      </tbody>
+
+      <tbody *ngIf="!loading && filteredUsers.length === 0">
+        <tr>
+          <td colspan="7" class="empty-cell">
+            لا توجد بيانات
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div class="pagination" *ngIf="!loading && totalPages > 1">
+      <button
+        class="btn-page"
+        [disabled]="currentPage === 1"
+        (click)="previousPage()">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+
+      <span class="page-info">
+        صفحة {{ currentPage }} من {{ totalPages }}
+      </span>
+
+      <button
+        class="btn-page"
+        [disabled]="currentPage === totalPages"
+        (click)="nextPage()">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- MENU BACKDROP (Click Outside to Close) -->
+<!-- ============================================ -->
+<div class="menu-backdrop" *ngIf="activeActionsMenu" (click)="closeActionsMenu()"></div>
+
+<!-- ============================================ -->
+<!-- CREATE USER MODAL -->
+<!-- ============================================ -->
+<div class="modal-overlay" *ngIf="showCreateModal" (click)="closeCreateModal()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <i class="bi bi-person-plus"></i>
+        إضافة مستخدم جديد
+      </h2>
+      <button class="modal-close" (click)="closeCreateModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <form [formGroup]="createUserForm" (ngSubmit)="onCreateSubmit()">
+      <div class="modal-body">
+        <!-- Name -->
+        <div class="form-group">
+          <label class="form-label">
+            <i class="bi bi-person"></i>
+            الاسم الكامل
+          </label>
+          <input
+            type="text"
+            class="form-input"
+            formControlName="name"
+            placeholder="أدخل الاسم الكامل"
+            [class.error]="createUserForm.get('name')?.touched && createUserForm.get('name')?.invalid"
+          />
+          <small class="error-message" *ngIf="getFormError(createUserForm, 'name')">
+            <i class="bi bi-exclamation-circle"></i>
+            {{ getFormError(createUserForm, 'name') }}
+          </small>
+        </div>
+
+        <!-- Email -->
+        <div class="form-group">
+          <label class="form-label">
+            <i class="bi bi-envelope"></i>
+            البريد الإلكتروني
+          </label>
+          <input
+            type="email"
+            class="form-input"
+            formControlName="email"
+            placeholder="example@company.com"
+            [class.error]="createUserForm.get('email')?.touched && createUserForm.get('email')?.invalid"
+          />
+          <small class="error-message" *ngIf="getFormError(createUserForm, 'email')">
+            <i class="bi bi-exclamation-circle"></i>
+            {{ getFormError(createUserForm, 'email') }}
+          </small>
+        </div>
+
+        <!-- Password -->
+        <div class="form-group">
+          <label class="form-label">
+            <i class="bi bi-lock"></i>
+            كلمة المرور
+          </label>
+          <input
+            type="password"
+            class="form-input"
+            formControlName="password"
+            placeholder="أدخل كلمة المرور"
+            [class.error]="createUserForm.get('password')?.touched && createUserForm.get('password')?.invalid"
+          />
+          <small class="error-message" *ngIf="getFormError(createUserForm, 'password')">
+            <i class="bi bi-exclamation-circle"></i>
+            {{ getFormError(createUserForm, 'password') }}
+          </small>
+        </div>
+
+        <!-- Role -->
+        <div class="form-group">
+          <label class="form-label">
+            <i class="bi bi-person-badge"></i>
+            الدور الوظيفي
+          </label>
+          <select class="form-select" formControlName="role">
+            <option *ngFor="let role of userRoles" [value]="role.value">
+              {{ role.label }}
+            </option>
+          </select>
+        </div>
+
+        <!-- System Access (if not employee) -->
+        <div class="form-group" *ngIf="createUserForm.get('role')?.value !== 'employee'" formGroupName="systemAccess">
+          <label class="form-label">
+            <i class="bi bi-gear"></i>
+            صلاحيات النظام
+          </label>
+          <div class="checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="laserCuttingManagement" />
+              <span>إدارة نظام القص بالليزر</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Route Access (if employee) -->
+        <div class="form-group" *ngIf="createUserForm.get('role')?.value === 'employee'">
+          <label class="form-label">
+            <i class="bi bi-diagram-3"></i>
+            صلاحيات المسارات
+          </label>
+          <div class="routes-grid">
+            <label class="route-checkbox" *ngFor="let route of availableRoutes">
+              <input
+                type="checkbox"
+                [checked]="createUserForm.get('routeAccess')?.value?.includes(route.key)"
+                (change)="toggleRouteInForm($event, route.key)"
+              />
+              <span>{{ route.label }}</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="closeCreateModal()" [disabled]="savingUser">
+          إلغاء
+        </button>
+        <button type="submit" class="btn btn-primary" [disabled]="savingUser || createUserForm.invalid">
+          <i class="bi bi-check-lg" *ngIf="!savingUser"></i>
+          <i class="bi bi-arrow-clockwise spin" *ngIf="savingUser"></i>
+          {{ savingUser ? 'جاري الحفظ...' : 'حفظ' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- EDIT USER MODAL -->
+<!-- ============================================ -->
+<div class="modal-overlay" *ngIf="showEditModal" (click)="closeEditModal()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <i class="bi bi-pencil"></i>
+        تعديل المستخدم
+      </h2>
+      <button class="modal-close" (click)="closeEditModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <form [formGroup]="editUserForm" (ngSubmit)="onEditSubmit()">
+      <div class="modal-body">
+        <!-- Name -->
+        <div class="form-group">
+          <label class="form-label">
+            <i class="bi bi-person"></i>
+            الاسم الكامل
+          </label>
+          <input
+            type="text"
+            class="form-input"
+            formControlName="name"
+            placeholder="أدخل الاسم الكامل"
+          />
+          <small class="error-message" *ngIf="getFormError(editUserForm, 'name')">
+            <i class="bi bi-exclamation-circle"></i>
+            {{ getFormError(editUserForm, 'name') }}
+          </small>
+        </div>
+
+        <!-- Email -->
+        <div class="form-group">
+          <label class="form-label">
+            <i class="bi bi-envelope"></i>
+            البريد الإلكتروني
+          </label>
+          <input
+            type="email"
+            class="form-input"
+            formControlName="email"
+            placeholder="example@company.com"
+          />
+          <small class="error-message" *ngIf="getFormError(editUserForm, 'email')">
+            <i class="bi bi-exclamation-circle"></i>
+            {{ getFormError(editUserForm, 'email') }}
+          </small>
+        </div>
+
+        <!-- Password -->
+        <div class="form-group">
+          <label class="form-label">
+            <i class="bi bi-lock"></i>
+            كلمة المرور الجديدة (اختياري)
+          </label>
+          <input
+            type="password"
+            class="form-input"
+            formControlName="password"
+            placeholder="اتركه فارغاً إذا لم ترد التغيير"
+          />
+        </div>
+
+        <!-- Role -->
+        <div class="form-group">
+          <label class="form-label">
+            <i class="bi bi-person-badge"></i>
+            الدور الوظيفي
+          </label>
+          <select class="form-select" formControlName="role">
+            <option *ngFor="let role of userRoles" [value]="role.value">
+              {{ role.label }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Active Status -->
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="active" />
+            <span>المستخدم نشط</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="closeEditModal()" [disabled]="savingUser">
+          إلغاء
+        </button>
+        <button type="submit" class="btn btn-primary" [disabled]="savingUser || editUserForm.invalid">
+          <i class="bi bi-check-lg" *ngIf="!savingUser"></i>
+          <i class="bi bi-arrow-clockwise spin" *ngIf="savingUser"></i>
+          {{ savingUser ? 'جاري الحفظ...' : 'حفظ التغييرات' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- DELETE CONFIRMATION MODAL -->
+<!-- ============================================ -->
+<div class="modal-overlay" *ngIf="showDeleteModal" (click)="closeDeleteModal()">
+  <div class="modal-container modal-small" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <i class="bi bi-exclamation-triangle text-danger"></i>
+        تأكيد الحذف
+      </h2>
+      <button class="modal-close" (click)="closeDeleteModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <p class="delete-message">
+        هل أنت متأكد من حذف المستخدم <strong>{{ selectedUser?.name }}</strong>؟
+        <br>
+        <span class="text-warning">لا يمكن التراجع عن هذا الإجراء!</span>
+      </p>
+
+      <div class="alert alert-error" *ngIf="errorMessage">
+        <i class="bi bi-exclamation-circle-fill"></i>
+        <span>{{ errorMessage }}</span>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="closeDeleteModal()" [disabled]="deletingUser">
+        إلغاء
+      </button>
+      <button type="button" class="btn btn-danger" (click)="confirmDelete()" [disabled]="deletingUser">
+        <i class="bi bi-trash" *ngIf="!deletingUser"></i>
+        <i class="bi bi-arrow-clockwise spin" *ngIf="deletingUser"></i>
+        {{ deletingUser ? 'جاري الحذف...' : 'حذف' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- ROUTE ACCESS MODAL -->
+<!-- ============================================ -->
+<div class="modal-overlay" *ngIf="showRouteAccessModal" (click)="closeRouteAccessModal()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <i class="bi bi-diagram-3"></i>
+        صلاحيات المسارات - {{ selectedUser?.name }}
+      </h2>
+      <button class="modal-close" (click)="closeRouteAccessModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <p class="modal-description">اختر المسارات التي يمكن للموظف الوصول إليها:</p>
+
+      <div class="routes-grid">
+        <label class="route-checkbox" *ngFor="let route of availableRoutes">
+          <input
+            type="checkbox"
+            [checked]="isRouteSelected(route.key)"
+            (change)="toggleRouteAccess(route.key)"
+          />
+          <div class="route-info">
+            <span class="route-label">{{ route.label }}</span>
+            <span class="route-path">{{ route.path }}</span>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="closeRouteAccessModal()" [disabled]="savingUser">
+        إلغاء
+      </button>
+      <button type="button" class="btn btn-primary" (click)="saveRouteAccess()" [disabled]="savingUser">
+        <i class="bi bi-check-lg" *ngIf="!savingUser"></i>
+        <i class="bi bi-arrow-clockwise spin" *ngIf="savingUser"></i>
+        {{ savingUser ? 'جاري الحفظ...' : 'حفظ الصلاحيات' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- SYSTEM ACCESS MODAL -->
+<!-- ============================================ -->
+<div class="modal-overlay" *ngIf="showSystemAccessModal" (click)="closeSystemAccessModal()">
+  <div class="modal-container modal-small" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <i class="bi bi-gear"></i>
+        صلاحيات النظام - {{ selectedUser?.name }}
+      </h2>
+      <button class="modal-close" (click)="closeSystemAccessModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <p class="modal-description">اختر صلاحيات الوصول للأنظمة:</p>
+
+      <div class="checkbox-group">
+        <label class="checkbox-label large">
+          <input
+            type="checkbox"
+            [(ngModel)]="systemAccessForm.laserCuttingManagement"
+          />
+          <div class="checkbox-info">
+            <span class="checkbox-title">إدارة نظام القص بالليزر</span>
+            <span class="checkbox-description">الوصول الكامل لإدارة أوامر القص بالليزر</span>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="closeSystemAccessModal()" [disabled]="savingUser">
+        إلغاء
+      </button>
+      <button type="button" class="btn btn-primary" (click)="saveSystemAccess()" [disabled]="savingUser">
+        <i class="bi bi-check-lg" *ngIf="!savingUser"></i>
+        <i class="bi bi-arrow-clockwise spin" *ngIf="savingUser"></i>
+        {{ savingUser ? 'جاري الحفظ...' : 'حفظ الصلاحيات' }}
+      </button>
+    </div>
+  </div>
+</div>

@@ -23,10 +23,10 @@ export class SideBarComponent {
     { title: 'الرئيسية', route: '/dashboard', icon: 'bi-grid' },
     { title: 'إدارة الملفات', route: '/files-control', icon: 'bi-folder' },
     { title: 'إشعار استلام', route: '/receipts', icon: 'bi-clipboard-check' },
-    { title: 'طلب تسعير خارجي', route: '/price-quotes', icon: 'bi-file-earmark-text' },
+    { title: 'طلب تسعير خارجي', route: '/rfqs', icon: 'bi-file-earmark-text' },
     { title: 'طلب شراء', route: '/purchases', icon: 'bi-cart' },
     { title: 'طلب مواد', route: '/material-requests', icon: 'bi-box' },
-    { title: 'عرض سعر', route: '/rfqs', icon: 'bi-receipt' },
+    { title: 'عرض سعر', route: '/price-quotes', icon: 'bi-receipt' },
     { title: 'قسم السكرتاريا', route: '/secretariat', icon: 'bi-people' },
     { title: 'نظام إدارة القص', route: '/cutting', icon: 'bi-scissors' }
   ];
