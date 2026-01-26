@@ -1,7 +1,7 @@
 .navbar {
   background: linear-gradient(180deg, #1a2332 0%, #151e2b 100%);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  height: 70px;
+  height: 80px;
   padding: 0 2rem;
   position: fixed;
   top: 0;
@@ -26,13 +26,14 @@
     .brand {
       display: flex;
       align-items: center;
-      gap: 0.875rem;
 
       .brand-logo {
-        width: 44px;
+        width: 200px;
         height: 44px;
         object-fit: contain;
         border-radius: 8px;
+        background-color: linear-gradient(180deg, #b4bac5 0%, #151e2b 100%);
+        padding: 10px;
       }
 
       .brand-info {
@@ -84,12 +85,12 @@
       }
 
       &.logout-btn {
-        background: rgba(239, 68, 68, 0.15);
-        color: #fca5a5;
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
 
         &:hover {
-          background: rgba(239, 68, 68, 0.25);
-          color: #f87171;
+          background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+          transform: translateY(-2px);
         }
       }
 
@@ -153,9 +154,138 @@
         justify-content: center;
         color: white;
         font-size: 1.25rem;
+        font-weight: 600;
         box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
       }
     }
+  }
+}
+
+// ============================================
+// LOGOUT MODAL STYLES
+// ============================================
+.logout-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.logout-modal {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  max-width: 420px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+  direction: rtl;
+
+  .modal-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+
+    i {
+      font-size: 2rem;
+      color: #ef4444;
+    }
+  }
+
+  .modal-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    text-align: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .modal-message {
+    font-size: 1rem;
+    color: #6b7280;
+    text-align: center;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+
+    button {
+      flex: 1;
+      padding: 0.875rem 1.5rem;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+
+      i {
+        font-size: 1.1rem;
+      }
+    }
+
+    .btn-cancel {
+      background: #f3f4f6;
+      color: #4b5563;
+
+      &:hover {
+        background: #e5e7eb;
+        transform: translateY(-2px);
+      }
+    }
+
+    .btn-confirm {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: white;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+
+      &:hover {
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+      }
+    }
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -222,6 +352,26 @@
       .nav-icon-btn {
         padding: 0.5rem;
         font-size: 1.1rem;
+      }
+    }
+  }
+
+  .logout-modal {
+    padding: 1.5rem;
+
+    .modal-title {
+      font-size: 1.25rem;
+    }
+
+    .modal-message {
+      font-size: 0.9375rem;
+    }
+
+    .modal-actions {
+      flex-direction: column;
+
+      button {
+        width: 100%;
       }
     }
   }

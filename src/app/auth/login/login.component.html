@@ -1,1 +1,174 @@
-<p>login works!</p>
+<div class="login-container" [class.fade-out]="loginSuccess">
+  <div class="login-wrapper">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+
+    <div class="login-card" [class.success-animation]="loginSuccess">
+      <!-- Success Overlay -->
+      <div class="success-overlay" *ngIf="loginSuccess">
+        <div class="success-icon">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <h3>تم تسجيل الدخول بنجاح!</h3>
+        <p>جاري التحويل إلى لوحة التحكم...</p>
+      </div>
+
+      <div class="login-header">
+        <div class="logo-container">
+          <img src="/assets/images/OmegaLogo.png" alt="شعار الشركة" class="company-logo">
+        </div>
+        <h1>نظام أوميجا</h1>
+        <p>مرحباً بك، قم بتسجيل الدخول للمتابعة</p>
+      </div>
+
+      <div class="error-alert" *ngIf="errorMessage">
+        <i class="fas fa-exclamation-circle"></i>
+        <span>{{ errorMessage }}</span>
+      </div>
+
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+        <div class="form-group">
+          <label for="username">
+            <i class="fas fa-user"></i>
+            اسم المستخدم
+          </label>
+          <input
+            type="text"
+            id="username"
+            formControlName="username"
+            placeholder="أدخل اسم المستخدم"
+            [class.error]="hasError('username', 'required') || hasError('username', 'minlength')"
+            autocomplete="username"
+          />
+          <small class="error-message" *ngIf="getErrorMessage('username')">
+            {{ getErrorMessage('username') }}
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label for="password">
+            <i class="fas fa-lock"></i>
+            كلمة المرور
+          </label>
+          <div class="password-input-wrapper">
+            <input
+              [type]="showPassword ? 'text' : 'password'"
+              id="password"
+              formControlName="password"
+              placeholder="أدخل كلمة المرور"
+              [class.error]="hasError('password', 'required') || hasError('password', 'minlength')"
+              autocomplete="current-password"
+            />
+            <button
+              type="button"
+              class="toggle-password"
+              (click)="togglePasswordVisibility()"
+              tabindex="-1"
+              aria-label="إظهار/إخفاء كلمة المرور"
+            >
+              <i [class]="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+            </button>
+          </div>
+          <small class="error-message" *ngIf="getErrorMessage('password')">
+            {{ getErrorMessage('password') }}
+          </small>
+        </div>
+
+        <div class="form-footer">
+          <a class="forgot-password-link" (click)="openForgotPasswordModal()">
+            نسيت كلمة المرور؟
+          </a>
+        </div>
+
+        <button type="submit" class="submit-btn" [disabled]="loading || loginSuccess">
+          <span *ngIf="!loading && !loginSuccess">
+            <i class="fas fa-sign-in-alt"></i>
+            تسجيل الدخول
+          </span>
+          <span *ngIf="loading && !loginSuccess" class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            جاري تسجيل الدخول...
+          </span>
+          <span *ngIf="loginSuccess" class="success-spinner">
+            <i class="fas fa-check-circle"></i>
+            تم بنجاح!
+          </span>
+        </button>
+      </form>
+
+      <div class="login-footer">
+        <p>© {{ currentYear }} نظام أوميجا. جميع الحقوق محفوظة</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Forgot Password Modal -->
+<div class="modal-overlay" *ngIf="showForgotPasswordModal" (click)="closeForgotPasswordModal()">
+  <div class="forgot-password-modal" (click)="$event.stopPropagation()">
+
+    <!-- Success State -->
+    <div class="modal-success" *ngIf="forgotPasswordSuccess">
+      <div class="success-icon">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <h3>تم إرسال الرابط بنجاح!</h3>
+      <p>تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني</p>
+      <p class="reset-link-info">يرجى التحقق من بريدك الإلكتروني والنقر على الرابط لإعادة تعيين كلمة المرور</p>
+    </div>
+
+    <!-- Form State -->
+    <div *ngIf="!forgotPasswordSuccess">
+      <div class="modal-header">
+        <div class="modal-icon">
+          <i class="fas fa-key"></i>
+        </div>
+        <h3>نسيت كلمة المرور؟</h3>
+        <p>أدخل بريدك الإلكتروني وسنرسل لك رابط إعادة تعيين كلمة المرور</p>
+      </div>
+
+      <div class="error-alert" *ngIf="forgotPasswordError">
+        <i class="fas fa-exclamation-circle"></i>
+        <span>{{ forgotPasswordError }}</span>
+      </div>
+
+      <form [formGroup]="forgotPasswordForm" (ngSubmit)="onForgotPasswordSubmit()">
+        <div class="form-group">
+          <label for="email">
+            <i class="fas fa-envelope"></i>
+            البريد الإلكتروني
+          </label>
+          <input
+            type="email"
+            id="email"
+            formControlName="email"
+            placeholder="أدخل بريدك الإلكتروني"
+            [class.error]="forgotPasswordForm.get('email')?.invalid && forgotPasswordForm.get('email')?.touched"
+          />
+          <small class="error-message" *ngIf="forgotPasswordForm.get('email')?.hasError('required') && forgotPasswordForm.get('email')?.touched">
+            البريد الإلكتروني مطلوب
+          </small>
+          <small class="error-message" *ngIf="forgotPasswordForm.get('email')?.hasError('email') && forgotPasswordForm.get('email')?.touched">
+            البريد الإلكتروني غير صالح
+          </small>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" (click)="closeForgotPasswordModal()" [disabled]="forgotPasswordLoading">
+            إلغاء
+          </button>
+          <button type="submit" class="btn-submit" [disabled]="forgotPasswordLoading || forgotPasswordForm.invalid">
+            <span *ngIf="!forgotPasswordLoading">
+              <i class="fas fa-paper-plane"></i>
+              إرسال
+            </span>
+            <span *ngIf="forgotPasswordLoading">
+              <i class="fas fa-spinner fa-spin"></i>
+              جاري الإرسال...
+            </span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

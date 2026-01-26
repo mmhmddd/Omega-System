@@ -2,32 +2,51 @@
   <!-- Statistics Cards Header -->
   <div class="stats-section">
     <div class="stats-grid">
+      <!-- Users Count Card -->
       <div class="stat-card" [routerLink]="'/users'" [style.background]="'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'">
         <div class="stat-icon">
           <i class="bi bi-people-fill"></i>
         </div>
         <div class="stat-content">
-          <h3 class="stat-value">{{ totalUsers }}</h3>
+          <!-- Loading State -->
+          <div class="stat-loading" *ngIf="loadingUsers">
+            <i class="bi bi-arrow-clockwise spin-animation"></i>
+          </div>
+
+          <!-- Success State -->
+          <h3 class="stat-value" *ngIf="!loadingUsers && !usersError">{{ totalUsers }}</h3>
+
+          <!-- Error State -->
+          <div class="stat-error" *ngIf="!loadingUsers && usersError">
+            <i class="bi bi-exclamation-triangle"></i>
+          </div>
+
           <p class="stat-label">إجمالي المستخدمين</p>
+          <small class="stat-error-text" *ngIf="usersError">{{ usersError }}</small>
         </div>
       </div>
 
+      <!-- Files Count Card -->
       <div class="stat-card" [routerLink]="'/files-control'" [style.background]="'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)'">
         <div class="stat-icon">
           <i class="bi bi-folder-fill"></i>
         </div>
         <div class="stat-content">
-          <h3 class="stat-value">{{ totalFiles }}</h3>
+          <h3 class="stat-value" *ngIf="!loadingFiles">{{ totalFiles }}</h3>
+          <div class="stat-loading" *ngIf="loadingFiles">
+            <i class="bi bi-arrow-clockwise spin-animation"></i>
+          </div>
           <p class="stat-label">إجمالي الملفات</p>
         </div>
       </div>
 
+      <!-- Statistics Card -->
       <div class="stat-card" [routerLink]="'/statistics'" [style.background]="'linear-gradient(135deg, #10b981 0%, #059669 100%)'">
         <div class="stat-icon">
           <i class="bi bi-graph-up-arrow"></i>
         </div>
         <div class="stat-content">
-          <h3 class="stat-value"></h3>
+          <h3 class="stat-value">--</h3>
           <p class="stat-label">الإحصائيات والتحليلات</p>
         </div>
       </div>

@@ -1,15 +1,17 @@
-import { environment } from "../../../environment/environment.prod";
+import { environment } from "../../../environment/environment";
 
 export const API_ENDPOINTS = {
   // ============================================
   // AUTHENTICATION ENDPOINTS
   // ============================================
   AUTH: {
-    REGISTER: `${environment.apiUrl}/auth/register`,
     LOGIN: `${environment.apiUrl}/auth/login`,
-    FORGET_PASSWORD: `${environment.apiUrl}/auth/forgetpassword`,
-    RESET_PASSWORD: `${environment.apiUrl}/auth/resetpassword`,
-    CREATE_ADMIN: `${environment.apiUrl}/auth/create-admin`
+    REGISTER: `${environment.apiUrl}/auth/register`,
+    FORGET_PASSWORD: `${environment.apiUrl}/auth/forgot-password`,
+    RESET_PASSWORD: `${environment.apiUrl}/auth/reset-password`,
+    CHANGE_PASSWORD: `${environment.apiUrl}/auth/change-password`,
+    ME: `${environment.apiUrl}/auth/me`,
+    VERIFY_TOKEN: `${environment.apiUrl}/auth/verify-token`,
   },
 
   // ============================================

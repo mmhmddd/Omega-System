@@ -1,12 +1,24 @@
+// src/app/app.routes.ts
 import { Routes } from '@angular/router';
 
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: 'dashboard',
+    redirectTo: 'login',
     pathMatch: 'full'
   },
 
+  // Login route (no guard needed)
+  {
+    path: 'login',
+    loadComponent: () => import('./auth/login/login.component').then(m => m.LoginComponent),
+    data: { title: 'تسجيل الدخول' }
+  },
+  {
+    path:'reset-password',
+    loadComponent:()=> import ('./auth/reset-password/reset-password.component').then(m=>m.ResetPasswordComponent),
+    data: {title:'اعادة تعيين كلمة المرور'}
+  },
 
   {
     path: 'dashboard',
@@ -14,20 +26,17 @@ export const routes: Routes = [
     data: { title: 'لوحة التحكم' }
   },
 
-
   {
     path: 'users',
     loadComponent: () => import('./pages/users-control/users-control.component').then(m => m.UsersControlComponent),
     data: { title: 'إدارة المستخدمين' }
   },
 
-
   {
     path: 'items-control',
     loadComponent: () => import('./pages/items-control/items-control.component').then(m => m.ItemsControlComponent),
     data: { title: 'إدارة الأصناف' }
   },
-
 
   {
     path: 'suppliers',
@@ -47,13 +56,11 @@ export const routes: Routes = [
     data: { title: 'طلبات المواد' }
   },
 
-
   {
     path: 'purchases',
     loadComponent: () => import('./pages/purchases/purchases.component').then(m => m.PurchasesComponent),
     data: { title: 'أوامر الشراء' }
   },
-
 
   {
     path: 'rfqs',
@@ -61,13 +68,11 @@ export const routes: Routes = [
     data: { title: 'طلبات عروض الأسعار' }
   },
 
-
   {
     path: 'receipts',
     loadComponent: () => import('./pages/receipts/receipts.component').then(m => m.ReceiptsComponent),
     data: { title: 'إيصالات الاستلام' }
   },
-
 
   {
     path: 'secretariat-user',
@@ -75,13 +80,11 @@ export const routes: Routes = [
     data: { title: 'نماذج الموظف' }
   },
 
-
   {
     path: 'secretariat',
     loadComponent: () => import('./pages/secretariat-control/secretariat-control.component').then(m => m.SecretariatControlComponent),
     data: { title: 'إدارة السكرتارية' }
   },
-
 
   {
     path: 'cutting',
@@ -89,15 +92,15 @@ export const routes: Routes = [
     data: { title: 'إدارة أعمال القص' }
   },
 
-
   {
     path: 'files-control',
     loadComponent: () => import('./pages/files-control/files-control.component').then(m => m.FilesControlComponent),
     data: { title: 'إدارة الملفات' }
   },
 
+  // Wildcard route MUST be last
   {
     path: '**',
-    redirectTo: 'dashboard'
+    redirectTo: 'login'
   }
 ];

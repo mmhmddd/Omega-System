@@ -5,8 +5,6 @@
         <div class="brand">
           <img src="/assets/images/OmegaLogo.png" alt="Omega Logo" class="brand-logo">
           <div class="brand-info">
-            <span class="brand-text">Omega System</span>
-            <span class="brand-subtitle">نظام الإدارة الداخلي</span>
           </div>
         </div>
       </div>
@@ -19,18 +17,53 @@
 
         <div class="user-profile">
           <div class="user-info">
-            <span class="user-name">{{ userName }}</span>
-            <span class="user-role">{{ userRole }}</span>
+            <span class="user-name">{{ userName() }}</span>
+            <span class="user-role">{{ userRole() }}</span>
           </div>
           <div class="user-avatar">
-            <i class="bi bi-person"></i>
+            @if (userInitials()) {
+              <span>{{ userInitials() }}</span>
+            } @else {
+              <i class="bi bi-person"></i>
+            }
           </div>
         </div>
 
-        <button class="nav-icon-btn logout-btn" (click)="logout()">
+        <button
+          class="nav-icon-btn logout-btn"
+          (click)="openLogoutModal()"
+          title="تسجيل الخروج">
           <i class="bi bi-box-arrow-right"></i>
         </button>
       </div>
     </div>
   </div>
 </nav>
+
+<!-- Logout Confirmation Modal -->
+@if (showLogoutModal()) {
+  <div class="logout-modal-overlay" (click)="closeLogoutModal()">
+    <div class="logout-modal" (click)="$event.stopPropagation()">
+      <div class="modal-icon">
+        <i class="bi bi-box-arrow-right"></i>
+      </div>
+
+      <h3 class="modal-title">تسجيل الخروج</h3>
+
+      <p class="modal-message">
+        هل أنت متأكد من تسجيل الخروج؟
+      </p>
+
+      <div class="modal-actions">
+        <button class="btn-cancel" (click)="closeLogoutModal()">
+          <i class="bi bi-x-circle"></i>
+          إلغاء
+        </button>
+        <button class="btn-confirm" (click)="confirmLogout()">
+          <i class="bi bi-check-circle"></i>
+          تأكيد
+        </button>
+      </div>
+    </div>
+  </div>
+}

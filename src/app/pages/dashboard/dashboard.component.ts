@@ -1,6 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { UsersService } from '../../core/services/users.service';
+import { AuthService } from '../../core/services/auth.service';
 
 interface DashboardCard {
   title: string;
@@ -17,10 +19,18 @@ interface DashboardCard {
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss'
 })
-export class DashboardComponent {
+export class DashboardComponent implements OnInit {
   // Statistics counts
-  totalUsers: number = 247;
-  totalFiles: number = 1832;
+  totalUsers: number = 0;
+  totalFiles: number = 0;
+
+  // Loading states
+  loadingUsers: boolean = true;
+  loadingFiles: boolean = true;
+
+  // Error states
+  usersError: string = '';
+  filesError: string = '';
 
   quickAccessCards: DashboardCard[] = [
     {
@@ -104,4 +114,82 @@ export class DashboardComponent {
       color: '#112e61'
     }
   ];
+
+  constructor(
+    private usersService: UsersService,
+    private authService: AuthService
+  ) {}
+
+  ngOnInit(): void {
+    this.loadDashboardStatistics();
+  }
+
+  /**
+   * Load all dashboard statistics
+   */
+  private loadDashboardStatistics(): void {
+    this.loadUsersCount();
+    this.loadFilesCount();
+  }
+
+  /**
+   * Load total users count from API
+   */
+  private loadUsersCount(): void {
+    this.loadingUsers = true;
+    this.usersError = '';
+
+    // التحقق من وجود token قبل الاستدعاء
+    const token = this.authService.getToken();
+    if (!token) {
+      console.error('No authentication token found');
+      this.loadingUsers = false;
+      this.usersError = 'يرجى تسجيل الدخول أولاً';
+      return;
+    }
+
+    this.usersService.getAllUsers({ limit: 1 }).subscribe({
+      next: (response) => {
+        console.log('Users count response:', response);
+        this.totalUsers = response.pagination.totalUsers;
+        this.loadingUsers = false;
+      },
+      error: (error) => {
+        console.error('Error loading users count:', error);
+        this.loadingUsers = false;
+
+        if (error.status === 401) {
+          this.usersError = 'انتهت صلاحية الجلسة';
+          // يمكنك إعادة التوجيه لصفحة تسجيل الدخول
+          // this.authService.logout();
+        } else if (error.status === 403) {
+          this.usersError = 'ليس لديك صلاحية للوصول';
+        } else {
+          this.usersError = 'حدث خطأ في تحميل البيانات';
+        }
+
+        this.totalUsers = 0;
+      }
+    });
+  }
+
+  /**
+   * Load total files count from API
+   */
+  private loadFilesCount(): void {
+    this.loadingFiles = true;
+
+    // مؤقتاً، نضع قيمة ثابتة حتى يتم إنشاء Files Service
+    setTimeout(() => {
+      this.totalFiles = 0;
+      this.loadingFiles = false;
+    }, 500);
+  }
+
+  /**
+   * Refresh dashboard statistics
+   */
+  refreshStatistics(): void {
+    this.loadDashboardStatistics();
+  }
 }

@@ -1,7 +1,9 @@
-<!-- app.component.html -->
-<app-navbar></app-navbar>
-<app-side-bar></app-side-bar>
+<!-- Only show layout when showLayout is true -->
+<ng-container *ngIf="showLayout">
+  <app-navbar></app-navbar>
+  <app-side-bar></app-side-bar>
+</ng-container>
 
-<main class="main-content">
+<main class="main-content" [class.full-width]="!showLayout">
   <router-outlet></router-outlet>
 </main>
