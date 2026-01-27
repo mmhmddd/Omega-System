@@ -23,13 +23,13 @@ interface Toast {
 })
 export class PriceQuotesComponent implements OnInit, OnDestroy {
 
-
-getCreatorName(quote: PriceQuote): string {
-  if (quote.createdByName && quote.createdByName.trim() !== '') {
-    return quote.createdByName;
+  getCreatorName(quote: PriceQuote): string {
+    if (quote.createdByName && quote.createdByName.trim() !== '') {
+      return quote.createdByName;
+    }
+    return quote.createdBy || '-';
   }
-  return quote.createdBy || '-';
-}
+
   // ============================================
   // VIEW MANAGEMENT
   // ============================================
@@ -163,12 +163,43 @@ getCreatorName(quote: PriceQuote): string {
   }
 
   // ============================================
-  // DATA LOADING
+  // DATA LOADING - UPDATED FOR ROLE-BASED ACCESS
   // ============================================
 
   loadQuotes(): void {
     this.loading = true;
+    const currentUser = this.authService.currentUserValue;
 
+    if (!currentUser) {
+      this.loading = false;
+      const errorMsg = this.formLanguage === 'ar'
+        ? 'يجب تسجيل الدخول أولاً'
+        : 'Please login first';
+      this.showToast('error', errorMsg);
+      return;
+    }
+
+    // Super Admin: Load all quotes with pagination and search
+    if (currentUser.role === 'super_admin') {
+      this.loadAllQuotes();
+    }
+    // Admin or Employee with permission: Load ALL their quotes with pagination
+    else if (currentUser.role === 'admin' ||
+             (currentUser.role === 'employee' && this.hasRouteAccess())) {
+      this.loadMyQuotesWithPagination();
+    }
+    // No permission
+    else {
+      this.loading = false;
+      const errorMsg = this.formLanguage === 'ar'
+        ? 'ليس لديك صلاحية للوصول إلى هذه الصفحة'
+        : 'You do not have permission to access this page';
+      this.showToast('error', errorMsg);
+    }
+  }
+
+  // Load all quotes (Super Admin only)
+  private loadAllQuotes(): void {
     const filters = {
       page: this.currentPage,
       limit: this.pageSize,
@@ -194,11 +225,53 @@ getCreatorName(quote: PriceQuote): string {
     });
   }
 
+  // Load ALL current user's quotes with pagination (Admin/Employee)
+  private loadMyQuotesWithPagination(): void {
+    const filters = {
+      page: this.currentPage,
+      limit: this.pageSize,
+      search: this.searchTerm || undefined
+    };
+
+    // Use the main getAllQuotes endpoint which will filter by user automatically
+    this.priceQuoteService.getAllPriceQuotes(filters).subscribe({
+      next: (response) => {
+        this.quotes = response.data;
+        this.totalQuotes = response.pagination.totalQuotes;
+        this.totalPages = response.pagination.totalPages;
+        this.currentPage = response.pagination.currentPage;
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error loading my quotes:', error);
+        const errorMsg = this.formLanguage === 'ar'
+          ? 'حدث خطأ في تحميل عروض الأسعار'
+          : 'Error loading quotes';
+        this.showToast('error', errorMsg);
+        this.loading = false;
+      }
+    });
+  }
+
+  // Check if employee has route access
+  private hasRouteAccess(): boolean {
+    return this.authService.hasRouteAccess('priceQuotes');
+  }
+
   // ============================================
   // VIEW MANAGEMENT
   // ============================================
 
   createQuote(): void {
+    // Check permission
+    if (!this.canCreateQuote()) {
+      const errorMsg = this.formLanguage === 'ar'
+        ? 'ليس لديك صلاحية لإنشاء عرض سعر'
+        : 'You do not have permission to create quotes';
+      this.showToast('error', errorMsg);
+      return;
+    }
+
     this.resetForm();
     this.currentView = 'create';
     this.currentStep = 'basic';
@@ -207,6 +280,15 @@ getCreatorName(quote: PriceQuote): string {
   }
 
   editQuote(quote: PriceQuote): void {
+    // Check permission
+    if (!this.canEditQuote(quote)) {
+      const errorMsg = this.formLanguage === 'ar'
+        ? 'ليس لديك صلاحية لتعديل هذا العرض'
+        : 'You do not have permission to edit this quote';
+      this.showToast('error', errorMsg);
+      return;
+    }
+
     this.selectedQuote = quote;
     this.populateFormWithQuote(quote);
     this.currentView = 'edit';
@@ -343,6 +425,8 @@ getCreatorName(quote: PriceQuote): string {
     this.quoteForm.includeTax = includeTax;
     if (!includeTax) {
       this.quoteForm.taxRate = 0;
+      // Clear any tax-related errors
+      delete this.fieldErrors['taxRate'];
     }
   }
 
@@ -463,13 +547,17 @@ getCreatorName(quote: PriceQuote): string {
     this.fieldErrors = {};
     let isValid = true;
 
-    if (this.quoteForm.includeTax) {
+    // Only validate tax rate if tax is actually included
+    if (this.quoteForm.includeTax === true) {
       if (!this.quoteForm.taxRate || this.quoteForm.taxRate <= 0) {
         this.fieldErrors['taxRate'] = this.formLanguage === 'ar'
           ? 'نسبة الضريبة مطلوبة'
           : 'Tax rate is required';
         isValid = false;
       }
+    } else {
+      // If tax is not included, ensure taxRate is 0
+      this.quoteForm.taxRate = 0;
     }
 
     return isValid;
@@ -634,6 +722,15 @@ getCreatorName(quote: PriceQuote): string {
   // ============================================
 
   openDeleteModal(quote: PriceQuote): void {
+    // Check permission
+    if (!this.canDeleteQuote(quote)) {
+      const errorMsg = this.formLanguage === 'ar'
+        ? 'ليس لديك صلاحية لحذف هذا العرض'
+        : 'You do not have permission to delete this quote';
+      this.showToast('error', errorMsg);
+      return;
+    }
+
     this.selectedQuote = quote;
     this.showDeleteModal = true;
   }
@@ -791,9 +888,82 @@ getCreatorName(quote: PriceQuote): string {
   }
 
   // ============================================
-  // HELPER METHODS
+  // PERMISSION METHODS - UPDATED
   // ============================================
 
+  isSuperAdmin(): boolean {
+    const currentUser = this.authService.currentUserValue;
+    return currentUser?.role === 'super_admin';
+  }
+
+  canCreateQuote(): boolean {
+    const currentUser = this.authService.currentUserValue;
+    if (!currentUser) return false;
+
+    return (
+      currentUser.role === 'super_admin' ||
+      currentUser.role === 'admin' ||
+      (currentUser.role === 'employee' && this.hasRouteAccess())
+    );
+  }
+
+  canEditQuote(quote: PriceQuote): boolean {
+    const currentUser = this.authService.currentUserValue;
+    if (!currentUser) return false;
+
+    // Super admin can edit all quotes
+    if (currentUser.role === 'super_admin') {
+      return true;
+    }
+
+    // Admin and employees can only edit their own quotes
+    if (currentUser.role === 'admin' ||
+        (currentUser.role === 'employee' && this.hasRouteAccess())) {
+      return quote.createdBy === currentUser.id;
+    }
+
+    return false;
+  }
+
+  canDeleteQuote(quote: PriceQuote): boolean {
+    const currentUser = this.authService.currentUserValue;
+    if (!currentUser) return false;
+
+    // Super admin can delete any quote
+    if (currentUser.role === 'super_admin') {
+      return true;
+    }
+
+    // Admin and employees can delete their own quotes
+    if (currentUser.role === 'admin' ||
+        (currentUser.role === 'employee' && this.hasRouteAccess())) {
+      return quote.createdBy === currentUser.id;
+    }
+
+    return false;
+  }
+
+  canViewQuote(quote: PriceQuote): boolean {
+    const currentUser = this.authService.currentUserValue;
+    if (!currentUser) return false;
+
+    // Super admin can view all quotes
+    if (currentUser.role === 'super_admin') {
+      return true;
+    }
+
+    // Admin and employees can only view their own quotes
+    if (currentUser.role === 'admin' ||
+        (currentUser.role === 'employee' && this.hasRouteAccess())) {
+      return quote.createdBy === currentUser.id;
+    }
+
+    return false;
+  }
+
+  // ============================================
+  // HELPER METHODS
+  // ============================================
 
   formatCurrency(amount: number): string {
     return this.priceQuoteService.formatCurrency(amount);
@@ -801,21 +971,6 @@ getCreatorName(quote: PriceQuote): string {
 
   formatDate(dateString: string): string {
     return this.priceQuoteService.formatDate(dateString);
-  }
-
-  isSuperAdmin(): boolean {
-    const currentUser = this.authService.currentUserValue;
-    return currentUser?.role === 'super_admin';
-  }
-
-  canEditQuote(quote: PriceQuote): boolean {
-    const currentUser = this.authService.currentUserValue;
-    if (!currentUser) return false;
-
-    return (
-      currentUser.role === 'super_admin' ||
-      quote.createdBy === currentUser.id
-    );
   }
 
   getLanguageLabel(language: 'arabic' | 'english'): string {
