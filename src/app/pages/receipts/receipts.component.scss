@@ -6,6 +6,386 @@
   margin-top: 70px;
   background: #f5f7fa;
 
+
+  // ========================================
+// SUCCESS MODAL - NEW ADDITION
+// ========================================
+// ========================================
+// SUCCESS MODAL - BLUE GRADIENT VERSION
+// أضف هذا الكود في أول ملف receipts.component.scss
+// مباشرة بعد السطر: background: #f5f7fa;
+// ========================================
+
+// ========================================
+// SUCCESS MODAL - BLUE GRADIENT
+// ========================================
+.success-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 2rem;
+  animation: fadeIn 0.2s ease;
+
+  .success-modal {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    max-width: 550px;
+    width: 100%;
+    overflow: hidden;
+    animation: slideUpModal 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    .success-header {
+      position: relative;
+      padding: 2.5rem 2rem 2rem;
+      background: linear-gradient(135deg, #1565C0 0%, #0D47A1 100%); // 🔵 BLUE GRADIENT
+      text-align: center;
+
+      .close-btn {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        width: 36px;
+        height: 36px;
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        backdrop-filter: blur(10px);
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.3);
+          transform: rotate(90deg);
+        }
+
+        i {
+          font-size: 1.25rem;
+        }
+      }
+
+      [dir="rtl"] & .close-btn {
+        right: auto;
+        left: 1rem;
+      }
+
+      .success-icon-wrapper {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 80px;
+        height: 80px;
+        background: white;
+        border-radius: 50%;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s backwards;
+
+        i {
+          font-size: 2.5rem;
+          color: #1565C0; // 🔵 BLUE ICON
+        }
+      }
+
+      h2 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: white;
+        margin: 0;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      }
+    }
+
+    .success-body {
+      padding: 2rem;
+      text-align: center;
+
+      .success-message {
+        font-size: 1rem;
+        line-height: 1.6;
+        color: #64748b;
+        margin: 0 0 2rem 0;
+      }
+
+      .pdf-info-box {
+        background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%); // 🔵 LIGHT BLUE BOX
+        border: 1px solid #90CAF9; // 🔵 BLUE BORDER
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-bottom: 2rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+
+        i {
+          font-size: 2rem;
+          color: #1565C0; // 🔵 BLUE ICON
+          flex-shrink: 0;
+        }
+
+        .pdf-details {
+          flex: 1;
+          text-align: center;
+
+          [dir="rtl"] & {
+            text-align: center;
+          }
+
+          .pdf-filename {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #0D47A1; // 🔵 DARK BLUE TEXT
+            margin: 0 0 0.25rem 0;
+            word-break: break-all;
+          }
+
+          .pdf-status {
+            font-size: 0.875rem;
+            color: #1565C0; // 🔵 BLUE TEXT
+            margin: 0;
+          }
+        }
+      }
+
+      .action-buttons {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+
+        .action-btn {
+          padding: 1rem;
+          background: white;
+          border: 2px solid #e2e8f0;
+          border-radius: 12px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.5rem;
+          min-height: 100px;
+          justify-content: center;
+
+          .btn-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transition: all 0.2s ease;
+          }
+
+          .btn-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #475569;
+            transition: all 0.2s ease;
+          }
+
+          &:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+          }
+
+          // View button - BLUE
+          &.btn-view {
+            border-color: #1565C0; // 🔵 BLUE BORDER
+
+            .btn-icon {
+              background: #E3F2FD; // 🔵 LIGHT BLUE BG
+              color: #1565C0; // 🔵 BLUE ICON
+            }
+
+            &:hover {
+              background: #E3F2FD;
+              border-color: #0D47A1;
+
+              .btn-icon {
+                background: #1565C0;
+                color: white;
+              }
+
+              .btn-label {
+                color: #0D47A1;
+              }
+            }
+          }
+
+          // Print button - PURPLE (يبقى كما هو)
+          &.btn-print {
+            border-color: #8b5cf6;
+
+            .btn-icon {
+              background: #f5f3ff;
+              color: #8b5cf6;
+            }
+
+            &:hover {
+              background: #f5f3ff;
+              border-color: #7c3aed;
+
+              .btn-icon {
+                background: #8b5cf6;
+                color: white;
+              }
+
+              .btn-label {
+                color: #7c3aed;
+              }
+            }
+          }
+
+          // Download button - BLUE (بدلاً من الأخضر)
+          &.btn-download {
+            border-color: #1565C0; // 🔵 BLUE BORDER
+
+            .btn-icon {
+              background: #E3F2FD; // 🔵 LIGHT BLUE BG
+              color: #1565C0; // 🔵 BLUE ICON
+            }
+
+            &:hover {
+              background: #E3F2FD;
+              border-color: #0D47A1;
+
+              .btn-icon {
+                background: #1565C0;
+                color: white;
+              }
+
+              .btn-label {
+                color: #0D47A1;
+              }
+            }
+          }
+        }
+      }
+
+      .done-button {
+        width: 100%;
+        padding: 1rem 2rem;
+        background: linear-gradient(135deg, #1565C0 0%, #0D47A1 100%); // 🔵 BLUE GRADIENT
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        box-shadow: 0 4px 12px rgba(21, 101, 192, 0.3); // 🔵 BLUE SHADOW
+
+        i {
+          font-size: 1.125rem;
+        }
+
+        &:hover {
+          background: linear-gradient(135deg, #0D47A1 0%, #0a3d8f 100%); // 🔵 DARKER BLUE
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(21, 101, 192, 0.4);
+        }
+
+        &:active {
+          transform: translateY(0);
+        }
+      }
+    }
+
+    // Responsive
+    @media (max-width: 768px) {
+      max-width: none;
+      margin: 1rem;
+
+      .success-header {
+        padding: 2rem 1.5rem 1.5rem;
+
+        .success-icon-wrapper {
+          width: 70px;
+          height: 70px;
+          margin-bottom: 1rem;
+
+          i {
+            font-size: 2rem;
+          }
+        }
+
+        h2 {
+          font-size: 1.5rem;
+        }
+      }
+
+      .success-body {
+        padding: 1.5rem;
+
+        .action-buttons {
+          grid-template-columns: 1fr;
+          gap: 0.75rem;
+
+          .action-btn {
+            flex-direction: row;
+            justify-content: flex-start;
+            min-height: auto;
+            padding: 1rem 1.25rem;
+
+            .btn-icon {
+              width: 40px;
+              height: 40px;
+              font-size: 1.25rem;
+            }
+
+            .btn-label {
+              font-size: 0.9375rem;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+// ========================================
+// END OF SUCCESS MODAL STYLES
+// ========================================
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
   // ========================================
 // TOAST NOTIFICATIONS - ADD THIS TO YOUR SCSS
 // ========================================

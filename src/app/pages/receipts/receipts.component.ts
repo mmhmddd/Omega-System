@@ -1,4 +1,4 @@
-// receipts.component.ts - COMPLETE WITH INLINE TOAST & CONFIRMATION
+// receipts.component.ts - WITH SUCCESS MODAL AFTER SAVE
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -101,6 +101,11 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
   confirmationMessage: string = '';
   private confirmationCallback: (() => void) | null = null;
   
+  // SUCCESS MODAL STATE
+  showSuccessModal: boolean = false;
+  successReceiptId: string = '';
+  successReceiptNumber: string = '';
+  
   // Translations
   private translations = {
     ar: {
@@ -137,7 +142,9 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
         deleted: 'تم حذف الإشعار بنجاح',
         pdfGenerated: 'تم إنشاء ملف PDF بنجاح',
         createdWithPdf: 'تم إنشاء الإشعار وملف PDF بنجاح',
-        updatedWithPdf: 'تم تحديث الإشعار وملف PDF بنجاح'
+        updatedWithPdf: 'تم تحديث الإشعار وملف PDF بنجاح',
+        successTitle: 'تم إنشاء السعر بنجاح',
+        successMessage: 'يمكنك ماذا تريد أن تفعل؟ PDF تم إنشاء ملف'
       }
     },
     en: {
@@ -174,7 +181,9 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
         deleted: 'Receipt deleted successfully',
         pdfGenerated: 'PDF generated successfully',
         createdWithPdf: 'Receipt and PDF created successfully',
-        updatedWithPdf: 'Receipt and PDF updated successfully'
+        updatedWithPdf: 'Receipt and PDF updated successfully',
+        successTitle: 'Quote Created Successfully',
+        successMessage: 'PDF file has been created. What would you like to do?'
       }
     }
   };
@@ -220,7 +229,6 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     
     this.toasts.push(toast);
     
-    // Auto-remove
     if (duration > 0) {
       const timeout = setTimeout(() => {
         this.removeToast(id);
@@ -228,7 +236,6 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
       this.toastTimeouts.set(id, timeout);
     }
     
-    // Limit to 5 toasts
     if (this.toasts.length > 5) {
       const oldestToast = this.toasts[0];
       this.removeToast(oldestToast.id);
@@ -245,6 +252,46 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
         this.toastTimeouts.delete(id);
       }
     }
+  }
+
+  // ========================================
+  // SUCCESS MODAL METHODS
+  // ========================================
+  
+  openSuccessModal(receiptId: string, receiptNumber: string): void {
+    this.successReceiptId = receiptId;
+    this.successReceiptNumber = receiptNumber;
+    this.showSuccessModal = true;
+  }
+
+  closeSuccessModal(): void {
+    this.showSuccessModal = false;
+    this.successReceiptId = '';
+    this.successReceiptNumber = '';
+    this.backToList();
+  }
+
+  viewPDFFromSuccess(): void {
+    if (this.successReceiptId) {
+      this.receiptService.viewPDFInNewTab(this.successReceiptId);
+    }
+  }
+
+  printPDFFromSuccess(): void {
+    if (this.successReceiptId) {
+      this.receiptService.openPrintDialog(this.successReceiptId);
+    }
+  }
+
+  downloadPDFFromSuccess(): void {
+    if (this.successReceiptId && this.successReceiptNumber) {
+      this.receiptService.downloadPDF(this.successReceiptId, `${this.successReceiptNumber}.pdf`);
+    }
+  }
+
+  doneSuccess(): void {
+    this.closeSuccessModal();
+    this.loadReceipts();
   }
 
   // ========================================
@@ -553,8 +600,8 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
           attention: freshReceipt.attention || '',
           projectCode: freshReceipt.projectCode || '',
           workLocation: freshReceipt.workLocation || '',
-          companyNumber: freshReceipt.companyNumber || '',
-          vehicleNumber: freshReceipt.vehicleNumber || '',
+          companyNumber: '',
+          vehicleNumber: freshReceipt.companyNumber || '',
           additionalText: freshReceipt.additionalText || '',
           items: JSON.parse(JSON.stringify(freshReceipt.items || [])),
           notes: freshReceipt.notes || ''
@@ -601,7 +648,20 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
 
     this.savingReceipt = true;
     this.clearErrors();
-    const receiptData = { ...this.receiptForm };
+    
+    const receiptData = {
+      to: this.receiptForm.to,
+      date: this.receiptForm.date,
+      address: this.receiptForm.address,
+      addressTitle: this.receiptForm.addressTitle,
+      attention: this.receiptForm.attention,
+      projectCode: this.receiptForm.projectCode,
+      workLocation: this.receiptForm.workLocation,
+      companyNumber: this.receiptForm.vehicleNumber,
+      additionalText: this.receiptForm.additionalText,
+      items: this.receiptForm.items,
+      notes: this.receiptForm.notes
+    };
 
     if (this.currentView === 'create') {
       this.receiptService.createReceipt(receiptData).subscribe({
@@ -611,8 +671,9 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
             next: () => {
               this.savingReceipt = false;
               this.showToast('success', this.t('messages.createdWithPdf'));
-              this.backToList();
-              this.loadReceipts();
+              setTimeout(() => {
+                this.openSuccessModal(createdReceipt.id, createdReceipt.receiptNumber);
+              }, 500);
             },
             error: () => {
               this.savingReceipt = false;
@@ -634,9 +695,10 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
           this.receiptService.generatePDF(updatedReceipt.id, this.formPdfAttachment || undefined).subscribe({
             next: () => {
               this.savingReceipt = false;
-              this.showToast('success', this.t('messages.updatedWithPdf'));
-              this.backToList();
-              this.loadReceipts();
+              this.showToast('success', this.t('messages.createdWithPdf'));
+                setTimeout(() => {
+                  this.openSuccessModal(updatedReceipt.id, updatedReceipt.receiptNumber);
+                }, 500);
             },
             error: () => {
               this.savingReceipt = false;
