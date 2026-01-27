@@ -10,10 +10,81 @@
       </div>
 
       <div class="navbar-left">
-        <button class="nav-icon-btn notification-btn">
-          <i class="bi bi-bell"></i>
-          <span class="badge">3</span>
-        </button>
+        <!-- Notifications Button (Only for super_admin and secretariat) -->
+        @if (canSeeNotifications()) {
+          <div class="notification-wrapper">
+            <button
+              class="nav-icon-btn notification-btn"
+              (click)="toggleNotificationsPanel()"
+              [class.has-unread]="unreadCount() > 0">
+              <i class="bi bi-bell"></i>
+              @if (unreadCount() > 0) {
+                <span class="badge">{{ unreadCount() }}</span>
+              }
+            </button>
+
+            <!-- Notifications Panel -->
+            @if (showNotificationsPanel()) {
+              <div class="notifications-panel" (click)="$event.stopPropagation()">
+                <div class="panel-header">
+                  <h3 class="panel-title">
+                    <i class="bi bi-bell-fill"></i>
+                    الإشعارات
+                  </h3>
+                  @if (unreadCount() > 0) {
+                    <button class="btn-mark-all" (click)="markAllAsRead()">
+                      <i class="bi bi-check-all"></i>
+                      تحديد الكل كمقروء
+                    </button>
+                  }
+                </div>
+
+                <div class="panel-body">
+                  @if (notifications().length > 0) {
+                    <div class="notifications-list">
+                      @for (notification of notifications(); track notification.id) {
+                        <div
+                          class="notification-item"
+                          [class.unread]="!notification.isRead"
+                          (click)="markAsRead(notification)">
+                          <div class="notification-icon" [style.background]="getNotificationColor(notification.formType) + '20'">
+                            <i class="bi" [ngClass]="getNotificationIcon(notification.formType)" [style.color]="getNotificationColor(notification.formType)"></i>
+                          </div>
+
+                          <div class="notification-content">
+                            <p class="notification-message">{{ notification.message }}</p>
+                            <div class="notification-meta">
+                              <span class="notification-number">
+                                <i class="bi bi-hash"></i>
+                                {{ notification.formNumber }}
+                              </span>
+                              <span class="notification-time">
+                                <i class="bi bi-clock"></i>
+                                {{ getNotificationTime(notification.createdAt) }}
+                              </span>
+                            </div>
+                          </div>
+
+                          @if (!notification.isRead) {
+                            <div class="unread-indicator"></div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  } @else {
+                    <div class="empty-notifications">
+                      <i class="bi bi-bell-slash"></i>
+                      <p>لا توجد إشعارات</p>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <!-- Backdrop -->
+              <div class="notifications-backdrop" (click)="closeNotificationsPanel()"></div>
+            }
+          </div>
+        }
 
         <div class="user-profile">
           <div class="user-info">
