@@ -15,6 +15,7 @@ export interface PriceQuoteItem {
 }
 
 export interface PriceQuote {
+[x: string]: any;
   id: string;
   quoteNumber: string;
   clientName: string;
@@ -37,6 +38,7 @@ export interface PriceQuote {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  createdByName?: string;
 }
 
 export interface CreatePriceQuoteData {
