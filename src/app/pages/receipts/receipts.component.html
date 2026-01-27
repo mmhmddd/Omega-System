@@ -32,6 +32,78 @@
     </div>
   </div>
 
+  <div *ngIf="showSuccessModal" class="success-modal-overlay" (click)="closeSuccessModal()">
+  <div class="success-modal" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'" (click)="$event.stopPropagation()">
+    
+    <!-- Header -->
+    <div class="success-header">
+      <button class="close-btn" (click)="closeSuccessModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+      
+      <div class="success-icon-wrapper">
+        <i class="bi bi-check-circle-fill"></i>
+      </div>
+      
+      <h2>{{ formLanguage === 'ar' ? 'تم إنشاء الاشعار بنجاح' : 'Receipt Created Successfully' }}</h2>
+    </div>
+    
+    <!-- Body -->
+    <div class="success-body">
+      
+      <!-- PDF Info Box -->
+      <div class="pdf-info-box">
+        <i class="bi bi-file-earmark-pdf-fill"></i>
+        <div class="pdf-details">
+          <p class="pdf-filename">{{ successReceiptNumber }}.pdf</p>
+          <p class="pdf-status">
+            {{ formLanguage === 'ar' ? 'جاهز للعرض والتحميل' : 'Ready to view and download' }}
+          </p>
+        </div>
+      </div>
+      
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        <!-- View PDF -->
+        <button class="action-btn btn-view" (click)="viewPDFFromSuccess()">
+          <div class="btn-icon">
+            <i class="bi bi-eye-fill"></i>
+          </div>
+          <span class="btn-label">
+            {{ formLanguage === 'ar' ? 'عرض PDF' : 'View PDF' }}
+          </span>
+        </button>
+        
+        <!-- Print PDF -->
+        <button class="action-btn btn-print" (click)="printPDFFromSuccess()">
+          <div class="btn-icon">
+            <i class="bi bi-printer-fill"></i>
+          </div>
+          <span class="btn-label">
+            {{ formLanguage === 'ar' ? 'طباعة' : 'Print' }}
+          </span>
+        </button>
+        
+        <!-- Download PDF -->
+        <button class="action-btn btn-download" (click)="downloadPDFFromSuccess()">
+          <div class="btn-icon">
+            <i class="bi bi-download"></i>
+          </div>
+          <span class="btn-label">
+            {{ formLanguage === 'ar' ? 'تحميل' : 'Download' }}
+          </span>
+        </button>
+      </div>
+      
+      <!-- Done Button -->
+      <button class="done-button" (click)="doneSuccess()">
+        <i class="bi bi-check-circle"></i>
+        {{ formLanguage === 'ar' ? 'تم' : 'Done' }}
+      </button>
+    </div>
+    
+  </div>
+</div>
   <!-- LIST VIEW -->
   <div *ngIf="currentView === 'list'" class="list-view">
     <!-- Header -->
