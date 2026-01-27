@@ -199,9 +199,7 @@ export class AuthService {
     });
   }
 
-  /**
-   * Check if user has access to a route
-   */
+
   hasRouteAccess(routeKey: string): boolean {
     const user = this.currentUserValue;
     if (!user) return false;
@@ -213,11 +211,18 @@ export class AuthService {
 
     // Secretariat has access to specific routes
     if (user.role === 'secretariat') {
-      const secretariatRoutes = ['userForms', 'secretariat-user'];
+      const secretariatRoutes = [
+        'userForms',
+        'secretariatManagement',
+        'secretariatUserManagement',
+        'secretariat-user',
+        'secretariat'
+      ];
       return secretariatRoutes.includes(routeKey);
     }
 
-    // Employee needs to check routeAccess array
+    // UPDATED: Employee checks routeAccess array
+    // If they have 'secretariatUserManagement' in their routeAccess, they can access it
     if (user.role === 'employee') {
       return user.routeAccess?.includes(routeKey) || false;
     }
