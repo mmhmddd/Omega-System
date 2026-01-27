@@ -1,9 +1,18 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { PriceQuoteService, PriceQuote, PriceQuoteItem, CreatePriceQuoteData } from '../../core/services/price-quote.service';
 import { AuthService } from '../../core/services/auth.service';
+import { retry } from 'rxjs';
+
+type ToastType = 'success' | 'error' | 'info' | 'warning';
+
+interface Toast {
+  id: string;
+  type: ToastType;
+  message: string;
+}
 
 @Component({
   selector: 'app-price-quotes',
@@ -12,7 +21,15 @@ import { AuthService } from '../../core/services/auth.service';
   templateUrl: './price-quotes.component.html',
   styleUrl: './price-quotes.component.scss'
 })
-export class PriceQuotesComponent implements OnInit {
+export class PriceQuotesComponent implements OnInit, OnDestroy {
+
+  getCreatorName(quote: PriceQuote): string {
+    if (quote.createdByName && quote.createdByName.trim() !== '') {
+      return quote.createdByName;
+    }
+    return quote.createdBy || '-';
+  }
+
   // ============================================
   // VIEW MANAGEMENT
   // ============================================
@@ -25,6 +42,12 @@ export class PriceQuotesComponent implements OnInit {
   // ============================================
   quotes: PriceQuote[] = [];
   selectedQuote: PriceQuote | null = null;
+
+  // ============================================
+  // TOAST NOTIFICATIONS
+  // ============================================
+  toasts: Toast[] = [];
+  private toastTimeouts: Map<string, any> = new Map();
 
   // ============================================
   // FORM DATA
@@ -84,6 +107,8 @@ export class PriceQuotesComponent implements OnInit {
   // MODALS
   // ============================================
   showDeleteModal: boolean = false;
+  showSuccessModal: boolean = false;
+  generatedQuoteId: string = '';
 
   constructor(
     private priceQuoteService: PriceQuoteService,
@@ -92,17 +117,89 @@ export class PriceQuotesComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadQuotes();
-    this.setTodayDate();
+  }
+
+  ngOnDestroy(): void {
+    // Clear all toast timeouts
+    this.toastTimeouts.forEach(timeout => clearTimeout(timeout));
+    this.toastTimeouts.clear();
   }
 
   // ============================================
-  // DATA LOADING
+  // TOAST METHODS
+  // ============================================
+
+  showToast(type: ToastType, message: string, duration: number = 3000): void {
+    const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const toast: Toast = { id, type, message };
+
+    this.toasts.push(toast);
+
+    // Auto-remove
+    if (duration > 0) {
+      const timeout = setTimeout(() => {
+        this.removeToast(id);
+      }, duration);
+      this.toastTimeouts.set(id, timeout);
+    }
+
+    // Limit to 5 toasts
+    if (this.toasts.length > 5) {
+      const oldestToast = this.toasts[0];
+      this.removeToast(oldestToast.id);
+    }
+  }
+
+  removeToast(id: string): void {
+    const index = this.toasts.findIndex(t => t.id === id);
+    if (index > -1) {
+      this.toasts.splice(index, 1);
+      const timeout = this.toastTimeouts.get(id);
+      if (timeout) {
+        clearTimeout(timeout);
+        this.toastTimeouts.delete(id);
+      }
+    }
+  }
+
+  // ============================================
+  // DATA LOADING - UPDATED FOR ROLE-BASED ACCESS
   // ============================================
 
   loadQuotes(): void {
     this.loading = true;
-    this.errorMessage = '';
+    const currentUser = this.authService.currentUserValue;
 
+    if (!currentUser) {
+      this.loading = false;
+      const errorMsg = this.formLanguage === 'ar'
+        ? 'يجب تسجيل الدخول أولاً'
+        : 'Please login first';
+      this.showToast('error', errorMsg);
+      return;
+    }
+
+    // Super Admin: Load all quotes with pagination and search
+    if (currentUser.role === 'super_admin') {
+      this.loadAllQuotes();
+    }
+    // Admin or Employee with permission: Load ALL their quotes with pagination
+    else if (currentUser.role === 'admin' ||
+             (currentUser.role === 'employee' && this.hasRouteAccess())) {
+      this.loadMyQuotesWithPagination();
+    }
+    // No permission
+    else {
+      this.loading = false;
+      const errorMsg = this.formLanguage === 'ar'
+        ? 'ليس لديك صلاحية للوصول إلى هذه الصفحة'
+        : 'You do not have permission to access this page';
+      this.showToast('error', errorMsg);
+    }
+  }
+
+  // Load all quotes (Super Admin only)
+  private loadAllQuotes(): void {
     const filters = {
       page: this.currentPage,
       limit: this.pageSize,
@@ -119,10 +216,46 @@ export class PriceQuotesComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error loading quotes:', error);
-        this.errorMessage = 'حدث خطأ في تحميل عروض الأسعار';
+        const errorMsg = this.formLanguage === 'ar'
+          ? 'حدث خطأ في تحميل عروض الأسعار'
+          : 'Error loading quotes';
+        this.showToast('error', errorMsg);
         this.loading = false;
       }
     });
+  }
+
+  // Load ALL current user's quotes with pagination (Admin/Employee)
+  private loadMyQuotesWithPagination(): void {
+    const filters = {
+      page: this.currentPage,
+      limit: this.pageSize,
+      search: this.searchTerm || undefined
+    };
+
+    // Use the main getAllQuotes endpoint which will filter by user automatically
+    this.priceQuoteService.getAllPriceQuotes(filters).subscribe({
+      next: (response) => {
+        this.quotes = response.data;
+        this.totalQuotes = response.pagination.totalQuotes;
+        this.totalPages = response.pagination.totalPages;
+        this.currentPage = response.pagination.currentPage;
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error loading my quotes:', error);
+        const errorMsg = this.formLanguage === 'ar'
+          ? 'حدث خطأ في تحميل عروض الأسعار'
+          : 'Error loading quotes';
+        this.showToast('error', errorMsg);
+        this.loading = false;
+      }
+    });
+  }
+
+  // Check if employee has route access
+  private hasRouteAccess(): boolean {
+    return this.authService.hasRouteAccess('priceQuotes');
   }
 
   // ============================================
@@ -130,6 +263,15 @@ export class PriceQuotesComponent implements OnInit {
   // ============================================
 
   createQuote(): void {
+    // Check permission
+    if (!this.canCreateQuote()) {
+      const errorMsg = this.formLanguage === 'ar'
+        ? 'ليس لديك صلاحية لإنشاء عرض سعر'
+        : 'You do not have permission to create quotes';
+      this.showToast('error', errorMsg);
+      return;
+    }
+
     this.resetForm();
     this.currentView = 'create';
     this.currentStep = 'basic';
@@ -138,6 +280,15 @@ export class PriceQuotesComponent implements OnInit {
   }
 
   editQuote(quote: PriceQuote): void {
+    // Check permission
+    if (!this.canEditQuote(quote)) {
+      const errorMsg = this.formLanguage === 'ar'
+        ? 'ليس لديك صلاحية لتعديل هذا العرض'
+        : 'You do not have permission to edit this quote';
+      this.showToast('error', errorMsg);
+      return;
+    }
+
     this.selectedQuote = quote;
     this.populateFormWithQuote(quote);
     this.currentView = 'edit';
@@ -240,7 +391,10 @@ export class PriceQuotesComponent implements OnInit {
   // ============================================
 
   addItem(): void {
-    this.quoteForm.items.push(this.priceQuoteService.createEmptyQuoteItem());
+    const newItem = this.priceQuoteService.createEmptyQuoteItem();
+    // Set default unit based on current language
+    newItem.unit = this.formLanguage === 'ar' ? 'قطعة' : 'pieces';
+    this.quoteForm.items.push(newItem);
   }
 
   removeItem(index: number): void {
@@ -271,6 +425,8 @@ export class PriceQuotesComponent implements OnInit {
     this.quoteForm.includeTax = includeTax;
     if (!includeTax) {
       this.quoteForm.taxRate = 0;
+      // Clear any tax-related errors
+      delete this.fieldErrors['taxRate'];
     }
   }
 
@@ -284,17 +440,26 @@ export class PriceQuotesComponent implements OnInit {
       const validation = this.priceQuoteService.validatePDFFile(file);
       if (!validation.valid) {
         this.formError = validation.error || '';
+        this.showToast('error', validation.error || 'Invalid file');
         this.pdfAttachment = null;
         event.target.value = '';
         return;
       }
       this.pdfAttachment = file;
       this.formError = '';
+      const successMsg = this.formLanguage === 'ar'
+        ? 'تم إرفاق الملف بنجاح'
+        : 'File attached successfully';
+      this.showToast('success', successMsg);
     }
   }
 
   removePdfAttachment(): void {
     this.pdfAttachment = null;
+    const msg = this.formLanguage === 'ar'
+      ? 'تم إزالة المرفق'
+      : 'Attachment removed';
+    this.showToast('info', msg);
   }
 
   // ============================================
@@ -306,20 +471,28 @@ export class PriceQuotesComponent implements OnInit {
     let isValid = true;
 
     if (!this.quoteForm.clientName || this.quoteForm.clientName.trim() === '') {
-      this.fieldErrors['clientName'] = 'اسم العميل مطلوب';
+      this.fieldErrors['clientName'] = this.formLanguage === 'ar'
+        ? 'اسم العميل مطلوب'
+        : 'Client name is required';
       isValid = false;
     }
 
     if (!this.quoteForm.clientPhone || this.quoteForm.clientPhone.trim() === '') {
-      this.fieldErrors['clientPhone'] = 'رقم هاتف العميل مطلوب';
+      this.fieldErrors['clientPhone'] = this.formLanguage === 'ar'
+        ? 'رقم هاتف العميل مطلوب'
+        : 'Phone number is required';
       isValid = false;
     } else if (!this.priceQuoteService.validatePhoneNumber(this.quoteForm.clientPhone)) {
-      this.fieldErrors['clientPhone'] = 'رقم الهاتف غير صالح';
+      this.fieldErrors['clientPhone'] = this.formLanguage === 'ar'
+        ? 'رقم الهاتف غير صالح'
+        : 'Invalid phone number';
       isValid = false;
     }
 
     if (!this.quoteForm.date) {
-      this.fieldErrors['date'] = 'التاريخ مطلوب';
+      this.fieldErrors['date'] = this.formLanguage === 'ar'
+        ? 'التاريخ مطلوب'
+        : 'Date is required';
       isValid = false;
     }
 
@@ -331,28 +504,38 @@ export class PriceQuotesComponent implements OnInit {
     let isValid = true;
 
     if (this.quoteForm.items.length === 0) {
-      this.fieldErrors['items'] = 'يجب إضافة عنصر واحد على الأقل';
+      this.fieldErrors['items'] = this.formLanguage === 'ar'
+        ? 'يجب إضافة عنصر واحد على الأقل'
+        : 'At least one item is required';
       isValid = false;
     }
 
     this.quoteForm.items.forEach((item, index) => {
       if (!item.description || item.description.trim() === '') {
-        this.fieldErrors[`item_${index}_description`] = 'الوصف مطلوب';
+        this.fieldErrors[`item_${index}_description`] = this.formLanguage === 'ar'
+          ? 'الوصف مطلوب'
+          : 'Description is required';
         isValid = false;
       }
 
       if (!item.unit || item.unit.trim() === '') {
-        this.fieldErrors[`item_${index}_unit`] = 'الوحدة مطلوبة';
+        this.fieldErrors[`item_${index}_unit`] = this.formLanguage === 'ar'
+          ? 'الوحدة مطلوبة'
+          : 'Unit is required';
         isValid = false;
       }
 
       if (item.quantity === undefined || item.quantity <= 0) {
-        this.fieldErrors[`item_${index}_quantity`] = 'الكمية يجب أن تكون أكبر من صفر';
+        this.fieldErrors[`item_${index}_quantity`] = this.formLanguage === 'ar'
+          ? 'الكمية يجب أن تكون أكبر من صفر'
+          : 'Quantity must be greater than zero';
         isValid = false;
       }
 
       if (item.unitPrice === undefined || item.unitPrice < 0) {
-        this.fieldErrors[`item_${index}_unitPrice`] = 'السعر يجب أن يكون صفر أو أكثر';
+        this.fieldErrors[`item_${index}_unitPrice`] = this.formLanguage === 'ar'
+          ? 'السعر يجب أن يكون صفر أو أكثر'
+          : 'Price must be zero or greater';
         isValid = false;
       }
     });
@@ -364,11 +547,17 @@ export class PriceQuotesComponent implements OnInit {
     this.fieldErrors = {};
     let isValid = true;
 
-    if (this.quoteForm.includeTax) {
+    // Only validate tax rate if tax is actually included
+    if (this.quoteForm.includeTax === true) {
       if (!this.quoteForm.taxRate || this.quoteForm.taxRate <= 0) {
-        this.fieldErrors['taxRate'] = 'نسبة الضريبة مطلوبة';
+        this.fieldErrors['taxRate'] = this.formLanguage === 'ar'
+          ? 'نسبة الضريبة مطلوبة'
+          : 'Tax rate is required';
         isValid = false;
       }
+    } else {
+      // If tax is not included, ensure taxRate is 0
+      this.quoteForm.taxRate = 0;
     }
 
     return isValid;
@@ -386,19 +575,28 @@ export class PriceQuotesComponent implements OnInit {
 
     if (!basicValid) {
       this.currentStep = 'basic';
-      this.formError = 'يرجى تصحيح الأخطاء في المعلومات الأساسية';
+      this.formError = this.formLanguage === 'ar'
+        ? 'يرجى تصحيح الأخطاء في المعلومات الأساسية'
+        : 'Please correct errors in basic information';
+      this.showToast('warning', this.formError);
       return;
     }
 
     if (!itemsValid) {
       this.currentStep = 'items';
-      this.formError = 'يرجى تصحيح الأخطاء في العناصر';
+      this.formError = this.formLanguage === 'ar'
+        ? 'يرجى تصحيح الأخطاء في العناصر'
+        : 'Please correct errors in items';
+      this.showToast('warning', this.formError);
       return;
     }
 
     if (!taxValid) {
       this.currentStep = 'tax';
-      this.formError = 'يرجى تصحيح الأخطاء في معلومات الضريبة';
+      this.formError = this.formLanguage === 'ar'
+        ? 'يرجى تصحيح الأخطاء في معلومات الضريبة'
+        : 'Please correct errors in tax information';
+      this.showToast('warning', this.formError);
       return;
     }
 
@@ -420,17 +618,21 @@ export class PriceQuotesComponent implements OnInit {
   createNewQuote(quoteData: CreatePriceQuoteData): void {
     this.priceQuoteService.createPriceQuote(quoteData).subscribe({
       next: (response) => {
-        this.successMessage = 'تم إنشاء عرض السعر بنجاح';
         this.savingQuote = false;
-        this.backToList();
-
-        setTimeout(() => {
-          this.successMessage = '';
-        }, 3000);
+        this.generatedQuoteId = response.data.id;
+        this.showSuccessModal = true;
+        const successMsg = this.formLanguage === 'ar'
+          ? 'تم إنشاء عرض السعر بنجاح'
+          : 'Quote created successfully';
+        this.showToast('success', successMsg);
       },
       error: (error) => {
         console.error('Error creating quote:', error);
-        this.formError = error.error?.message || 'حدث خطأ أثناء إنشاء عرض السعر';
+        const errorMsg = error.error?.message || (this.formLanguage === 'ar'
+          ? 'حدث خطأ أثناء إنشاء عرض السعر'
+          : 'Error creating quote');
+        this.formError = errorMsg;
+        this.showToast('error', errorMsg);
         this.savingQuote = false;
       }
     });
@@ -441,20 +643,78 @@ export class PriceQuotesComponent implements OnInit {
 
     this.priceQuoteService.updatePriceQuote(this.selectedQuote.id, quoteData).subscribe({
       next: (response) => {
-        this.successMessage = 'تم تحديث عرض السعر بنجاح';
         this.savingQuote = false;
-        this.backToList();
-
-        setTimeout(() => {
-          this.successMessage = '';
-        }, 3000);
+        this.generatedQuoteId = response.data.id;
+        this.showSuccessModal = true;
+        const successMsg = this.formLanguage === 'ar'
+          ? 'تم تحديث عرض السعر بنجاح'
+          : 'Quote updated successfully';
+        this.showToast('success', successMsg);
       },
       error: (error) => {
         console.error('Error updating quote:', error);
-        this.formError = error.error?.message || 'حدث خطأ أثناء تحديث عرض السعر';
+        const errorMsg = error.error?.message || (this.formLanguage === 'ar'
+          ? 'حدث خطأ أثناء تحديث عرض السعر'
+          : 'Error updating quote');
+        this.formError = errorMsg;
+        this.showToast('error', errorMsg);
         this.savingQuote = false;
       }
     });
+  }
+
+  // ============================================
+  // SUCCESS MODAL ACTIONS
+  // ============================================
+
+  closeSuccessModal(): void {
+    this.showSuccessModal = false;
+    this.generatedQuoteId = '';
+    this.backToList();
+  }
+
+  viewGeneratedPDF(): void {
+    const quote = this.quotes.find(q => q.id === this.generatedQuoteId);
+    if (quote) {
+      this.viewPDF(quote);
+    } else {
+      // If quote not in current list, fetch it
+      this.priceQuoteService.downloadPDF(this.generatedQuoteId).subscribe({
+        next: (blob) => {
+          const url = window.URL.createObjectURL(blob);
+          window.open(url, '_blank');
+          setTimeout(() => window.URL.revokeObjectURL(url), 100);
+        },
+        error: (error) => {
+          console.error('Error viewing PDF:', error);
+          const errorMsg = this.formLanguage === 'ar'
+            ? 'حدث خطأ أثناء عرض الملف'
+            : 'Error viewing PDF';
+          this.showToast('error', errorMsg);
+        }
+      });
+    }
+  }
+
+  printGeneratedPDF(): void {
+    this.priceQuoteService.downloadPDF(this.generatedQuoteId).subscribe({
+      next: (blob) => {
+        this.printPDFBlob(blob);
+      },
+      error: (error) => {
+        console.error('Error printing PDF:', error);
+        const errorMsg = this.formLanguage === 'ar'
+          ? 'حدث خطأ أثناء طباعة الملف'
+          : 'Error printing PDF';
+        this.showToast('error', errorMsg);
+      }
+    });
+  }
+
+  downloadGeneratedPDF(): void {
+    const quote = this.quotes.find(q => q.id === this.generatedQuoteId);
+    const filename = quote ? `${quote.quoteNumber}-${quote.clientName}.pdf` : `quote-${this.generatedQuoteId}.pdf`;
+    this.priceQuoteService.triggerPDFDownload(this.generatedQuoteId, filename);
   }
 
   // ============================================
@@ -462,6 +722,15 @@ export class PriceQuotesComponent implements OnInit {
   // ============================================
 
   openDeleteModal(quote: PriceQuote): void {
+    // Check permission
+    if (!this.canDeleteQuote(quote)) {
+      const errorMsg = this.formLanguage === 'ar'
+        ? 'ليس لديك صلاحية لحذف هذا العرض'
+        : 'You do not have permission to delete this quote';
+      this.showToast('error', errorMsg);
+      return;
+    }
+
     this.selectedQuote = quote;
     this.showDeleteModal = true;
   }
@@ -478,18 +747,20 @@ export class PriceQuotesComponent implements OnInit {
 
     this.priceQuoteService.deletePriceQuote(this.selectedQuote.id).subscribe({
       next: (response) => {
-        this.successMessage = 'تم حذف عرض السعر بنجاح';
+        const successMsg = this.formLanguage === 'ar'
+          ? 'تم حذف عرض السعر بنجاح'
+          : 'Quote deleted successfully';
+        this.showToast('success', successMsg);
         this.deletingQuote = false;
         this.closeDeleteModal();
         this.loadQuotes();
-
-        setTimeout(() => {
-          this.successMessage = '';
-        }, 3000);
       },
       error: (error) => {
         console.error('Error deleting quote:', error);
-        this.errorMessage = error.error?.message || 'حدث خطأ أثناء حذف عرض السعر';
+        const errorMsg = error.error?.message || (this.formLanguage === 'ar'
+          ? 'حدث خطأ أثناء حذف عرض السعر'
+          : 'Error deleting quote');
+        this.showToast('error', errorMsg);
         this.deletingQuote = false;
       }
     });
@@ -513,7 +784,10 @@ export class PriceQuotesComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error viewing PDF:', error);
-        this.errorMessage = 'حدث خطأ أثناء عرض الملف';
+        const errorMsg = this.formLanguage === 'ar'
+          ? 'حدث خطأ أثناء عرض الملف'
+          : 'Error viewing PDF';
+        this.showToast('error', errorMsg);
       }
     });
   }
@@ -521,24 +795,73 @@ export class PriceQuotesComponent implements OnInit {
   printPDF(quote: PriceQuote): void {
     this.priceQuoteService.downloadPDF(quote.id).subscribe({
       next: (blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = url;
-        document.body.appendChild(iframe);
-        iframe.onload = () => {
-          iframe.contentWindow?.print();
-        };
-        setTimeout(() => {
-          document.body.removeChild(iframe);
-          window.URL.revokeObjectURL(url);
-        }, 100);
+        this.printPDFBlob(blob);
       },
       error: (error) => {
         console.error('Error printing PDF:', error);
-        this.errorMessage = 'حدث خطأ أثناء طباعة الملف';
+        const errorMsg = this.formLanguage === 'ar'
+          ? 'حدث خطأ أثناء طباعة الملف'
+          : 'Error printing PDF';
+        this.showToast('error', errorMsg);
       }
     });
+  }
+
+  // Helper method to print PDF blob
+  private printPDFBlob(blob: Blob): void {
+    const url = window.URL.createObjectURL(blob);
+
+    // Create iframe for printing
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.top = '0';
+    iframe.style.left = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    iframe.src = url;
+
+    document.body.appendChild(iframe);
+
+    // Wait for PDF to load then print
+    iframe.onload = () => {
+      try {
+        // Small delay to ensure PDF is fully loaded
+        setTimeout(() => {
+          if (iframe.contentWindow) {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+          }
+
+          // Clean up after printing or if user cancels
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+            window.URL.revokeObjectURL(url);
+          }, 1000);
+        }, 250);
+      } catch (error) {
+        console.error('Error printing PDF:', error);
+        document.body.removeChild(iframe);
+        window.URL.revokeObjectURL(url);
+
+        const errorMsg = this.formLanguage === 'ar'
+          ? 'حدث خطأ أثناء طباعة الملف'
+          : 'Error printing PDF';
+        this.showToast('error', errorMsg);
+      }
+    };
+
+    // Handle load errors
+    iframe.onerror = () => {
+      console.error('Error loading PDF for printing');
+      document.body.removeChild(iframe);
+      window.URL.revokeObjectURL(url);
+
+      const errorMsg = this.formLanguage === 'ar'
+        ? 'حدث خطأ أثناء تحميل الملف للطباعة'
+        : 'Error loading PDF for printing';
+      this.showToast('error', errorMsg);
+    };
   }
 
   // ============================================
@@ -565,12 +888,82 @@ export class PriceQuotesComponent implements OnInit {
   }
 
   // ============================================
-  // HELPER METHODS
+  // PERMISSION METHODS - UPDATED
   // ============================================
 
-  getCreatorName(quote: PriceQuote): string {
-    return quote.createdBy || 'غير معروف';
+  isSuperAdmin(): boolean {
+    const currentUser = this.authService.currentUserValue;
+    return currentUser?.role === 'super_admin';
   }
+
+  canCreateQuote(): boolean {
+    const currentUser = this.authService.currentUserValue;
+    if (!currentUser) return false;
+
+    return (
+      currentUser.role === 'super_admin' ||
+      currentUser.role === 'admin' ||
+      (currentUser.role === 'employee' && this.hasRouteAccess())
+    );
+  }
+
+  canEditQuote(quote: PriceQuote): boolean {
+    const currentUser = this.authService.currentUserValue;
+    if (!currentUser) return false;
+
+    // Super admin can edit all quotes
+    if (currentUser.role === 'super_admin') {
+      return true;
+    }
+
+    // Admin and employees can only edit their own quotes
+    if (currentUser.role === 'admin' ||
+        (currentUser.role === 'employee' && this.hasRouteAccess())) {
+      return quote.createdBy === currentUser.id;
+    }
+
+    return false;
+  }
+
+  canDeleteQuote(quote: PriceQuote): boolean {
+    const currentUser = this.authService.currentUserValue;
+    if (!currentUser) return false;
+
+    // Super admin can delete any quote
+    if (currentUser.role === 'super_admin') {
+      return true;
+    }
+
+    // Admin and employees can delete their own quotes
+    if (currentUser.role === 'admin' ||
+        (currentUser.role === 'employee' && this.hasRouteAccess())) {
+      return quote.createdBy === currentUser.id;
+    }
+
+    return false;
+  }
+
+  canViewQuote(quote: PriceQuote): boolean {
+    const currentUser = this.authService.currentUserValue;
+    if (!currentUser) return false;
+
+    // Super admin can view all quotes
+    if (currentUser.role === 'super_admin') {
+      return true;
+    }
+
+    // Admin and employees can only view their own quotes
+    if (currentUser.role === 'admin' ||
+        (currentUser.role === 'employee' && this.hasRouteAccess())) {
+      return quote.createdBy === currentUser.id;
+    }
+
+    return false;
+  }
+
+  // ============================================
+  // HELPER METHODS
+  // ============================================
 
   formatCurrency(amount: number): string {
     return this.priceQuoteService.formatCurrency(amount);
@@ -578,21 +971,6 @@ export class PriceQuotesComponent implements OnInit {
 
   formatDate(dateString: string): string {
     return this.priceQuoteService.formatDate(dateString);
-  }
-
-  isSuperAdmin(): boolean {
-    const currentUser = this.authService.currentUserValue;
-    return currentUser?.role === 'super_admin';
-  }
-
-  canEditQuote(quote: PriceQuote): boolean {
-    const currentUser = this.authService.currentUserValue;
-    if (!currentUser) return false;
-
-    return (
-      currentUser.role === 'super_admin' ||
-      quote.createdBy === currentUser.id
-    );
   }
 
   getLanguageLabel(language: 'arabic' | 'english'): string {

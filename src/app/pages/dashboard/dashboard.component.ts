@@ -44,7 +44,7 @@ export class DashboardComponent implements OnInit {
       title: 'عرض سعر',
       subtitle: 'إنشاء وإدارة عروض الأسعار للعملاء',
       icon: 'bi-file-earmark-text',
-      route: '/rfqs',
+      route: '/price-quotes',
       color: '#10b981'
     },
     {
@@ -72,7 +72,7 @@ export class DashboardComponent implements OnInit {
       title: 'تسعير خارجي',
       subtitle: 'طلبات تسعير من الموردين',
       icon: 'bi-file-earmark-bar-graph',
-      route: '/price-quotes',
+      route: '/rfqs',
       color: '#8b5cf6'
     },
     {

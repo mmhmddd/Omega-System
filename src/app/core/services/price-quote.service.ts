@@ -15,6 +15,7 @@ export interface PriceQuoteItem {
 }
 
 export interface PriceQuote {
+[x: string]: any;
   id: string;
   quoteNumber: string;
   clientName: string;
@@ -37,6 +38,7 @@ export interface PriceQuote {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  createdByName?: string;
 }
 
 export interface CreatePriceQuoteData {
@@ -164,9 +166,9 @@ export class PriceQuoteService {
     // Add language (default: arabic)
     formData.append('language', quoteData.language || 'arabic');
 
-    // Add tax information
+    // Add tax information - FIXED: Only send taxRate if includeTax is true
     formData.append('includeTax', (quoteData.includeTax || false).toString());
-    if (quoteData.includeTax && quoteData.taxRate) {
+    if (quoteData.includeTax === true && quoteData.taxRate && quoteData.taxRate > 0) {
       formData.append('taxRate', quoteData.taxRate.toString());
     }
 
@@ -282,7 +284,8 @@ export class PriceQuoteService {
     if (updateData.includeTax !== undefined) {
       formData.append('includeTax', updateData.includeTax.toString());
     }
-    if (updateData.taxRate !== undefined) {
+    // FIXED: Only send taxRate if includeTax is true
+    if (updateData.includeTax === true && updateData.taxRate !== undefined && updateData.taxRate > 0) {
       formData.append('taxRate', updateData.taxRate.toString());
     }
     if (updateData.items) {
