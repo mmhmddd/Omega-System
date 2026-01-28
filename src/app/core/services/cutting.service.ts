@@ -23,8 +23,17 @@ export interface CuttingJob {
   dateFrom: string | null;
   createdAt: string;
   updatedAt: string;
-  currentlyCut?: number; // For tracking progress
-  remaining?: number; // For tracking remaining
+  currentlyCut: number;  // ✅ Always present, defaults to 0
+  remaining?: number;    // Calculated on frontend
+  uploadedByInfo?: UserInfo;
+  cutByInfo?: UserInfo[];
+}
+
+export interface UserInfo {
+  id: string;
+  name: string;
+  username: string;
+  email: string;
 }
 
 export interface CreateCuttingJobData {
@@ -47,6 +56,7 @@ export interface UpdateCuttingJobData {
   fileStatus?: 'معلق' | 'قيد التنفيذ' | 'مكتمل' | 'جزئي';
   dateFrom?: string;
   file?: File;
+  currentlyCut?: number;  // ✅ NEW: Support for updating cut progress
 }
 
 export interface CuttingJobsResponse {
@@ -227,6 +237,10 @@ export class CuttingService {
     if (updateData.dateFrom !== undefined) {
       formData.append('dateFrom', updateData.dateFrom);
     }
+    // ✅ NEW: Include currentlyCut in form data
+    if (updateData.currentlyCut !== undefined) {
+      formData.append('currentlyCut', updateData.currentlyCut.toString());
+    }
     if (updateData.file) {
       formData.append('file', updateData.file);
     }
@@ -242,6 +256,23 @@ export class CuttingService {
     return this.http.patch<CuttingJobResponse>(
       API_ENDPOINTS.CUTTING.UPDATE_STATUS(id),
       { fileStatus },
+      { headers: this.getAuthHeaders() }
+    );
+  }
+
+  // ✅ NEW: Dedicated method for tracking cutting progress
+  updateCuttingProgress(id: string, currentlyCut: number, fileStatus?: string, notes?: string): Observable<CuttingJobResponse> {
+    const body: any = { currentlyCut };
+    if (fileStatus) {
+      body.fileStatus = fileStatus;
+    }
+    if (notes) {
+      body.notes = notes;
+    }
+
+    return this.http.patch<CuttingJobResponse>(
+      `${API_ENDPOINTS.CUTTING.TRACK(id)}`,
+      body,
       { headers: this.getAuthHeaders() }
     );
   }
@@ -272,13 +303,14 @@ export class CuttingService {
   // DOWNLOAD FILE
   // ============================================
 
-  downloadFile(filePath: string): Observable<Blob> {
-    const downloadUrl = `${API_ENDPOINTS.CUTTING.DOWNLOAD_FILE}?filePath=${encodeURIComponent(filePath)}`;
-
-    return this.http.get(downloadUrl, {
-      headers: this.getAuthHeaders(),
-      responseType: 'blob'
-    });
+  downloadFile(jobId: string): Observable<Blob> {
+    return this.http.get(
+      API_ENDPOINTS.CUTTING.DOWNLOAD_FILE(jobId),
+      {
+        headers: this.getAuthHeaders(),
+        responseType: 'blob'
+      }
+    );
   }
 
   // ============================================
@@ -346,7 +378,13 @@ export class CuttingService {
   }
 
   calculateRemaining(quantity: number, currentlyCut: number): number {
-    return Math.max(0, quantity - currentlyCut);
+    return Math.max(0, quantity - (currentlyCut || 0));
+  }
+
+  calculateProgress(quantity: number, currentlyCut: number): number {
+    if (!quantity || quantity === 0) return 0;
+    const cut = currentlyCut || 0;
+    return Math.min(100, Math.round((cut / quantity) * 100));
   }
 
   isValidFileType(file: File): boolean {
