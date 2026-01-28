@@ -1135,7 +1135,8 @@ $info-color: #3b82f6;
 .materials-checkbox-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 0.75rem;
+  gap: 1rem;
+  margin-bottom: 30px;
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr 1fr;
