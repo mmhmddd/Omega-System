@@ -267,9 +267,9 @@ export class RFQsComponent implements OnInit, OnDestroy {
     }
   }
 
-  getDepartmentLabel(dept: Department): string {
-    return this.formLanguage === 'ar' ? dept.labelAr : dept.labelEn;
-  }
+    getDepartmentLabel(dept: Department): string {
+      return this.formLanguage === 'ar' ? dept.labelAr : dept.labelEn;
+    }
 
   // ========================================
   // CALCULATION METHODS
