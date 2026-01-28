@@ -1,1 +1,1051 @@
-<p>cutting works!</p>
+<div class="cutting-container">
+
+  <!-- TOAST NOTIFICATIONS CONTAINER -->
+  <div class="toast-container" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
+    <div
+      *ngFor="let toast of toasts"
+      class="toast"
+      [class.toast-success]="toast.type === 'success'"
+      [class.toast-error]="toast.type === 'error'"
+      [class.toast-info]="toast.type === 'info'"
+      [class.toast-warning]="toast.type === 'warning'">
+
+      <div class="toast-icon">
+        <i class="bi"
+           [ngClass]="{
+             'bi-check-circle-fill': toast.type === 'success',
+             'bi-x-circle-fill': toast.type === 'error',
+             'bi-info-circle-fill': toast.type === 'info',
+             'bi-exclamation-triangle-fill': toast.type === 'warning'
+           }"></i>
+      </div>
+
+      <div class="toast-content">
+        <p class="toast-message">{{ toast.message }}</p>
+      </div>
+
+      <button class="toast-close" (click)="removeToast(toast.id)">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- LIST VIEW -->
+  <!-- ============================================ -->
+  <div *ngIf="currentView === 'list'" class="list-view">
+    <!-- Header -->
+    <div class="page-header">
+      <h1 class="page-title">{{ formLanguage === 'ar' ? 'إدارة القص بالليزر' : 'Laser Cutting Management' }}</h1>
+      <div class="header-actions">
+        <button class="btn-secondary" (click)="openTrackingView()">
+          <i class="bi bi-clipboard-check"></i>
+          {{ formLanguage === 'ar' ? 'متابعة عمليات القص' : 'Track Cutting' }}
+        </button>
+        <button class="btn-primary" (click)="createNewJob()">
+          <i class="bi bi-plus-lg"></i>
+          {{ formLanguage === 'ar' ? 'إنشاء مهمة قص جديدة' : 'Create New Job' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="statistics-grid" *ngIf="statistics && !loadingStatistics">
+      <div class="stat-card stat-total">
+        <div class="stat-icon">
+          <i class="bi bi-briefcase-fill"></i>
+        </div>
+        <div class="stat-details">
+          <h3 class="stat-value">{{ statistics.total }}</h3>
+          <p class="stat-label">{{ formLanguage === 'ar' ? 'إجمالي المهام' : 'Total Jobs' }}</p>
+        </div>
+      </div>
+
+      <div class="stat-card stat-pending">
+        <div class="stat-icon">
+          <i class="bi bi-hourglass-split"></i>
+        </div>
+        <div class="stat-details">
+          <h3 class="stat-value">{{ statistics.byStatus['معلق'] }}</h3>
+          <p class="stat-label">{{ formLanguage === 'ar' ? 'معلق' : 'Pending' }}</p>
+        </div>
+      </div>
+
+      <div class="stat-card stat-in-progress">
+        <div class="stat-icon">
+          <i class="bi bi-arrow-repeat"></i>
+        </div>
+        <div class="stat-details">
+          <h3 class="stat-value">{{ statistics.byStatus['قيد التنفيذ'] }}</h3>
+          <p class="stat-label">{{ formLanguage === 'ar' ? 'قيد التنفيذ' : 'In Progress' }}</p>
+        </div>
+      </div>
+
+      <div class="stat-card stat-completed">
+        <div class="stat-icon">
+          <i class="bi bi-check-circle-fill"></i>
+        </div>
+        <div class="stat-details">
+          <h3 class="stat-value">{{ statistics.byStatus['مكتمل'] }}</h3>
+          <p class="stat-label">{{ formLanguage === 'ar' ? 'مكتمل' : 'Completed' }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="filters-section" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
+      <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input
+          type="text"
+          [placeholder]="formLanguage === 'ar' ? 'بحث برقم المهمة، اسم المشروع، اسم القطعة...' : 'Search by job ID, project name, piece name...'"
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="onSearchChange()"
+        />
+      </div>
+
+      <div class="filter-group">
+        <select
+          class="filter-select"
+          [(ngModel)]="selectedStatus"
+          (ngModelChange)="onFilterChange()">
+          <option value="">{{ formLanguage === 'ar' ? 'جميع الحالات' : 'All Statuses' }}</option>
+          <option value="معلق">{{ formLanguage === 'ar' ? 'معلق' : 'Pending' }}</option>
+          <option value="قيد التنفيذ">{{ formLanguage === 'ar' ? 'قيد التنفيذ' : 'In Progress' }}</option>
+          <option value="مكتمل">{{ formLanguage === 'ar' ? 'مكتمل' : 'Completed' }}</option>
+          <option value="جزئي">{{ formLanguage === 'ar' ? 'جزئي' : 'Partial' }}</option>
+        </select>
+
+        <select
+          class="filter-select"
+          [(ngModel)]="selectedMaterialType"
+          (ngModelChange)="onFilterChange()">
+          <option value="">{{ formLanguage === 'ar' ? 'جميع المواد' : 'All Materials' }}</option>
+          <option *ngFor="let material of materialTypes" [value]="material.value">
+            {{ formLanguage === 'ar' ? material.label : material.labelEn }}
+          </option>
+        </select>
+
+        <button class="btn-clear-filters" (click)="clearFilters()" *ngIf="selectedStatus || selectedMaterialType || searchTerm || dateFrom || dateTo">
+          <i class="bi bi-x-circle"></i>
+          {{ formLanguage === 'ar' ? 'مسح الفلاتر' : 'Clear Filters' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-container">
+      <table class="cutting-table">
+        <thead>
+          <tr>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'الإجراءات' : 'Actions' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'رقم المهمة' : 'Job ID' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'اسم المشروع' : 'Project Name' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'اسم القطعة' : 'Piece Name' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'الكمية' : 'Quantity' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'نوع المادة' : 'Material' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'السماكة (مم)' : 'Thickness (mm)' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'الملف' : 'File' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'الحالة' : 'Status' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'التاريخ' : 'Date' }}</th>
+          </tr>
+        </thead>
+        <tbody *ngIf="!loading && cuttingJobs.length > 0">
+          <tr *ngFor="let job of cuttingJobs">
+            <td class="actions-cell text-center">
+              <!-- NEW: View Details Button -->
+              <button
+                class="btn-icon btn-view"
+                (click)="openViewModal(job)"
+                [title]="formLanguage === 'ar' ? 'عرض التفاصيل' : 'View Details'">
+                <i class="bi bi-eye"></i>
+              </button>
+
+              <button
+                class="btn-icon btn-edit"
+                (click)="openEditModal(job)"
+                [title]="formLanguage === 'ar' ? 'تعديل' : 'Edit'">
+                <i class="bi bi-pencil"></i>
+              </button>
+
+              <button
+                class="btn-icon btn-delete"
+                (click)="openDeleteModal(job)"
+                [title]="formLanguage === 'ar' ? 'حذف' : 'Delete'">
+                <i class="bi bi-trash"></i>
+              </button>
+            </td>
+            <td class="job-number text-center">{{ job.id }}</td>
+            <td class="text-center">{{ job.projectName }}</td>
+            <td class="text-center">{{ job.pieceName || '-' }}</td>
+            <td class="text-center">
+              <div class="quantity-badge">
+                {{ job.quantity }}
+              </div>
+            </td>
+            <td class="text-center">
+              <span class="material-badge">
+                {{ getMaterialTypeLabel(job.materialType) }}
+              </span>
+            </td>
+            <td class="text-center">{{ job.thickness }}</td>
+            <td class="text-center">
+              <!-- NEW: Clickable Download Button -->
+              <button
+                class="file-download-btn"
+                *ngIf="job.fileName && job.filePath"
+                (click)="downloadFile(job.filePath, job.fileName)"
+                [title]="formLanguage === 'ar' ? 'تحميل الملف' : 'Download File'">
+                <i class="bi" [ngClass]="getFileIcon(job.fileName)"></i>
+                <span>{{ job.fileName }}</span>
+                <i class="bi bi-download"></i>
+              </button>
+              <span class="no-file" *ngIf="!job.fileName">-</span>
+            </td>
+            <td class="text-center">
+              <span class="status-badge" [ngClass]="getStatusColor(job.fileStatus)">
+                {{ getStatusLabel(job.fileStatus) }}
+              </span>
+            </td>
+            <td class="text-center">{{ formatDate(job.createdAt) }}</td>
+          </tr>
+        </tbody>
+        <tbody *ngIf="loading">
+          <tr>
+            <td colspan="10" class="text-center loading-cell">
+              <i class="bi bi-arrow-clockwise spin"></i> {{ formLanguage === 'ar' ? 'جاري التحميل...' : 'Loading...' }}
+            </td>
+          </tr>
+        </tbody>
+        <tbody *ngIf="!loading && cuttingJobs.length === 0">
+          <tr>
+            <td colspan="10" class="text-center empty-cell">
+              {{ formLanguage === 'ar' ? 'لا توجد مهام قص' : 'No cutting jobs found' }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button
+        class="btn-page"
+        [disabled]="currentPage === 1"
+        (click)="goToPage(currentPage - 1)">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+
+      <span class="page-info">
+        {{ formLanguage === 'ar' ? 'صفحة' : 'Page' }} {{ currentPage }} {{ formLanguage === 'ar' ? 'من' : 'of' }} {{ totalPages }}
+      </span>
+
+      <button
+        class="btn-page"
+        [disabled]="currentPage === totalPages"
+        (click)="goToPage(currentPage + 1)">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- CREATE VIEW -->
+  <!-- ============================================ -->
+  <div *ngIf="currentView === 'create'" class="form-view" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
+    <!-- Header -->
+    <div class="form-header">
+      <h1 class="form-title">
+        {{ formLanguage === 'ar' ? 'إنشاء مهمة قص جديدة' : 'Create New Cutting Job' }}
+      </h1>
+      <div class="form-actions">
+        <button class="btn-secondary" (click)="backToList()">
+          {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
+        </button>
+        <button
+          class="btn-primary"
+          (click)="saveJob()"
+          [disabled]="creatingJob">
+          <i class="bi bi-save"></i>
+          {{ creatingJob
+            ? (formLanguage === 'ar' ? 'جاري الحفظ...' : 'Saving...')
+            : (formLanguage === 'ar' ? 'حفظ' : 'Save')
+          }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Error Alert -->
+    <div class="error-alert" *ngIf="formError">
+      <i class="bi bi-exclamation-circle"></i>
+      <span>{{ formError }}</span>
+    </div>
+
+    <!-- Form Content -->
+    <div class="form-content">
+      <!-- Project Information -->
+      <div class="form-section">
+        <h2 class="section-title">
+          {{ formLanguage === 'ar' ? 'معلومات المشروع' : 'Project Information' }}
+        </h2>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>
+              <i class="bi bi-folder"></i>
+              {{ formLanguage === 'ar' ? 'اسم المشروع' : 'Project Name' }}
+              <span class="required">*</span>
+            </label>
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="formData.projectName"
+              [class.error]="fieldErrors['projectName']"
+              [placeholder]="formLanguage === 'ar' ? 'أدخل اسم المشروع' : 'Enter project name'"
+            />
+            <small class="error-message" *ngIf="fieldErrors['projectName']">
+              <i class="bi bi-exclamation-circle"></i>
+              {{ fieldErrors['projectName'] }}
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label>
+              <i class="bi bi-puzzle"></i>
+              {{ formLanguage === 'ar' ? 'اسم القطعة' : 'Piece Name' }}
+            </label>
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="formData.pieceName"
+              [placeholder]="formLanguage === 'ar' ? 'أدخل اسم القطعة (اختياري)' : 'Enter piece name (optional)'"
+            />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>
+              <i class="bi bi-hash"></i>
+              {{ formLanguage === 'ar' ? 'الكمية' : 'Quantity' }}
+              <span class="required">*</span>
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              [(ngModel)]="formData.quantity"
+              [class.error]="fieldErrors['quantity']"
+              min="1"
+              [placeholder]="formLanguage === 'ar' ? 'أدخل الكمية' : 'Enter quantity'"
+            />
+            <small class="error-message" *ngIf="fieldErrors['quantity']">
+              <i class="bi bi-exclamation-circle"></i>
+              {{ fieldErrors['quantity'] }}
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label>
+              <i class="bi bi-rulers"></i>
+              {{ formLanguage === 'ar' ? 'السماكة (مم)' : 'Thickness (mm)' }}
+              <span class="required">*</span>
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              [(ngModel)]="formData.thickness"
+              [class.error]="fieldErrors['thickness']"
+              min="0"
+              step="0.1"
+              [placeholder]="formLanguage === 'ar' ? 'أدخل السماكة' : 'Enter thickness'"
+            />
+            <small class="error-message" *ngIf="fieldErrors['thickness']">
+              <i class="bi bi-exclamation-circle"></i>
+              {{ fieldErrors['thickness'] }}
+            </small>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>
+            <i class="bi bi-layers"></i>
+            {{ formLanguage === 'ar' ? 'نوع المادة' : 'Material Type' }}
+            <span class="required">*</span>
+          </label>
+          <select
+            class="form-control"
+            [(ngModel)]="formData.materialType"
+            [class.error]="fieldErrors['materialType']">
+            <option value="">{{ formLanguage === 'ar' ? '-- اختر نوع المادة --' : '-- Select Material Type --' }}</option>
+            <option *ngFor="let material of materialTypes" [value]="material.value">
+              {{ formLanguage === 'ar' ? material.label : material.labelEn }}
+            </option>
+          </select>
+          <small class="error-message" *ngIf="fieldErrors['materialType']">
+            <i class="bi bi-exclamation-circle"></i>
+            {{ fieldErrors['materialType'] }}
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label>
+            <i class="bi bi-chat-text"></i>
+            {{ formLanguage === 'ar' ? 'ملاحظات' : 'Notes' }}
+          </label>
+          <textarea
+            class="form-control"
+            [(ngModel)]="formData.notes"
+            rows="3"
+            [placeholder]="formLanguage === 'ar' ? 'أدخل أي ملاحظات إضافية (اختياري)' : 'Enter any additional notes (optional)'"
+          ></textarea>
+        </div>
+      </div>
+
+      <!-- File Upload -->
+      <div class="form-section">
+        <h2 class="section-title">
+          {{ formLanguage === 'ar' ? 'رفع الملف' : 'File Upload' }}
+        </h2>
+
+        <div class="file-upload-area">
+          <input
+            type="file"
+            id="file-input"
+            class="file-input"
+            (change)="onFileSelected($event)"
+            accept=".dwg,.dxf,.dwt,.nc,.txt"
+          />
+
+          <label for="file-input" class="file-upload-label" *ngIf="!selectedFileName">
+            <i class="bi bi-cloud-upload"></i>
+            <span>{{ formLanguage === 'ar' ? 'انقر لرفع الملف أو اسحب وأفلت' : 'Click to upload or drag and drop' }}</span>
+            <small>{{ formLanguage === 'ar' ? 'DWG, DXF, DWT, NC, TXT (الحد الأقصى 50 ميجابايت)' : 'DWG, DXF, DWT, NC, TXT (Max 50MB)' }}</small>
+          </label>
+
+          <div class="file-selected" *ngIf="selectedFileName">
+            <div class="file-icon">
+              <i class="bi" [ngClass]="getFileIcon(selectedFileName)"></i>
+            </div>
+            <div class="file-details">
+              <p class="file-name">{{ selectedFileName }}</p>
+              <small class="file-size" *ngIf="selectedFile">
+                {{ formatFileSize(selectedFile.size) }}
+              </small>
+            </div>
+            <button type="button" class="btn-remove-file" (click)="removeSelectedFile()">
+              <i class="bi bi-x-circle"></i>
+            </button>
+          </div>
+
+          <small class="error-message" *ngIf="fieldErrors['file']">
+            <i class="bi bi-exclamation-circle"></i>
+            {{ fieldErrors['file'] }}
+          </small>
+        </div>
+      </div>
+
+      <!-- Save Button -->
+      <div class="save-section">
+        <button
+          class="btn-save-form"
+          (click)="saveJob()"
+          [disabled]="creatingJob">
+          <i class="bi" [ngClass]="creatingJob ? 'bi-arrow-clockwise spin' : 'bi-check-circle'"></i>
+          {{ creatingJob
+            ? (formLanguage === 'ar' ? 'جاري إنشاء المهمة...' : 'Creating Job...')
+            : (formLanguage === 'ar' ? 'حفظ وإنشاء المهمة' : 'Save & Create Job')
+          }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- TRACKING VIEW -->
+  <!-- ============================================ -->
+  <div *ngIf="currentView === 'track'" class="tracking-view" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
+    <!-- Header -->
+    <div class="form-header">
+      <h1 class="form-title">
+        {{ formLanguage === 'ar' ? 'متابعة عمليات القص' : 'Track Cutting Operations' }}
+      </h1>
+      <div class="form-actions">
+        <button class="btn-secondary" (click)="backToList()">
+          {{ formLanguage === 'ar' ? 'رجوع' : 'Back' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Tracking Content -->
+    <div class="tracking-content">
+      <!-- Job Selection -->
+      <div class="tracking-section">
+        <h2 class="section-title">
+          {{ formLanguage === 'ar' ? 'اختر مهمة القص' : 'Select Cutting Job' }}
+          <span class="required">*</span>
+        </h2>
+
+        <div class="form-group">
+          <label>
+            <i class="bi bi-list-check"></i>
+            {{ formLanguage === 'ar' ? 'رقم المهمة' : 'Job ID' }}
+          </label>
+          <select
+            class="form-control"
+            [(ngModel)]="trackingData.jobId"
+            (ngModelChange)="onJobSelected()">
+            <option value="">{{ formLanguage === 'ar' ? '-- اختر مهمة قص --' : '-- Select Cutting Job --' }}</option>
+            <option *ngFor="let job of cuttingJobs" [value]="job.id">
+              {{ job.id }} - {{ job.projectName }} ({{ job.pieceName || (formLanguage === 'ar' ? 'بدون اسم قطعة' : 'No piece name') }})
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Job Details -->
+      <div class="tracking-section" *ngIf="selectedJob">
+        <h2 class="section-title">
+          {{ formLanguage === 'ar' ? 'تفاصيل المهمة' : 'Job Details' }}
+        </h2>
+
+        <div class="job-details-card">
+          <div class="detail-row">
+            <div class="detail-item">
+              <span class="detail-label">{{ formLanguage === 'ar' ? 'اسم المشروع:' : 'Project Name:' }}</span>
+              <span class="detail-value">{{ selectedJob.projectName }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">{{ formLanguage === 'ar' ? 'اسم القطعة:' : 'Piece Name:' }}</span>
+              <span class="detail-value">{{ selectedJob.pieceName || '-' }}</span>
+            </div>
+          </div>
+
+          <div class="detail-row">
+            <div class="detail-item">
+              <span class="detail-label">{{ formLanguage === 'ar' ? 'نوع المادة:' : 'Material Type:' }}</span>
+              <span class="detail-value">{{ getMaterialTypeLabel(selectedJob.materialType) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">{{ formLanguage === 'ar' ? 'السماكة:' : 'Thickness:' }}</span>
+              <span class="detail-value">{{ selectedJob.thickness }} {{ formLanguage === 'ar' ? 'مم' : 'mm' }}</span>
+            </div>
+          </div>
+
+          <div class="quantity-tracker">
+            <div class="quantity-item quantity-total">
+              <i class="bi bi-box"></i>
+              <div class="quantity-info">
+                <span class="quantity-label">{{ formLanguage === 'ar' ? 'العدد الكلي' : 'Total Quantity' }}</span>
+                <span class="quantity-number">{{ selectedJob.quantity }}</span>
+              </div>
+            </div>
+
+            <div class="quantity-item quantity-cut">
+              <i class="bi bi-check2-circle"></i>
+              <div class="quantity-info">
+                <span class="quantity-label">{{ formLanguage === 'ar' ? 'المقصود حالياً' : 'Currently Cut' }}</span>
+                <span class="quantity-number">{{ selectedJob.currentlyCut || 0 }}</span>
+              </div>
+            </div>
+
+            <div class="quantity-item quantity-remaining">
+              <i class="bi bi-hourglass-split"></i>
+              <div class="quantity-info">
+                <span class="quantity-label">{{ formLanguage === 'ar' ? 'المتبقي' : 'Remaining' }}</span>
+                <span class="quantity-number">{{ selectedJob.remaining || selectedJob.quantity }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="progress-section">
+            <div class="progress-header">
+              <span>{{ formLanguage === 'ar' ? 'التقدم:' : 'Progress:' }}</span>
+              <span class="progress-percentage">{{ calculateProgress(selectedJob) }}%</span>
+            </div>
+            <div class="progress-bar">
+              <div
+                class="progress-fill"
+                [style.width.%]="calculateProgress(selectedJob)"
+                [style.background]="getProgressColor(calculateProgress(selectedJob))">
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-item detail-full">
+            <span class="detail-label">{{ formLanguage === 'ar' ? 'تم الرفع بواسطة:' : 'Uploaded By:' }}</span>
+            <span class="detail-value">{{ selectedJob.uploadedBy }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Update Section -->
+      <div class="tracking-section" *ngIf="selectedJob">
+        <h2 class="section-title">
+          {{ formLanguage === 'ar' ? 'تحديث حالة القص' : 'Update Cutting Status' }}
+        </h2>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>
+              <i class="bi bi-scissors"></i>
+              {{ formLanguage === 'ar' ? 'العدد الذي تم قصه في هذه الدفعة' : 'Quantity Cut in This Batch' }}
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              [(ngModel)]="trackingData.currentlyCut"
+              min="0"
+              [max]="selectedJob.remaining || selectedJob.quantity"
+              [placeholder]="formLanguage === 'ar' ? 'أدخل العدد المقصود' : 'Enter cut quantity'"
+            />
+            <small class="help-text">
+              {{ formLanguage === 'ar' ? 'الحد الأقصى:' : 'Maximum:' }} {{ selectedJob.remaining }}
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label>
+              <i class="bi bi-flag"></i>
+              {{ formLanguage === 'ar' ? 'الحالة الجديدة' : 'New Status' }}
+            </label>
+            <select
+              class="form-control"
+              [(ngModel)]="trackingData.newStatus">
+              <option value="معلق">{{ formLanguage === 'ar' ? 'معلق' : 'Pending' }}</option>
+              <option value="قيد التنفيذ">{{ formLanguage === 'ar' ? 'قيد التنفيذ' : 'In Progress' }}</option>
+              <option value="مكتمل">{{ formLanguage === 'ar' ? 'مكتمل' : 'Completed' }}</option>
+              <option value="جزئي">{{ formLanguage === 'ar' ? 'جزئي' : 'Partial' }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>
+            <i class="bi bi-chat-text"></i>
+            {{ formLanguage === 'ar' ? 'ملاحظات القص' : 'Cutting Notes' }}
+          </label>
+          <textarea
+            class="form-control"
+            [(ngModel)]="trackingData.notes"
+            rows="3"
+            [placeholder]="formLanguage === 'ar' ? 'أدخل أي ملاحظات حول عملية القص (اختياري)' : 'Enter any notes about the cutting process (optional)'"
+          ></textarea>
+        </div>
+
+        <div class="save-section">
+          <button
+            class="btn-save-form"
+            (click)="updateTracking()"
+            [disabled]="updatingJob">
+            <i class="bi" [ngClass]="updatingJob ? 'bi-arrow-clockwise spin' : 'bi-check-circle'"></i>
+            {{ updatingJob
+              ? (formLanguage === 'ar' ? 'جاري التحديث...' : 'Updating...')
+              : (formLanguage === 'ar' ? 'تحديث الحالة' : 'Update Status')
+            }}
+          </button>
+        </div>
+      </div>
+
+      <!-- No Job Selected Message -->
+      <div class="no-selection-message" *ngIf="!selectedJob">
+        <i class="bi bi-info-circle"></i>
+        <p>{{ formLanguage === 'ar' ? 'الرجاء اختيار مهمة قص للمتابعة' : 'Please select a cutting job to track' }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- VIEW DETAILS MODAL (NEW) -->
+  <!-- ============================================ -->
+  <div class="modal-overlay" *ngIf="showViewModal" (click)="closeViewModal()">
+    <div class="modal-content modal-xlarge" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title">
+          <i class="bi bi-eye text-info"></i>
+          {{ formLanguage === 'ar' ? 'تفاصيل مهمة القص' : 'Cutting Job Details' }}
+        </h2>
+        <button class="modal-close" (click)="closeViewModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="modal-body" *ngIf="selectedJob">
+        <!-- Job Information Section -->
+        <div class="details-section">
+          <h3 class="details-section-title">
+            <i class="bi bi-info-circle"></i>
+            {{ formLanguage === 'ar' ? 'معلومات المهمة' : 'Job Information' }}
+          </h3>
+
+          <div class="details-grid">
+            <div class="detail-item">
+              <span class="detail-label">{{ formLanguage === 'ar' ? 'رقم المهمة:' : 'Job ID:' }}</span>
+              <span class="detail-value job-id">{{ selectedJob.id }}</span>
+            </div>
+
+            <div class="detail-item">
+              <span class="detail-label">{{ formLanguage === 'ar' ? 'اسم المشروع:' : 'Project Name:' }}</span>
+              <span class="detail-value">{{ selectedJob.projectName }}</span>
+            </div>
+
+            <div class="detail-item">
+              <span class="detail-label">{{ formLanguage === 'ar' ? 'اسم القطعة:' : 'Piece Name:' }}</span>
+              <span class="detail-value">{{ selectedJob.pieceName || '-' }}</span>
+            </div>
+
+            <div class="detail-item">
+              <span class="detail-label">{{ formLanguage === 'ar' ? 'الكمية:' : 'Quantity:' }}</span>
+              <span class="detail-value">
+                <span class="quantity-badge">{{ selectedJob.quantity }}</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Material Information Section -->
+        <div class="details-section">
+          <h3 class="details-section-title">
+            <i class="bi bi-layers"></i>
+            {{ formLanguage === 'ar' ? 'معلومات المادة' : 'Material Information' }}
+          </h3>
+
+          <div class="details-grid">
+            <div class="detail-item">
+              <span class="detail-label">{{ formLanguage === 'ar' ? 'نوع المادة:' : 'Material Type:' }}</span>
+              <span class="detail-value">
+                <span class="material-badge">{{ getMaterialTypeLabel(selectedJob.materialType) }}</span>
+              </span>
+            </div>
+
+            <div class="detail-item">
+              <span class="detail-label">{{ formLanguage === 'ar' ? 'السماكة:' : 'Thickness:' }}</span>
+              <span class="detail-value">{{ selectedJob.thickness }} {{ formLanguage === 'ar' ? 'مم' : 'mm' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress Section -->
+        <div class="details-section" *ngIf="selectedJob.currentlyCut !== undefined">
+          <h3 class="details-section-title">
+            <i class="bi bi-graph-up"></i>
+            {{ formLanguage === 'ar' ? 'التقدم' : 'Progress' }}
+          </h3>
+
+          <div class="quantity-tracker">
+            <div class="quantity-item quantity-total">
+              <i class="bi bi-box"></i>
+              <div class="quantity-info">
+                <span class="quantity-label">{{ formLanguage === 'ar' ? 'العدد الكلي' : 'Total Quantity' }}</span>
+                <span class="quantity-number">{{ selectedJob.quantity }}</span>
+              </div>
+            </div>
+
+            <div class="quantity-item quantity-cut">
+              <i class="bi bi-check2-circle"></i>
+              <div class="quantity-info">
+                <span class="quantity-label">{{ formLanguage === 'ar' ? 'المقصود' : 'Cut' }}</span>
+                <span class="quantity-number">{{ selectedJob.currentlyCut || 0 }}</span>
+              </div>
+            </div>
+
+            <div class="quantity-item quantity-remaining">
+              <i class="bi bi-hourglass-split"></i>
+              <div class="quantity-info">
+                <span class="quantity-label">{{ formLanguage === 'ar' ? 'المتبقي' : 'Remaining' }}</span>
+                <span class="quantity-number">{{ selectedJob.remaining || selectedJob.quantity }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="progress-section">
+            <div class="progress-header">
+              <span>{{ formLanguage === 'ar' ? 'نسبة الإنجاز:' : 'Completion:' }}</span>
+              <span class="progress-percentage">{{ calculateProgress(selectedJob) }}%</span>
+            </div>
+            <div class="progress-bar">
+              <div
+                class="progress-fill"
+                [style.width.%]="calculateProgress(selectedJob)"
+                [style.background]="getProgressColor(calculateProgress(selectedJob))">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Status & File Section -->
+        <div class="details-section">
+          <h3 class="details-section-title">
+            <i class="bi bi-flag"></i>
+            {{ formLanguage === 'ar' ? 'الحالة والملف' : 'Status & File' }}
+          </h3>
+
+          <div class="details-grid">
+            <div class="detail-item">
+              <span class="detail-label">{{ formLanguage === 'ar' ? 'الحالة:' : 'Status:' }}</span>
+              <span class="detail-value">
+                <span class="status-badge" [ngClass]="getStatusColor(selectedJob.fileStatus)">
+                  {{ getStatusLabel(selectedJob.fileStatus) }}
+                </span>
+              </span>
+            </div>
+
+            <div class="detail-item">
+              <span class="detail-label">{{ formLanguage === 'ar' ? 'الملف:' : 'File:' }}</span>
+              <span class="detail-value">
+                <button
+                  class="file-download-btn inline"
+                  *ngIf="selectedJob.fileName && selectedJob.filePath"
+                  (click)="downloadFile(selectedJob.filePath, selectedJob.fileName)">
+                  <i class="bi" [ngClass]="getFileIcon(selectedJob.fileName)"></i>
+                  <span>{{ selectedJob.fileName }}</span>
+                  <i class="bi bi-download"></i>
+                </button>
+                <span *ngIf="!selectedJob.fileName">-</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notes Section -->
+        <div class="details-section" *ngIf="selectedJob.notes">
+          <h3 class="details-section-title">
+            <i class="bi bi-chat-text"></i>
+            {{ formLanguage === 'ar' ? 'الملاحظات' : 'Notes' }}
+          </h3>
+
+          <div class="notes-box">
+            <p>{{ selectedJob.notes }}</p>
+          </div>
+        </div>
+
+        <!-- Additional Information Section -->
+        <div class="details-section">
+          <h3 class="details-section-title">
+            <i class="bi bi-clock-history"></i>
+            {{ formLanguage === 'ar' ? 'معلومات إضافية' : 'Additional Information' }}
+          </h3>
+
+          <div class="details-grid">
+            <div class="detail-item">
+              <span class="detail-label">{{ formLanguage === 'ar' ? 'تم الرفع بواسطة:' : 'Uploaded By:' }}</span>
+              <span class="detail-value">{{ selectedJob.uploadedBy }}</span>
+            </div>
+
+            <div class="detail-item">
+              <span class="detail-label">{{ formLanguage === 'ar' ? 'تاريخ الإنشاء:' : 'Created At:' }}</span>
+              <span class="detail-value">{{ formatDate(selectedJob.createdAt) }}</span>
+            </div>
+
+            <div class="detail-item">
+              <span class="detail-label">{{ formLanguage === 'ar' ? 'آخر تحديث:' : 'Last Updated:' }}</span>
+              <span class="detail-value">{{ formatDate(selectedJob.updatedAt) }}</span>
+            </div>
+
+            <div class="detail-item" *ngIf="selectedJob.dateFrom">
+              <span class="detail-label">{{ formLanguage === 'ar' ? 'تاريخ البدء:' : 'Start Date:' }}</span>
+              <span class="detail-value">{{ formatDate(selectedJob.dateFrom) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeViewModal()">
+          <i class="bi bi-x-circle"></i>
+          {{ formLanguage === 'ar' ? 'إغلاق' : 'Close' }}
+        </button>
+        <button type="button" class="btn-primary" (click)="openEditModalFromView()">
+          <i class="bi bi-pencil"></i>
+          {{ formLanguage === 'ar' ? 'تعديل' : 'Edit' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- EDIT MODAL -->
+  <!-- ============================================ -->
+  <div class="modal-overlay" *ngIf="showEditModal" (click)="closeEditModal()">
+    <div class="modal-content modal-large" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title">
+          <i class="bi bi-pencil-square"></i>
+          {{ formLanguage === 'ar' ? 'تعديل مهمة القص' : 'Edit Cutting Job' }}
+        </h2>
+        <button class="modal-close" (click)="closeEditModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>
+              {{ formLanguage === 'ar' ? 'اسم المشروع' : 'Project Name' }}
+              <span class="required">*</span>
+            </label>
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="formData.projectName"
+              [class.error]="fieldErrors['projectName']"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>{{ formLanguage === 'ar' ? 'اسم القطعة' : 'Piece Name' }}</label>
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="formData.pieceName"
+            />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>
+              {{ formLanguage === 'ar' ? 'الكمية' : 'Quantity' }}
+              <span class="required">*</span>
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              [(ngModel)]="formData.quantity"
+              [class.error]="fieldErrors['quantity']"
+              min="1"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>
+              {{ formLanguage === 'ar' ? 'السماكة (مم)' : 'Thickness (mm)' }}
+              <span class="required">*</span>
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              [(ngModel)]="formData.thickness"
+              [class.error]="fieldErrors['thickness']"
+              min="0"
+              step="0.1"
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>
+            {{ formLanguage === 'ar' ? 'نوع المادة' : 'Material Type' }}
+            <span class="required">*</span>
+          </label>
+          <select
+            class="form-control"
+            [(ngModel)]="formData.materialType"
+            [class.error]="fieldErrors['materialType']">
+            <option value="">{{ formLanguage === 'ar' ? '-- اختر نوع المادة --' : '-- Select Material Type --' }}</option>
+            <option *ngFor="let material of materialTypes" [value]="material.value">
+              {{ formLanguage === 'ar' ? material.label : material.labelEn }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>{{ formLanguage === 'ar' ? 'ملاحظات' : 'Notes' }}</label>
+          <textarea
+            class="form-control"
+            [(ngModel)]="formData.notes"
+            rows="3"
+          ></textarea>
+        </div>
+
+        <div class="file-upload-area">
+          <input
+            type="file"
+            id="edit-file-input"
+            class="file-input"
+            (change)="onFileSelected($event)"
+            accept=".dwg,.dxf,.dwt,.nc,.txt"
+          />
+
+          <label for="edit-file-input" class="file-upload-label" *ngIf="!selectedFileName">
+            <i class="bi bi-cloud-upload"></i>
+            <span>{{ formLanguage === 'ar' ? 'تحديث الملف (اختياري)' : 'Update File (Optional)' }}</span>
+            <small>{{ formLanguage === 'ar' ? 'DWG, DXF, DWT, NC, TXT (الحد الأقصى 50 ميجابايت)' : 'DWG, DXF, DWT, NC, TXT (Max 50MB)' }}</small>
+          </label>
+
+          <div class="file-selected" *ngIf="selectedFileName">
+            <div class="file-icon">
+              <i class="bi" [ngClass]="getFileIcon(selectedFileName)"></i>
+            </div>
+            <div class="file-details">
+              <p class="file-name">{{ selectedFileName }}</p>
+            </div>
+            <button type="button" class="btn-remove-file" (click)="removeSelectedFile()">
+              <i class="bi bi-x-circle"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeEditModal()" [disabled]="updatingJob">
+          {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
+        </button>
+        <button type="button" class="btn-primary" (click)="updateJob()" [disabled]="updatingJob">
+          <i class="bi" [ngClass]="updatingJob ? 'bi-arrow-clockwise spin' : 'bi-check-lg'"></i>
+          {{ updatingJob
+            ? (formLanguage === 'ar' ? 'جاري التحديث...' : 'Updating...')
+            : (formLanguage === 'ar' ? 'تحديث' : 'Update')
+          }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- DELETE CONFIRMATION MODAL -->
+  <!-- ============================================ -->
+  <div class="modal-overlay" *ngIf="showDeleteModal" (click)="closeDeleteModal()">
+    <div class="modal-content modal-small" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title">
+          <i class="bi bi-exclamation-triangle text-danger"></i>
+          {{ formLanguage === 'ar' ? 'تأكيد الحذف' : 'Confirm Delete' }}
+        </h2>
+        <button class="modal-close" (click)="closeDeleteModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p class="delete-message">
+          {{ formLanguage === 'ar'
+            ? 'هل أنت متأكد من حذف مهمة القص'
+            : 'Are you sure you want to delete cutting job'
+          }}
+          <strong>{{ selectedJob?.id }}</strong>؟
+          <br>
+          <span class="text-warning">
+            {{ formLanguage === 'ar' ? 'لا يمكن التراجع عن هذا الإجراء!' : 'This action cannot be undone!' }}
+          </span>
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeDeleteModal()" [disabled]="deletingJob">
+          {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
+        </button>
+        <button type="button" class="btn-danger" (click)="confirmDelete()" [disabled]="deletingJob">
+          <i class="bi bi-trash" *ngIf="!deletingJob"></i>
+          <i class="bi bi-arrow-clockwise spin" *ngIf="deletingJob"></i>
+          {{ deletingJob
+            ? (formLanguage === 'ar' ? 'جاري الحذف...' : 'Deleting...')
+            : (formLanguage === 'ar' ? 'حذف' : 'Delete')
+          }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
