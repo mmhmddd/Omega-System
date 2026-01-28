@@ -1,1 +1,1094 @@
-<p>suppliers-control works!</p>
+<div class="suppliers-control-container">
+  <!-- ============================================ -->
+  <!-- TOAST NOTIFICATIONS CONTAINER -->
+  <!-- ============================================ -->
+  <div class="toast-container">
+    <div 
+      *ngFor="let toast of toasts" 
+      class="toast"
+      [class.toast-success]="toast.type === 'success'"
+      [class.toast-error]="toast.type === 'error'"
+      [class.toast-info]="toast.type === 'info'"
+      [class.toast-warning]="toast.type === 'warning'">
+      
+      <div class="toast-icon">
+        <i class="bi" 
+           [ngClass]="{
+             'bi-check-circle-fill': toast.type === 'success',
+             'bi-x-circle-fill': toast.type === 'error',
+             'bi-info-circle-fill': toast.type === 'info',
+             'bi-exclamation-triangle-fill': toast.type === 'warning'
+           }"></i>
+      </div>
+      
+      <div class="toast-content">
+        <p class="toast-message">{{ toast.message }}</p>
+      </div>
+      
+      <button class="toast-close" (click)="removeToast(toast.id)">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- HEADER SECTION -->
+  <!-- ============================================ -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="page-title">
+          <i class="bi bi-truck"></i>
+          إدارة الموردين
+        </h1>
+        <p class="page-subtitle">إضافة وتعديل وإدارة الموردين والمزودين</p>
+      </div>
+      <div class="header-actions">
+        <button
+          class="btn btn-secondary"
+          (click)="openStatsModal()">
+          <i class="bi bi-bar-chart-fill"></i>
+          الإحصائيات
+        </button>
+        <button
+          class="btn btn-primary"
+          (click)="openCreateModal()"
+          *ngIf="canManageSuppliers">
+          <i class="bi bi-plus-lg"></i>
+          إضافة مورد جديد
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- FILTERS SECTION -->
+  <!-- ============================================ -->
+  <div class="filters-section">
+    <div class="filters-grid">
+      <!-- Search -->
+      <div class="filter-group search-group">
+        <label class="filter-label">
+          <i class="bi bi-search"></i>
+          البحث
+        </label>
+        <input
+          type="text"
+          class="filter-input"
+          placeholder="ابحث بالاسم، البريد الإلكتروني، الهاتف..."
+          [(ngModel)]="searchTerm"
+          (input)="onSearchChange()"
+        />
+      </div>
+
+      <!-- Status Filter -->
+      <div class="filter-group">
+        <label class="filter-label">
+          <i class="bi bi-toggle-on"></i>
+          الحالة
+        </label>
+        <select
+          class="filter-select"
+          [(ngModel)]="selectedStatus"
+          (change)="onFilterChange()">
+          <option *ngFor="let status of statusOptions" [value]="status.value">
+            {{ status.label }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Country Filter -->
+      <div class="filter-group">
+        <label class="filter-label">
+          <i class="bi bi-geo-alt"></i>
+          الدولة
+        </label>
+        <select
+          class="filter-select"
+          [(ngModel)]="selectedCountry"
+          (change)="onFilterChange()">
+          <option value="">جميع الدول</option>
+          <option *ngFor="let country of countries" [value]="country">
+            {{ country }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Material Filter -->
+      <div class="filter-group">
+        <label class="filter-label">
+          <i class="bi bi-box-seam"></i>
+          نوع المادة
+        </label>
+        <select
+          class="filter-select"
+          [(ngModel)]="selectedMaterial"
+          (change)="onFilterChange()">
+          <option value="">جميع المواد</option>
+          <option *ngFor="let material of availableMaterials" [value]="material">
+            {{ material }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Rating Filter -->
+      <div class="filter-group">
+        <label class="filter-label">
+          <i class="bi bi-star-fill"></i>
+          الحد الأدنى للتقييم
+        </label>
+        <select
+          class="filter-select"
+          [(ngModel)]="minRating"
+          (change)="onFilterChange()">
+          <option [value]="0">الكل</option>
+          <option [value]="1">⭐ 1+</option>
+          <option [value]="2">⭐ 2+</option>
+          <option [value]="3">⭐ 3+</option>
+          <option [value]="4">⭐ 4+</option>
+          <option [value]="5">⭐ 5</option>
+        </select>
+      </div>
+
+      <!-- Clear Filters -->
+      <div class="filter-group">
+        <label class="filter-label">&nbsp;</label>
+        <button class="btn btn-secondary" (click)="clearFilters()">
+          <i class="bi bi-x-circle"></i>
+          مسح الفلاتر
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- STATISTICS BAR -->
+  <!-- ============================================ -->
+  <div class="statistics-bar" *ngIf="statistics">
+    <div class="stat-item">
+      <i class="bi bi-truck"></i>
+      <div>
+        <span class="stat-value">{{ statistics.total }}</span>
+        <span class="stat-label">إجمالي الموردين</span>
+      </div>
+    </div>
+    <div class="stat-item">
+      <i class="bi bi-check-circle"></i>
+      <div>
+        <span class="stat-value">{{ statistics.active }}</span>
+        <span class="stat-label">نشط</span>
+      </div>
+    </div>
+    <div class="stat-item">
+      <i class="bi bi-star-fill"></i>
+      <div>
+        <span class="stat-value">{{ statistics.averageRating.toFixed(1) }}</span>
+        <span class="stat-label">متوسط التقييم</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- TABLE SECTION -->
+  <!-- ============================================ -->
+  <div class="table-container">
+    <!-- Loading State -->
+    <div class="loading-overlay" *ngIf="loading">
+      <div class="spinner">
+        <i class="bi bi-arrow-clockwise spin"></i>
+      </div>
+      <p>جاري التحميل...</p>
+    </div>
+
+    <!-- Suppliers Table -->
+    <table class="suppliers-table">
+      <thead>
+        <tr>
+          <th>المورد</th>
+          <th>الشركة</th>
+          <th>الاتصال</th>
+          <th>الموقع</th>
+          <th>التقييم</th>
+          <th>الحالة</th>
+          <th>الإجراءات</th>
+        </tr>
+      </thead>
+
+      <tbody *ngIf="!loading && paginatedSuppliers.length > 0">
+        <tr *ngFor="let supplier of paginatedSuppliers" [class.inactive-row]="supplier.status !== 'active'">
+          <!-- Supplier Name -->
+          <td>
+            <div class="supplier-cell">
+              <div class="supplier-avatar">
+                {{ supplier.name.charAt(0).toUpperCase() }}
+              </div>
+              <div class="supplier-info">
+                <span class="supplier-name">{{ supplier.name }}</span>
+                <span class="supplier-id">{{ supplier.id }}</span>
+              </div>
+            </div>
+          </td>
+
+          <!-- Company Name -->
+          <td>
+            <span class="company-name">{{ supplier.companyName }}</span>
+          </td>
+
+          <!-- Contact Info -->
+          <td>
+            <div class="contact-info">
+              <div class="contact-item">
+                <i class="bi bi-person"></i>
+                <span>{{ supplier.contactPerson }}</span>
+              </div>
+              <div class="contact-item">
+                <i class="bi bi-telephone"></i>
+                <span>{{ supplier.phone }}</span>
+              </div>
+              <div class="contact-item" *ngIf="supplier.email">
+                <i class="bi bi-envelope"></i>
+                <span>{{ supplier.email }}</span>
+              </div>
+            </div>
+          </td>
+
+          <!-- Location -->
+          <td>
+            <div class="location-info">
+              <span *ngIf="supplier.city" class="location-badge">
+                <i class="bi bi-geo-alt"></i>
+                {{ supplier.city }}
+              </span>
+              <span *ngIf="supplier.country" class="country-text">{{ supplier.country }}</span>
+            </div>
+          </td>
+
+          <!-- Rating -->
+          <td>
+            <div class="rating-display">
+              <div class="stars">
+                <ng-container *ngFor="let star of getRatingStars(supplier.rating)">
+                  <i class="bi bi-star-fill" *ngIf="star === 'full'"></i>
+                  <i class="bi bi-star-half" *ngIf="star === 'half'"></i>
+                  <i class="bi bi-star" *ngIf="star === 'empty'"></i>
+                </ng-container>
+              </div>
+              <span class="rating-value">{{ supplier.rating.toFixed(1) }}</span>
+            </div>
+          </td>
+
+          <!-- Status -->
+          <td>
+            <span 
+              class="status-badge" 
+              [style.background-color]="getStatusColor(supplier.status)">
+              {{ getStatusLabel(supplier.status) }}
+            </span>
+          </td>
+
+          <!-- Actions Dropdown Menu -->
+          <td>
+            <div class="actions-dropdown">
+              <button
+                class="actions-trigger"
+                type="button"
+                [attr.data-supplier-id]="supplier.id"
+                (click)="toggleActionsMenu(supplier.id); $event.stopPropagation()"
+              >
+                <i class="bi bi-three-dots-vertical"></i>
+              </button>
+
+              <div
+                class="actions-menu"
+                [ngClass]="{ 'open-upward': menuShouldOpenUp[supplier.id] }"
+                *ngIf="activeActionsMenu === supplier.id"
+              >
+                <button 
+                  type="button" 
+                  class="action-menu-item" 
+                  (click)="openStatusModal(supplier); closeActionsMenu(); $event.stopPropagation()">
+                  <i class="bi bi-arrow-repeat"></i>
+                  <span>تغيير الحالة</span>
+                </button>
+
+                <button 
+                  type="button" 
+                  class="action-menu-item" 
+                  (click)="openEditModal(supplier); closeActionsMenu(); $event.stopPropagation()"
+                  *ngIf="canManageSuppliers">
+                  <i class="bi bi-pencil"></i>
+                  <span>تعديل</span>
+                </button>
+
+                <div class="menu-divider" *ngIf="canManageSuppliers"></div>
+
+                <button 
+                  type="button" 
+                  class="action-menu-item danger" 
+                  (click)="openDeleteModal(supplier); closeActionsMenu(); $event.stopPropagation()"
+                  *ngIf="canManageSuppliers">
+                  <i class="bi bi-trash"></i>
+                  <span>حذف</span>
+                </button>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+
+      <tbody *ngIf="loading">
+        <tr>
+          <td colspan="7" class="loading-cell">
+            <i class="bi bi-arrow-clockwise spin"></i> جاري التحميل...
+          </td>
+        </tr>
+      </tbody>
+
+      <tbody *ngIf="!loading && paginatedSuppliers.length === 0">
+        <tr>
+          <td colspan="7" class="empty-cell">
+            <i class="bi bi-inbox"></i>
+            <p>لا توجد موردين</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div class="pagination" *ngIf="!loading && totalPages > 1">
+      <button
+        class="btn-page"
+        [disabled]="currentPage === 1"
+        (click)="previousPage()">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+
+      <span class="page-info">
+        صفحة {{ currentPage }} من {{ totalPages }}
+      </span>
+
+      <button
+        class="btn-page"
+        [disabled]="currentPage === totalPages"
+        (click)="nextPage()">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- MENU BACKDROP (Click Outside to Close) -->
+<!-- ============================================ -->
+<div class="menu-backdrop" *ngIf="activeActionsMenu" (click)="closeActionsMenu()"></div>
+
+<!-- ============================================ -->
+<!-- CREATE SUPPLIER MODAL -->
+<!-- ============================================ -->
+<div class="modal-overlay" *ngIf="showCreateModal" (click)="closeCreateModal()">
+  <div class="modal-container modal-large" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <i class="bi bi-plus-circle"></i>
+        إضافة مورد جديد
+      </h2>
+      <button class="modal-close" (click)="closeCreateModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <form [formGroup]="createSupplierForm" (ngSubmit)="onCreateSubmit()">
+      <div class="modal-body">
+        <div class="form-sections">
+          <!-- Basic Information Section -->
+          <div class="form-section">
+            <h3 class="section-title">
+              <i class="bi bi-info-circle"></i>
+              المعلومات الأساسية
+            </h3>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="bi bi-person"></i>
+                  اسم المورد *
+                </label>
+                <input
+                  type="text"
+                  class="form-input"
+                  formControlName="name"
+                  placeholder="أدخل اسم المورد"
+                  [class.error]="createSupplierForm.get('name')?.touched && createSupplierForm.get('name')?.invalid"
+                />
+                <small class="error-message" *ngIf="getFormError(createSupplierForm, 'name')">
+                  <i class="bi bi-exclamation-circle"></i>
+                  {{ getFormError(createSupplierForm, 'name') }}
+                </small>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="bi bi-building"></i>
+                  اسم الشركة
+                </label>
+                <input
+                  type="text"
+                  class="form-input"
+                  formControlName="companyName"
+                  placeholder="أدخل اسم الشركة"
+                />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="bi bi-person-badge"></i>
+                  اسم الشخص المسؤول *
+                </label>
+                <input
+                  type="text"
+                  class="form-input"
+                  formControlName="contactPerson"
+                  placeholder="أدخل اسم الشخص المسؤول"
+                  [class.error]="createSupplierForm.get('contactPerson')?.touched && createSupplierForm.get('contactPerson')?.invalid"
+                />
+                <small class="error-message" *ngIf="getFormError(createSupplierForm, 'contactPerson')">
+                  <i class="bi bi-exclamation-circle"></i>
+                  {{ getFormError(createSupplierForm, 'contactPerson') }}
+                </small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Contact Information Section -->
+          <div class="form-section">
+            <h3 class="section-title">
+              <i class="bi bi-telephone"></i>
+              معلومات الاتصال
+            </h3>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="bi bi-envelope"></i>
+                  البريد الإلكتروني *
+                </label>
+                <input
+                  type="email"
+                  class="form-input"
+                  formControlName="email"
+                  placeholder="example@company.com"
+                  [class.error]="createSupplierForm.get('email')?.touched && createSupplierForm.get('email')?.invalid"
+                />
+                <small class="error-message" *ngIf="getFormError(createSupplierForm, 'email')">
+                  <i class="bi bi-exclamation-circle"></i>
+                  {{ getFormError(createSupplierForm, 'email') }}
+                </small>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="bi bi-telephone"></i>
+                  رقم الهاتف *
+                </label>
+                <input
+                  type="tel"
+                  class="form-input"
+                  formControlName="phone"
+                  placeholder="+20 123 456 7890"
+                  [class.error]="createSupplierForm.get('phone')?.touched && createSupplierForm.get('phone')?.invalid"
+                />
+                <small class="error-message" *ngIf="getFormError(createSupplierForm, 'phone')">
+                  <i class="bi bi-exclamation-circle"></i>
+                  {{ getFormError(createSupplierForm, 'phone') }}
+                </small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Address Section -->
+          <div class="form-section">
+            <h3 class="section-title">
+              <i class="bi bi-geo-alt"></i>
+              العنوان
+            </h3>
+
+            <div class="form-row">
+              <div class="form-group full-width">
+                <label class="form-label">
+                  <i class="bi bi-map"></i>
+                  العنوان الكامل
+                </label>
+                <input
+                  type="text"
+                  class="form-input"
+                  formControlName="address"
+                  placeholder="أدخل العنوان الكامل"
+                />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="bi bi-building"></i>
+                  المدينة
+                </label>
+                <input
+                  type="text"
+                  class="form-input"
+                  formControlName="city"
+                  placeholder="القاهرة، الإسكندرية..."
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="bi bi-flag"></i>
+                  الدولة
+                </label>
+                <select class="form-select" formControlName="country">
+                  <option value="">اختر الدولة</option>
+                  <option *ngFor="let country of countries" [value]="country">
+                    {{ country }}
+                  </option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Materials & Rating Section -->
+          <div class="form-section">
+            <h3 class="section-title">
+              <i class="bi bi-box-seam"></i>
+              المواد والتقييم
+            </h3>
+
+            <div class="form-group">
+              <label class="form-label">
+                <i class="bi bi-boxes"></i>
+                أنواع المواد
+              </label>
+              <div class="materials-checkbox-grid">
+                <label class="material-checkbox" *ngFor="let material of availableMaterials">
+                  <input
+                    type="checkbox"
+                    [checked]="isMaterialSelected(createSupplierForm, material)"
+                    (change)="toggleMaterialInForm(createSupplierForm, material)"
+                  />
+                  <span>{{ material }}</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="bi bi-star-fill"></i>
+                  التقييم (0-5)
+                </label>
+                <input
+                  type="number"
+                  class="form-input"
+                  formControlName="rating"
+                  min="0"
+                  max="5"
+                  step="0.1"
+                  placeholder="4.5"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="bi bi-toggle-on"></i>
+                  الحالة
+                </label>
+                <select class="form-select" formControlName="status">
+                  <option value="active">نشط</option>
+                  <option value="inactive">غير نشط</option>
+                  <option value="pending">قيد الانتظار</option>
+                  <option value="suspended">معلق</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="closeCreateModal()" [disabled]="savingSupplier">
+          إلغاء
+        </button>
+        <button type="submit" class="btn btn-primary" [disabled]="savingSupplier || createSupplierForm.invalid">
+          <i class="bi bi-check-lg" *ngIf="!savingSupplier"></i>
+          <i class="bi bi-arrow-clockwise spin" *ngIf="savingSupplier"></i>
+          {{ savingSupplier ? 'جاري الحفظ...' : 'حفظ' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- EDIT SUPPLIER MODAL -->
+<!-- ============================================ -->
+<div class="modal-overlay" *ngIf="showEditModal" (click)="closeEditModal()">
+  <div class="modal-container modal-large" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <i class="bi bi-pencil"></i>
+        تعديل المورد
+      </h2>
+      <button class="modal-close" (click)="closeEditModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <form [formGroup]="editSupplierForm" (ngSubmit)="onEditSubmit()">
+      <div class="modal-body">
+        <div class="form-sections">
+          <!-- Basic Information Section -->
+          <div class="form-section">
+            <h3 class="section-title">
+              <i class="bi bi-info-circle"></i>
+              المعلومات الأساسية
+            </h3>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="bi bi-person"></i>
+                  اسم المورد *
+                </label>
+                <input
+                  type="text"
+                  class="form-input"
+                  formControlName="name"
+                  placeholder="أدخل اسم المورد"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="bi bi-building"></i>
+                  اسم الشركة
+                </label>
+                <input
+                  type="text"
+                  class="form-input"
+                  formControlName="companyName"
+                  placeholder="أدخل اسم الشركة"
+                />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="bi bi-person-badge"></i>
+                  اسم الشخص المسؤول *
+                </label>
+                <input
+                  type="text"
+                  class="form-input"
+                  formControlName="contactPerson"
+                  placeholder="أدخل اسم الشخص المسؤول"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Contact Information -->
+          <div class="form-section">
+            <h3 class="section-title">
+              <i class="bi bi-telephone"></i>
+              معلومات الاتصال
+            </h3>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="bi bi-envelope"></i>
+                  البريد الإلكتروني *
+                </label>
+                <input
+                  type="email"
+                  class="form-input"
+                  formControlName="email"
+                  placeholder="example@company.com"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="bi bi-telephone"></i>
+                  رقم الهاتف *
+                </label>
+                <input
+                  type="tel"
+                  class="form-input"
+                  formControlName="phone"
+                  placeholder="+20 123 456 7890"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Address -->
+          <div class="form-section">
+            <h3 class="section-title">
+              <i class="bi bi-geo-alt"></i>
+              العنوان
+            </h3>
+
+            <div class="form-row">
+              <div class="form-group full-width">
+                <label class="form-label">
+                  <i class="bi bi-map"></i>
+                  العنوان الكامل
+                </label>
+                <input
+                  type="text"
+                  class="form-input"
+                  formControlName="address"
+                  placeholder="أدخل العنوان الكامل"
+                />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="bi bi-building"></i>
+                  المدينة
+                </label>
+                <input
+                  type="text"
+                  class="form-input"
+                  formControlName="city"
+                  placeholder="القاهرة، الإسكندرية..."
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="bi bi-flag"></i>
+                  الدولة
+                </label>
+                <select class="form-select" formControlName="country">
+                  <option value="">اختر الدولة</option>
+                  <option *ngFor="let country of countries" [value]="country">
+                    {{ country }}
+                  </option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Materials & Rating -->
+          <div class="form-section">
+            <h3 class="section-title">
+              <i class="bi bi-box-seam"></i>
+              المواد والتقييم
+            </h3>
+
+            <div class="form-group">
+              <label class="form-label">
+                <i class="bi bi-boxes"></i>
+                أنواع المواد
+              </label>
+              <div class="materials-checkbox-grid">
+                <label class="material-checkbox" *ngFor="let material of availableMaterials">
+                  <input
+                    type="checkbox"
+                    [checked]="isMaterialSelected(editSupplierForm, material)"
+                    (change)="toggleMaterialInForm(editSupplierForm, material)"
+                  />
+                  <span>{{ material }}</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="bi bi-star-fill"></i>
+                  التقييم (0-5)
+                </label>
+                <input
+                  type="number"
+                  class="form-input"
+                  formControlName="rating"
+                  min="0"
+                  max="5"
+                  step="0.1"
+                  placeholder="4.5"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="bi bi-toggle-on"></i>
+                  الحالة
+                </label>
+                <select class="form-select" formControlName="status">
+                  <option value="active">نشط</option>
+                  <option value="inactive">غير نشط</option>
+                  <option value="pending">قيد الانتظار</option>
+                  <option value="suspended">معلق</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="closeEditModal()" [disabled]="savingSupplier">
+          إلغاء
+        </button>
+        <button type="submit" class="btn btn-primary" [disabled]="savingSupplier || editSupplierForm.invalid">
+          <i class="bi bi-check-lg" *ngIf="!savingSupplier"></i>
+          <i class="bi bi-arrow-clockwise spin" *ngIf="savingSupplier"></i>
+          {{ savingSupplier ? 'جاري الحفظ...' : 'حفظ التغييرات' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- DELETE CONFIRMATION MODAL -->
+<!-- ============================================ -->
+<div class="modal-overlay" *ngIf="showDeleteModal" (click)="closeDeleteModal()">
+  <div class="modal-container modal-small" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <i class="bi bi-exclamation-triangle text-danger"></i>
+        تأكيد الحذف
+      </h2>
+      <button class="modal-close" (click)="closeDeleteModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <p class="delete-message">
+        هل أنت متأكد من حذف المورد <strong>{{ selectedSupplier?.name }}</strong>؟
+        <br>
+        <span class="text-warning">لا يمكن التراجع عن هذا الإجراء!</span>
+      </p>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="closeDeleteModal()" [disabled]="deletingSupplier">
+        إلغاء
+      </button>
+      <button type="button" class="btn btn-danger" (click)="confirmDelete()" [disabled]="deletingSupplier">
+        <i class="bi bi-trash" *ngIf="!deletingSupplier"></i>
+        <i class="bi bi-arrow-clockwise spin" *ngIf="deletingSupplier"></i>
+        {{ deletingSupplier ? 'جاري الحذف...' : 'حذف' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- CHANGE STATUS MODAL -->
+<!-- ============================================ -->
+<div class="modal-overlay" *ngIf="showStatusModal" (click)="closeStatusModal()">
+  <div class="modal-container modal-small" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <i class="bi bi-arrow-repeat"></i>
+        تغيير حالة المورد
+      </h2>
+      <button class="modal-close" (click)="closeStatusModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <p class="status-message">
+        تغيير حالة المورد <strong>{{ selectedSupplier?.name }}</strong>
+      </p>
+
+      <div class="form-group">
+        <label class="form-label">
+          <i class="bi bi-toggle-on"></i>
+          الحالة الجديدة
+        </label>
+        <select class="form-select" [(ngModel)]="newStatus">
+          <option value="active">نشط</option>
+          <option value="inactive">غير نشط</option>
+          <option value="pending">قيد الانتظار</option>
+          <option value="suspended">معلق</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="closeStatusModal()" [disabled]="changingStatus">
+        إلغاء
+      </button>
+      <button type="button" class="btn btn-primary" (click)="confirmStatusChange()" [disabled]="changingStatus">
+        <i class="bi bi-check-lg" *ngIf="!changingStatus"></i>
+        <i class="bi bi-arrow-clockwise spin" *ngIf="changingStatus"></i>
+        {{ changingStatus ? 'جاري التغيير...' : 'تأكيد' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- STATISTICS MODAL -->
+<!-- ============================================ -->
+<div class="modal-overlay" *ngIf="showStatsModal" (click)="closeStatsModal()">
+  <div class="modal-container modal-large" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <i class="bi bi-bar-chart-fill"></i>
+        إحصائيات الموردين
+      </h2>
+      <button class="modal-close" (click)="closeStatsModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="modal-body" *ngIf="statistics">
+      <div class="stats-container">
+        <!-- Overview Stats -->
+        <div class="stats-overview">
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="bi bi-truck"></i>
+            </div>
+            <div class="stat-content">
+              <span class="stat-number">{{ statistics.total }}</span>
+              <span class="stat-label">إجمالي الموردين</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon success">
+              <i class="bi bi-check-circle"></i>
+            </div>
+            <div class="stat-content">
+              <span class="stat-number">{{ statistics.active }}</span>
+              <span class="stat-label">نشط</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon warning">
+              <i class="bi bi-clock"></i>
+            </div>
+            <div class="stat-content">
+              <span class="stat-number">{{ statistics.pending }}</span>
+              <span class="stat-label">قيد الانتظار</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon danger">
+              <i class="bi bi-x-circle"></i>
+            </div>
+            <div class="stat-content">
+              <span class="stat-number">{{ statistics.inactive }}</span>
+              <span class="stat-label">غير نشط</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon info">
+              <i class="bi bi-star-fill"></i>
+            </div>
+            <div class="stat-content">
+              <span class="stat-number">{{ statistics.averageRating.toFixed(1) }}</span>
+              <span class="stat-label">متوسط التقييم</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- By Material -->
+        <div class="stats-section" *ngIf="objectKeys(statistics.byMaterial).length > 0">
+          <h4 class="stats-section-title">
+            <i class="bi bi-box-seam"></i>
+            الموردين حسب نوع المادة
+          </h4>
+          <div class="stats-list">
+            <div class="stats-item" *ngFor="let material of objectKeys(statistics.byMaterial)">
+              <span class="stats-item-label">{{ material }}</span>
+              <span class="stats-item-value">{{ statistics.byMaterial[material] }}</span>
+              <div class="stats-bar">
+                <div 
+                  class="stats-bar-fill" 
+                  [style.width.%]="(statistics.byMaterial[material] / statistics.total) * 100"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- By Country -->
+        <div class="stats-section" *ngIf="objectKeys(statistics.byCountry).length > 0">
+          <h4 class="stats-section-title">
+            <i class="bi bi-flag"></i>
+            الموردين حسب الدولة
+          </h4>
+          <div class="stats-list">
+            <div class="stats-item" *ngFor="let country of objectKeys(statistics.byCountry)">
+              <span class="stats-item-label">{{ country }}</span>
+              <span class="stats-item-value">{{ statistics.byCountry[country] }}</span>
+              <div class="stats-bar">
+                <div 
+                  class="stats-bar-fill" 
+                  [style.width.%]="(statistics.byCountry[country] / statistics.total) * 100"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Rated Suppliers -->
+        <div class="stats-section" *ngIf="statistics.topRated.length > 0">
+          <h4 class="stats-section-title">
+            <i class="bi bi-trophy"></i>
+            أفضل الموردين (التقييم)
+          </h4>
+          <div class="top-suppliers-list">
+            <div class="top-supplier-item" *ngFor="let supplier of statistics.topRated; let i = index">
+              <span class="rank-badge">{{ i + 1 }}</span>
+              <span class="supplier-name">{{ supplier.name }}</span>
+              <div class="rating-display">
+                <i class="bi bi-star-fill"></i>
+                <span>{{ supplier.rating.toFixed(1) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recently Added -->
+        <div class="stats-section" *ngIf="statistics.recentlyAdded.length > 0">
+          <h4 class="stats-section-title">
+            <i class="bi bi-clock-history"></i>
+            آخر الإضافات
+          </h4>
+          <div class="recent-suppliers-list">
+            <div class="recent-supplier-item" *ngFor="let supplier of statistics.recentlyAdded">
+              <div class="recent-supplier-info">
+                <span class="supplier-name">{{ supplier.name }}</span>
+                <span class="supplier-date">{{ supplier.createdAt | date:'dd/MM/yyyy' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="closeStatsModal()">
+        إغلاق
+      </button>
+    </div>
+  </div>
+</div>

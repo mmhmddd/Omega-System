@@ -1,1 +1,883 @@
-<p>purchases works!</p>
+<!-- purchases.component.html - CORRECTED: طلب شراء instead of أمر شراء -->
+
+<div class="purchases-container">
+  
+  <!-- TOAST NOTIFICATIONS CONTAINER -->
+  <div class="toast-container" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
+    <div 
+      *ngFor="let toast of toasts" 
+      class="toast"
+      [class.toast-success]="toast.type === 'success'"
+      [class.toast-error]="toast.type === 'error'"
+      [class.toast-info]="toast.type === 'info'"
+      [class.toast-warning]="toast.type === 'warning'">
+      
+      <div class="toast-icon">
+        <i class="bi" 
+           [ngClass]="{
+             'bi-check-circle-fill': toast.type === 'success',
+             'bi-x-circle-fill': toast.type === 'error',
+             'bi-info-circle-fill': toast.type === 'info',
+             'bi-exclamation-triangle-fill': toast.type === 'warning'
+           }"></i>
+      </div>
+      
+      <div class="toast-content">
+        <p class="toast-message">{{ toast.message }}</p>
+      </div>
+      
+      <button class="toast-close" (click)="removeToast(toast.id)">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- SUCCESS MODAL -->
+  <div *ngIf="showSuccessModal" class="success-modal-overlay" (click)="closeSuccessModal()">
+    <div class="success-modal" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'" (click)="$event.stopPropagation()">
+      
+      <!-- Header -->
+      <div class="success-header">
+        <button class="close-btn" (click)="closeSuccessModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+        
+        <div class="success-icon-wrapper">
+          <i class="bi bi-check-circle-fill"></i>
+        </div>
+        
+        <h2>{{ formLanguage === 'ar' ? 'تم إنشاء طلب الشراء بنجاح' : 'Purchase Order Created Successfully' }}</h2>
+      </div>
+      
+      <!-- Body -->
+      <div class="success-body">
+        
+        <!-- PDF Info Box -->
+        <div class="pdf-info-box">
+          <i class="bi bi-file-earmark-pdf-fill"></i>
+          <div class="pdf-details">
+            <p class="pdf-filename">{{ successPONumber }}.pdf</p>
+            <p class="pdf-status">
+              {{ formLanguage === 'ar' ? 'جاهز للعرض والتحميل' : 'Ready to view and download' }}
+            </p>
+          </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+          <!-- View PDF -->
+          <button class="action-btn btn-view" (click)="viewPDFFromSuccess()">
+            <div class="btn-icon">
+              <i class="bi bi-eye-fill"></i>
+            </div>
+            <span class="btn-label">
+              {{ formLanguage === 'ar' ? 'عرض PDF' : 'View PDF' }}
+            </span>
+          </button>
+          
+          <!-- Print PDF -->
+          <button class="action-btn btn-print" (click)="printPDFFromSuccess()">
+            <div class="btn-icon">
+              <i class="bi bi-printer-fill"></i>
+            </div>
+            <span class="btn-label">
+              {{ formLanguage === 'ar' ? 'طباعة' : 'Print' }}
+            </span>
+          </button>
+          
+          <!-- Download PDF -->
+          <button class="action-btn btn-download" (click)="downloadPDFFromSuccess()">
+            <div class="btn-icon">
+              <i class="bi bi-download"></i>
+            </div>
+            <span class="btn-label">
+              {{ formLanguage === 'ar' ? 'تحميل' : 'Download' }}
+            </span>
+          </button>
+        </div>
+        
+        <!-- Done Button -->
+        <button class="done-button" (click)="doneSuccess()">
+          <i class="bi bi-check-circle"></i>
+          {{ formLanguage === 'ar' ? 'تم' : 'Done' }}
+        </button>
+      </div>
+      
+    </div>
+  </div>
+
+  <!-- LIST VIEW -->
+  <div *ngIf="currentView === 'list'" class="list-view">
+    <!-- Header -->
+    <div class="page-header">
+      <h1 class="page-title">{{ formLanguage === 'ar' ? 'طلبات الشراء' : 'Purchase Orders' }}</h1>
+      <div class="header-actions">
+        <!-- Language Toggle -->
+        <div class="language-toggle">
+          <button 
+            type="button"
+            class="lang-btn"
+            [class.active]="formLanguage === 'ar'"
+            (click)="toggleFormLanguage('ar')">
+            <i class="bi bi-translate"></i>
+            عربي
+          </button>
+          <button 
+            type="button"
+            class="lang-btn"
+            [class.active]="formLanguage === 'en'"
+            (click)="toggleFormLanguage('en')">
+            <i class="bi bi-translate"></i>
+            English
+          </button>
+        </div>
+        <button class="btn-primary" (click)="createPO()">
+          <i class="bi bi-plus-lg"></i>
+          {{ formLanguage === 'ar' ? 'إنشاء طلب شراء' : 'Create Purchase Order' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="search-filter-section" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
+      <div class="search-box main-search">
+        <i class="bi bi-search"></i>
+        <input 
+          type="text" 
+          [placeholder]="formLanguage === 'ar' ? 'بحث برقم الطلب، المورد ...' : 'Search by PO number, supplier ...'"
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="onSearchChange()"
+          (keyup.enter)="onSearch()"
+        />
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-container">
+      <table class="pos-table">
+        <thead>
+          <tr>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'رقم الطلب' : 'PO #' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'المورد' : 'Supplier' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'المستلم' : 'Receiver' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'التاريخ' : 'Date' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'منشئ' : 'Created By' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'الدور' : 'Role' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'الإجراءات' : 'Actions' }}</th>
+          </tr>
+        </thead>
+        <tbody *ngIf="!loading && pos.length > 0">
+          <tr *ngFor="let po of pos">
+            <td class="po-number text-center">{{ po.poNumber }}</td>
+            <td class="po-supplier text-center">{{ po.supplier }}</td>
+            <td class="po-receiver text-center">{{ po.receiver }}</td>
+            <td class="text-center">{{ po.date }}</td>
+            <td class="text-center">{{ getCreatorName(po) }}</td>
+            <td class="text-center">
+              <span class="role-badge" [ngClass]="getRoleClass(po.createdByRole)">
+                {{ getRoleText(po.createdByRole) }}
+              </span>
+            </td>
+
+            <td class="actions-cell text-center">
+              <button 
+                class="btn-icon btn-view" 
+                (click)="viewPDF(po)" 
+                [title]="formLanguage === 'ar' ? 'عرض PDF' : 'View PDF'">
+                <i class="bi bi-eye"></i>
+              </button>
+              <button 
+                class="btn-icon btn-print" 
+                (click)="printPOPDF(po)" 
+                [title]="formLanguage === 'ar' ? 'طباعة' : 'Print'">
+                <i class="bi bi-printer"></i>
+              </button>
+              <button 
+                class="btn-icon btn-download" 
+                (click)="downloadPDF(po)" 
+                [title]="formLanguage === 'ar' ? 'تحميل PDF' : 'Download PDF'">
+                <i class="bi bi-download"></i>
+              </button>
+              <button 
+                class="btn-icon btn-edit" 
+                (click)="editPO(po)" 
+                [title]="formLanguage === 'ar' ? 'تعديل' : 'Edit'">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button 
+                *ngIf="isSuperAdmin()" 
+                class="btn-icon btn-delete" 
+                (click)="showDeleteConfirmation(po)" 
+                [title]="formLanguage === 'ar' ? 'حذف' : 'Delete'">
+                <i class="bi bi-trash"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+        <tbody *ngIf="loading">
+          <tr>
+            <td colspan="7" class="text-center loading-cell">
+              <i class="bi bi-arrow-clockwise spin"></i> {{ formLanguage === 'ar' ? 'جاري التحميل...' : 'Loading...' }}
+            </td>
+          </tr>
+        </tbody>
+        <tbody *ngIf="!loading && pos.length === 0">
+          <tr>
+            <td colspan="7" class="text-center empty-cell">
+              {{ formLanguage === 'ar' ? 'لا توجد طلبات شراء' : 'No purchase orders found' }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button 
+        class="btn-page" 
+        [disabled]="currentPage === 1"
+        (click)="goToPage(currentPage - 1)">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      
+      <span class="page-info">
+        {{ formLanguage === 'ar' ? 'صفحة' : 'Page' }} {{ currentPage }} {{ formLanguage === 'ar' ? 'من' : 'of' }} {{ totalPages }}
+      </span>
+      
+      <button 
+        class="btn-page" 
+        [disabled]="currentPage === totalPages"
+        (click)="goToPage(currentPage + 1)">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- CREATE/EDIT VIEW -->
+  <div 
+    *ngIf="currentView === 'create' || currentView === 'edit'" 
+    class="form-view"
+    [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
+    <!-- Header -->
+    <div class="form-header">
+      <h1 class="form-title">
+        {{ currentView === 'create' 
+          ? (formLanguage === 'ar' ? 'إنشاء طلب شراء' : 'Create Purchase Order')
+          : (formLanguage === 'ar' ? 'تعديل طلب شراء' : 'Edit Purchase Order') 
+        }}
+      </h1>
+      <div class="form-header-actions">
+        <div class="form-actions">
+          <button class="btn-secondary" (click)="backToList()">
+            {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
+          </button>
+          <button 
+            class="btn-primary" 
+            (click)="savePO()"
+            [disabled]="savingPO">
+            <i class="bi bi-save"></i>
+            {{ savingPO 
+              ? (formLanguage === 'ar' ? 'جاري الحفظ...' : 'Saving...') 
+              : (formLanguage === 'ar' ? 'حفظ' : 'Save') 
+            }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Alert -->
+    <div class="error-alert" *ngIf="formError">
+      <i class="bi bi-exclamation-circle"></i>
+      <span>{{ formError }}</span>
+    </div>
+
+    <!-- Form Content -->
+    <div class="form-content">
+      <!-- Sidebar Navigation -->
+      <div class="form-sidebar">
+        <button 
+          class="sidebar-step"
+          [class.active]="currentStep === 'basic'"
+          (click)="currentStep = 'basic'">
+          {{ formLanguage === 'ar' ? 'المعلومات الأساسية' : 'Basic Info' }}
+        </button>
+        <button 
+          class="sidebar-step"
+          [class.active]="currentStep === 'items'"
+          [class.has-error]="fieldErrors['items']"
+          (click)="currentStep = 'items'">
+          {{ formLanguage === 'ar' ? 'العناصر' : 'Items' }}
+          <span class="item-count" [class.error-count]="fieldErrors['items']">{{ getItemsCount() }}</span>
+        </button>
+      </div>
+
+      <!-- Form Fields -->
+      <div class="form-fields">
+        
+        <!-- STEP 1: Basic Info -->
+        <div *ngIf="currentStep === 'basic'" class="step-content">
+          <h2 class="step-title">{{ formLanguage === 'ar' ? 'المعلومات الأساسية' : 'Basic Info' }}</h2>
+
+          <!-- Date Field -->
+          <div class="form-group">
+            <label>
+              <i class="bi bi-calendar"></i>
+              {{ formLanguage === 'ar' ? 'التاريخ' : 'Date' }} 
+              <span class="required">*</span>
+            </label>
+            <input 
+              type="date" 
+              [(ngModel)]="poForm.date"
+              class="form-control"
+              [class.error]="fieldErrors['date']"
+              required
+            />
+            <small class="error-message" *ngIf="fieldErrors['date']">
+              <i class="bi bi-exclamation-circle"></i>
+              {{ fieldErrors['date'] }}
+            </small>
+          </div>
+
+          <!-- Supplier Section -->
+          <div class="section-divider">
+            <span class="section-title">{{ formLanguage === 'ar' ? 'معلومات المورد' : 'Supplier Information' }}</span>
+          </div>
+
+          <div class="form-group">
+            <label>
+              <i class="bi bi-truck"></i>
+              {{ formLanguage === 'ar' ? 'المورد' : 'Supplier' }}
+              <span class="required">*</span>
+            </label>
+            <select 
+              [(ngModel)]="poForm.supplier"
+              (ngModelChange)="onSupplierChange()"
+              class="form-control"
+              [class.error]="fieldErrors['supplier']"
+              [disabled]="loadingSuppliers"
+              required
+            >
+              <option value="" disabled selected>
+                {{ loadingSuppliers 
+                  ? (formLanguage === 'ar' ? 'جاري التحميل...' : 'Loading...') 
+                  : (formLanguage === 'ar' ? 'اختر المورد' : 'Select Supplier') 
+                }}
+              </option>
+              <option *ngFor="let supplier of suppliers" [value]="supplier.name">
+                {{ supplier.name }}
+              </option>
+            </select>
+            <small class="error-message" *ngIf="fieldErrors['supplier']">
+              <i class="bi bi-exclamation-circle"></i>
+              {{ fieldErrors['supplier'] }}
+            </small>
+          </div>
+
+          <!-- Supplier Address and Phone Row -->
+          <div class="form-row">
+            <div class="form-group">
+              <label>
+                <i class="bi bi-geo-alt"></i>
+                {{ formLanguage === 'ar' ? 'عنوان المورد' : 'Supplier Address' }}
+              </label>
+              <input 
+                type="text" 
+                [(ngModel)]="poForm.supplierAddress"
+                [placeholder]="formLanguage === 'ar' ? 'العنوان' : 'Address'"
+                class="form-control"
+              />
+            </div>
+            
+            <div class="form-group">
+              <label>
+                <i class="bi bi-telephone"></i>
+                {{ formLanguage === 'ar' ? 'هاتف المورد' : 'Supplier Phone' }}
+              </label>
+              <input 
+                type="text" 
+                [(ngModel)]="poForm.supplierPhone"
+                [placeholder]="formLanguage === 'ar' ? 'رقم الهاتف' : 'Phone Number'"
+                class="form-control"
+              />
+            </div>
+          </div>
+
+          <!-- Receiver Section -->
+          <div class="section-divider">
+            <span class="section-title">{{ formLanguage === 'ar' ? 'معلومات المستلم' : 'Receiver Information' }}</span>
+          </div>
+
+          <!-- Receiver Name -->
+          <div class="form-group">
+            <label>
+              <i class="bi bi-person"></i>
+              {{ formLanguage === 'ar' ? 'المستلم' : 'Receiver' }} 
+              <span class="required">*</span>
+            </label>
+            <input 
+              type="text" 
+              [(ngModel)]="poForm.receiver"
+              [placeholder]="formLanguage === 'ar' ? 'اسم المستلم' : 'Receiver Name'"
+              class="form-control"
+              [class.error]="fieldErrors['receiver']"
+              required
+            />
+            <small class="error-message" *ngIf="fieldErrors['receiver']">
+              <i class="bi bi-exclamation-circle"></i>
+              {{ fieldErrors['receiver'] }}
+            </small>
+          </div>
+
+          <!-- Receiver City and Address Row -->
+          <div class="form-row">
+            <div class="form-group">
+              <label>
+                <i class="bi bi-pin-map"></i>
+                {{ formLanguage === 'ar' ? 'المدينة' : 'City' }}
+              </label>
+              <input 
+                type="text" 
+                [(ngModel)]="poForm.receiverCity"
+                [placeholder]="formLanguage === 'ar' ? 'المدينة' : 'City'"
+                class="form-control"
+              />
+            </div>
+            
+            <div class="form-group">
+              <label>
+                <i class="bi bi-geo-alt"></i>
+                {{ formLanguage === 'ar' ? 'العنوان' : 'Address' }}
+              </label>
+              <input 
+                type="text" 
+                [(ngModel)]="poForm.receiverAddress"
+                [placeholder]="formLanguage === 'ar' ? 'عنوان المستلم' : 'Receiver Address'"
+                class="form-control"
+              />
+            </div>
+          </div>
+
+          <!-- Receiver Phone -->
+          <div class="form-group">
+            <label>
+              <i class="bi bi-telephone"></i>
+              {{ formLanguage === 'ar' ? 'هاتف المستلم' : 'Receiver Phone' }}
+            </label>
+            <input 
+              type="text" 
+              [(ngModel)]="poForm.receiverPhone"
+              [placeholder]="formLanguage === 'ar' ? 'رقم الهاتف' : 'Phone Number'"
+              class="form-control"
+            />
+          </div>
+
+          <!-- Additional Info Section -->
+          <div class="section-divider">
+            <span class="section-title">{{ formLanguage === 'ar' ? 'معلومات إضافية' : 'Additional Information' }}</span>
+          </div>
+
+          <!-- Table Header Text -->
+          <div class="form-group">
+            <label>
+              <i class="bi bi-text-paragraph"></i>
+              {{ formLanguage === 'ar' ? 'نص رأس الجدول' : 'Table Header Text' }}
+            </label>
+            <input 
+              type="text" 
+              [(ngModel)]="poForm.tableHeaderText"
+              [placeholder]="formLanguage === 'ar' ? 'نص اختياري لرأس الجدول' : 'Optional table header text'"
+              class="form-control"
+            />
+          </div>
+
+          <!-- Tax Rate -->
+          <div class="form-group">
+            <label>
+              <i class="bi bi-percent"></i>
+              {{ formLanguage === 'ar' ? 'نسبة الضريبة' : 'Tax Rate (%)' }}
+            </label>
+            <input 
+              type="number" 
+              [(ngModel)]="poForm.taxRate"
+              [placeholder]="formLanguage === 'ar' ? 'مثال: 16' : 'e.g. 16'"
+              class="form-control"
+              min="0"
+              max="100"
+              step="0.01"
+            />
+          </div>
+
+          <!-- Notes Field -->
+          <div class="form-group">
+            <label>
+              <i class="bi bi-chat-left-text"></i>
+              {{ formLanguage === 'ar' ? 'ملاحظات' : 'Notes' }}
+            </label>
+            <textarea 
+              [(ngModel)]="poForm.notes"
+              [placeholder]="formLanguage === 'ar' ? 'ملاحظات إضافية' : 'Additional notes'"
+              class="form-control"
+              rows="3"
+            ></textarea>
+          </div>
+
+          <!-- PDF Attachment Upload -->
+          <div class="form-group">
+            <label>
+              <i class="bi bi-paperclip"></i>
+              {{ formLanguage === 'ar' ? 'إرفاق ملف PDF (اختياري)' : 'Attach PDF File (Optional)' }}
+            </label>
+            
+            <div class="file-upload-wrapper">
+              <input 
+                type="file" 
+                id="form-pdf-attachment"
+                accept=".pdf"
+                (change)="onFormPdfAttachmentSelected($event)"
+                class="file-input"
+              />
+              <label for="form-pdf-attachment" class="file-upload-label">
+                <i class="bi bi-cloud-upload"></i>
+                <span>{{ formLanguage === 'ar' ? 'اختر ملف PDF' : 'Choose PDF File' }}</span>
+              </label>
+            </div>
+            
+            <div *ngIf="formPdfAttachment" class="file-selected">
+              <i class="bi bi-check-circle-fill"></i>
+              <span class="file-name">{{ formPdfAttachment.name }}</span>
+              <button class="btn-remove-file" (click)="removeFormPdfAttachment()" type="button">
+                <i class="bi bi-x"></i>
+              </button>
+            </div>
+            
+            <small class="help-text">
+              {{ formLanguage === 'ar' 
+                ? 'الحد الأقصى لحجم الملف: 10 ميجابايت. سيتم دمج الملف المرفق مع طلب الشراء.'
+                : 'Maximum file size: 10MB. The attached file will be merged with the purchase order.' 
+              }}
+            </small>
+          </div>
+
+          <div class="form-navigation">
+            <button class="btn-primary btn-next" (click)="nextStep()">
+              {{ formLanguage === 'ar' ? 'التالي' : 'Next' }}
+              <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-left' : 'bi-arrow-right'"></i>
+            </button>
+          </div>
+        </div>
+        
+        <!-- STEP 2: Items -->
+<!-- ========================================
+     PURCHASE ORDER ITEMS SECTION - CARD-BASED DESIGN
+     طلب الشراء - تصميم الكاردات (مع الاحتفاظ ببيانات PO)
+     ======================================== -->
+
+<div *ngIf="currentStep === 'items'" class="step-content">
+  <h2 class="step-title">
+    {{ formLanguage === 'ar' ? 'العناصر' : 'Items' }}
+    <span class="required">*</span>
+  </h2>
+
+  <div class="error-alert" *ngIf="fieldErrors['items']" style="margin-bottom: 1.5rem;">
+    <i class="bi bi-exclamation-circle"></i>
+    <span>{{ fieldErrors['items'] }}</span>
+  </div>
+
+  <div class="items-section">
+    <!-- Items List - CARD DESIGN -->
+    <div class="items-body" *ngIf="poForm.items.length > 0">
+      <ng-container *ngFor="let item of poForm.items; let i = index">
+        <div class="item-card">
+          <!-- Card Header -->
+          <div class="item-card-header">
+            <span class="item-number">{{ formLanguage === 'ar' ? 'عنصر' : 'Item' }} #{{ i + 1 }}</span>
+            <button class="btn-remove" (click)="removeItem(i)" type="button">
+              <i class="bi bi-trash"></i>
+              {{ formLanguage === 'ar' ? 'حذف' : 'Delete' }}
+            </button>
+          </div>
+
+          <!-- Card Body -->
+          <div class="item-card-body">
+            
+            <!-- Row 1: Description (Full Width) -->
+            <div class="item-field">
+              <label class="field-label">
+                {{ formLanguage === 'ar' ? 'الوصف' : 'Description' }}
+                <span class="required">*</span>
+              </label>
+              <input 
+                type="text" 
+                [(ngModel)]="item.description"
+                class="item-input"
+                [class.error]="fieldErrors['item_' + i + '_description']"
+                [placeholder]="formLanguage === 'ar' ? 'الوصف' : 'Description'"
+                required
+              />
+              <small class="error-message" *ngIf="fieldErrors['item_' + i + '_description']">
+                <i class="bi bi-exclamation-circle"></i>
+                {{ fieldErrors['item_' + i + '_description'] }}
+              </small>
+            </div>
+
+            <!-- Row 2: Unit and Quantity (2 Columns) -->
+            <div class="item-row-fields">
+              <!-- Unit -->
+              <div class="item-field">
+                <label class="field-label">
+                  {{ formLanguage === 'ar' ? 'الوحدة' : 'Unit' }}
+                  <span class="required">*</span>
+                </label>
+                <input 
+                  type="text" 
+                  [(ngModel)]="item.unit"
+                  class="item-input"
+                  [class.error]="fieldErrors['item_' + i + '_unit']"
+                  [placeholder]="formLanguage === 'ar' ? 'الوحدة' : 'Unit'"
+                  required
+                />
+                <small class="error-message" *ngIf="fieldErrors['item_' + i + '_unit']">
+                  <i class="bi bi-exclamation-circle"></i>
+                  {{ fieldErrors['item_' + i + '_unit'] }}
+                </small>
+              </div>
+              
+              <!-- Quantity -->
+              <div class="item-field">
+                <label class="field-label">
+                  {{ formLanguage === 'ar' ? 'الكمية' : 'Quantity' }}
+                  <span class="required">*</span>
+                </label>
+                <input 
+                  type="number" 
+                  [(ngModel)]="item.quantity"
+                  class="item-input"
+                  [class.error]="fieldErrors['item_' + i + '_quantity']"
+                  [placeholder]="formLanguage === 'ar' ? 'الكمية' : 'Qty'"
+                  min="0"
+                  step="1"
+                  required
+                />
+                <small class="error-message" *ngIf="fieldErrors['item_' + i + '_quantity']">
+                  <i class="bi bi-exclamation-circle"></i>
+                  {{ fieldErrors['item_' + i + '_quantity'] }}
+                </small>
+              </div>
+            </div>
+
+            <!-- Row 3: Unit Price and Total (2 Columns) -->
+            <div class="item-row-fields">
+              <!-- Unit Price -->
+              <div class="item-field">
+                <label class="field-label">
+                  {{ formLanguage === 'ar' ? 'سعر الوحدة' : 'Unit Price' }}
+                  <span class="required">*</span>
+                </label>
+                <input 
+                  type="number" 
+                  [(ngModel)]="item.unitPrice"
+                  class="item-input"
+                  [class.error]="fieldErrors['item_' + i + '_unitPrice']"
+                  [placeholder]="formLanguage === 'ar' ? 'السعر' : 'Price'"
+                  min="0"
+                  step="0.01"
+                  required
+                />
+                <small class="error-message" *ngIf="fieldErrors['item_' + i + '_unitPrice']">
+                  <i class="bi bi-exclamation-circle"></i>
+                  {{ fieldErrors['item_' + i + '_unitPrice'] }}
+                </small>
+              </div>
+              
+              <!-- Total (Auto-calculated, Read-only) -->
+              <div class="item-field">
+                <label class="field-label">
+                  {{ formLanguage === 'ar' ? 'الإجمالي' : 'Total' }}
+                </label>
+                <input 
+                  type="text" 
+                  [value]="calculateItemTotal(item)"
+                  class="item-input total-field"
+                  readonly
+                  disabled
+                />
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </ng-container>
+    </div>
+
+    <!-- Empty State -->
+    <div class="items-empty" *ngIf="poForm.items.length === 0">
+      <i class="bi bi-inbox" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
+      <p style="margin: 0; color: #64748b;">
+        {{ formLanguage === 'ar' ? 'لم يتم إضافة عناصر. يجب إضافة عنصر واحد على الأقل.' : 'No items added. At least one item is required.' }}
+      </p>
+    </div>
+
+    <!-- Add Item Button -->
+    <button class="btn-add-item" (click)="addItem()" type="button">
+      <i class="bi bi-plus-lg"></i>
+      {{ formLanguage === 'ar' ? 'إضافة عنصر' : 'Add Item' }}
+    </button>
+  </div>
+
+  <!-- Totals Summary -->
+  <div class="totals-summary" *ngIf="poForm.items.length > 0">
+    <div class="totals-box">
+      <div class="total-row">
+        <span class="total-label">{{ formLanguage === 'ar' ? 'المجموع الفرعي:' : 'Subtotal:' }}</span>
+        <span class="total-value">{{ calculateSubtotal() | number:'1.2-2' }}</span>
+      </div>
+      <div class="total-row" *ngIf="poForm.taxRate > 0">
+        <span class="total-label">
+          {{ formLanguage === 'ar' ? 'الضريبة' : 'Tax' }} ({{ poForm.taxRate }}%):
+        </span>
+        <span class="total-value">{{ calculateTax() | number:'1.2-2' }}</span>
+      </div>
+      <div class="total-row total-final">
+        <span class="total-label">{{ formLanguage === 'ar' ? 'الإجمالي الكلي:' : 'Grand Total:' }}</span>
+        <span class="total-value">{{ calculateTotal() | number:'1.2-2' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation Buttons -->
+  <div class="form-navigation">
+    <button class="btn-secondary btn-back" (click)="previousStep()" type="button">
+      <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
+      {{ formLanguage === 'ar' ? 'السابق' : 'Back' }}
+    </button>
+  </div>
+</div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- PDF GENERATION MODAL -->
+  <div *ngIf="showPDFModal" class="modal-overlay" (click)="closePDFModal()">
+    <div class="modal-content pdf-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-section">
+          <i class="bi bi-file-earmark-pdf modal-icon"></i>
+          <h2>{{ formLanguage === 'ar' ? 'إنشاء ملف PDF' : 'Generate PDF Document' }}</h2>
+        </div>
+        <button class="btn-close" (click)="closePDFModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="info-box">
+          <i class="bi bi-info-circle"></i>
+          <p>{{ formLanguage === 'ar' 
+            ? 'سيتم إنشاء ملف PDF لطلب الشراء هذا. يمكنك إرفاق ملف PDF إضافي اختيارياً ليتم دمجه مع الطلب.'
+            : 'A PDF document will be generated for this purchase order. You can optionally attach an additional PDF file to be merged with the order.' 
+          }}</p>
+        </div>
+        
+        <div class="pdf-info-card">
+          <div class="pdf-info-row">
+            <span class="pdf-info-label">
+              <i class="bi bi-hash"></i>
+              {{ formLanguage === 'ar' ? 'رقم الطلب' : 'PO Number' }}
+            </span>
+            <span class="pdf-info-value">{{ selectedPONumber }}</span>
+          </div>
+          <div class="pdf-info-row">
+            <span class="pdf-info-label">
+              <i class="bi bi-file-text"></i>
+              {{ formLanguage === 'ar' ? 'اسم الملف' : 'File Name' }}
+            </span>
+            <span class="pdf-info-value">{{ getPDFFilename() }}</span>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="upload-label">
+            <i class="bi bi-paperclip"></i>
+            {{ formLanguage === 'ar' ? 'إرفاق ملف PDF إضافي (اختياري)' : 'Attach Additional PDF (Optional)' }}
+          </label>
+          
+          <div class="file-upload-wrapper">
+            <input 
+              type="file" 
+              id="pdf-attachment"
+              accept=".pdf"
+              (change)="onPDFFileSelected($event)"
+              class="file-input"
+            />
+            <label for="pdf-attachment" class="file-upload-label">
+              <i class="bi bi-cloud-upload"></i>
+              <span>{{ formLanguage === 'ar' ? 'اختر ملف PDF' : 'Choose PDF File' }}</span>
+            </label>
+          </div>
+          
+          <div *ngIf="pdfAttachment" class="file-selected">
+            <i class="bi bi-check-circle-fill"></i>
+            <span class="file-name">{{ pdfAttachment.name }}</span>
+            <button class="btn-remove-file" (click)="removePDFAttachment()" type="button">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+          
+          <small class="help-text">
+            <i class="bi bi-exclamation-circle"></i>
+            {{ formLanguage === 'ar' 
+              ? 'الحد الأقصى لحجم الملف: 10 ميجابايت. سيتم دمج الملف المرفق مع الطلب.'
+              : 'Maximum file size: 10MB. The attached file will be merged with the order.' 
+            }}
+          </small>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closePDFModal()" [disabled]="generatingPDF">
+          <i class="bi bi-x-circle"></i>
+          {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
+        </button>
+        <button 
+          class="btn-primary btn-generate" 
+          (click)="generatePDF()"
+          [disabled]="generatingPDF">
+          <i class="bi" [ngClass]="generatingPDF ? 'bi-arrow-clockwise spin' : 'bi-file-earmark-pdf'"></i>
+          {{ generatingPDF 
+            ? (formLanguage === 'ar' ? 'جاري الإنشاء...' : 'Generating...') 
+            : (formLanguage === 'ar' ? 'إنشاء PDF' : 'Generate PDF') 
+          }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- INLINE CONFIRMATION MODAL -->
+  <div *ngIf="showConfirmationModal" class="confirmation-overlay" (click)="cancelConfirmation()">
+    <div class="confirmation-modal" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'" (click)="$event.stopPropagation()">
+      <div class="modal-header danger">
+        <div class="modal-icon">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+        </div>
+        <h3 class="modal-title">{{ confirmationTitle }}</h3>
+      </div>
+      
+      <div class="modal-body">
+        <p class="modal-message">{{ confirmationMessage }}</p>
+      </div>
+      
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="cancelConfirmation()">
+          <i class="bi bi-x-circle"></i>
+          {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
+        </button>
+        <button class="btn-confirm danger" (click)="confirmAction()">
+          <i class="bi bi-check-circle"></i>
+          {{ formLanguage === 'ar' ? 'حذف' : 'Delete' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
