@@ -1,6 +1,7 @@
 <div class="cutting-container">
-
+  <!-- ============================================ -->
   <!-- TOAST NOTIFICATIONS CONTAINER -->
+  <!-- ============================================ -->
   <div class="toast-container" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
     <div
       *ngFor="let toast of toasts"
@@ -36,216 +37,300 @@
   <div *ngIf="currentView === 'list'" class="list-view">
     <!-- Header -->
     <div class="page-header">
-      <h1 class="page-title">{{ formLanguage === 'ar' ? 'إدارة القص بالليزر' : 'Laser Cutting Management' }}</h1>
-      <div class="header-actions">
-        <button class="btn-secondary" (click)="openTrackingView()">
-          <i class="bi bi-clipboard-check"></i>
-          {{ formLanguage === 'ar' ? 'متابعة عمليات القص' : 'Track Cutting' }}
-        </button>
-        <button class="btn-primary" (click)="createNewJob()">
-          <i class="bi bi-plus-lg"></i>
-          {{ formLanguage === 'ar' ? 'إنشاء مهمة قص جديدة' : 'Create New Job' }}
-        </button>
+      <div class="header-content">
+        <div class="header-left">
+          <h1 class="page-title">
+            <i class="bi bi-scissors"></i>
+            {{ formLanguage === 'ar' ? 'إدارة القص بالليزر' : 'Laser Cutting Management' }}
+          </h1>
+          <p class="page-subtitle">{{ formLanguage === 'ar' ? 'إضافة وتعديل ومتابعة مهام القص بالليزر' : 'Add, edit and track laser cutting jobs' }}</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-secondary" (click)="openTrackingView()">
+            <i class="bi bi-clipboard-check"></i>
+            {{ formLanguage === 'ar' ? 'متابعة عمليات القص' : 'Track Cutting' }}
+          </button>
+          <button class="btn btn-primary" (click)="createNewJob()">
+            <i class="bi bi-plus-lg"></i>
+            {{ formLanguage === 'ar' ? 'إنشاء مهمة جديدة' : 'Create New Job' }}
+          </button>
+        </div>
       </div>
     </div>
 
     <!-- Statistics Cards -->
-    <div class="statistics-grid" *ngIf="statistics && !loadingStatistics">
-      <div class="stat-card stat-total">
-        <div class="stat-icon">
-          <i class="bi bi-briefcase-fill"></i>
-        </div>
-        <div class="stat-details">
-          <h3 class="stat-value">{{ statistics.total }}</h3>
-          <p class="stat-label">{{ formLanguage === 'ar' ? 'إجمالي المهام' : 'Total Jobs' }}</p>
+    <div class="statistics-bar" *ngIf="statistics && !loadingStatistics">
+      <div class="stat-item">
+        <i class="bi bi-briefcase-fill"></i>
+        <div>
+          <span class="stat-value">{{ statistics.total }}</span>
+          <span class="stat-label">{{ formLanguage === 'ar' ? 'إجمالي المهام' : 'Total Jobs' }}</span>
         </div>
       </div>
 
-      <div class="stat-card stat-pending">
-        <div class="stat-icon">
-          <i class="bi bi-hourglass-split"></i>
-        </div>
-        <div class="stat-details">
-          <h3 class="stat-value">{{ statistics.byStatus['معلق'] }}</h3>
-          <p class="stat-label">{{ formLanguage === 'ar' ? 'معلق' : 'Pending' }}</p>
+      <div class="stat-item">
+        <i class="bi bi-hourglass-split"></i>
+        <div>
+          <span class="stat-value">{{ statistics.byStatus['معلق'] || 0 }}</span>
+          <span class="stat-label">{{ formLanguage === 'ar' ? 'معلق' : 'Pending' }}</span>
         </div>
       </div>
 
-      <div class="stat-card stat-in-progress">
-        <div class="stat-icon">
-          <i class="bi bi-arrow-repeat"></i>
-        </div>
-        <div class="stat-details">
-          <h3 class="stat-value">{{ statistics.byStatus['قيد التنفيذ'] }}</h3>
-          <p class="stat-label">{{ formLanguage === 'ar' ? 'قيد التنفيذ' : 'In Progress' }}</p>
+      <div class="stat-item">
+        <i class="bi bi-arrow-repeat"></i>
+        <div>
+          <span class="stat-value">{{ statistics.byStatus['قيد التنفيذ'] || 0 }}</span>
+          <span class="stat-label">{{ formLanguage === 'ar' ? 'قيد التنفيذ' : 'In Progress' }}</span>
         </div>
       </div>
 
-      <div class="stat-card stat-completed">
-        <div class="stat-icon">
-          <i class="bi bi-check-circle-fill"></i>
-        </div>
-        <div class="stat-details">
-          <h3 class="stat-value">{{ statistics.byStatus['مكتمل'] }}</h3>
-          <p class="stat-label">{{ formLanguage === 'ar' ? 'مكتمل' : 'Completed' }}</p>
+      <div class="stat-item">
+        <i class="bi bi-check-circle-fill"></i>
+        <div>
+          <span class="stat-value">{{ statistics.byStatus['مكتمل'] || 0 }}</span>
+          <span class="stat-label">{{ formLanguage === 'ar' ? 'مكتمل' : 'Completed' }}</span>
         </div>
       </div>
     </div>
 
     <!-- Filters and Search -->
-    <div class="filters-section" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
-      <div class="search-box">
-        <i class="bi bi-search"></i>
-        <input
-          type="text"
-          [placeholder]="formLanguage === 'ar' ? 'بحث برقم المهمة، اسم المشروع، اسم القطعة...' : 'Search by job ID, project name, piece name...'"
-          [(ngModel)]="searchTerm"
-          (ngModelChange)="onSearchChange()"
-        />
-      </div>
+    <div class="filters-section">
+      <div class="filters-grid">
+        <!-- Search -->
+        <div class="filter-group search-group">
+          <label class="filter-label">
+            <i class="bi bi-search"></i>
+            {{ formLanguage === 'ar' ? 'البحث' : 'Search' }}
+          </label>
+          <input
+            type="text"
+            class="filter-input"
+            [placeholder]="formLanguage === 'ar' ? 'ابحث برقم المهمة، اسم المشروع، اسم القطعة...' : 'Search by job ID, project name, piece name...'"
+            [(ngModel)]="searchTerm"
+            (input)="onSearchChange()"
+          />
+        </div>
 
-      <div class="filter-group">
-        <select
-          class="filter-select"
-          [(ngModel)]="selectedStatus"
-          (ngModelChange)="onFilterChange()">
-          <option value="">{{ formLanguage === 'ar' ? 'جميع الحالات' : 'All Statuses' }}</option>
-          <option value="معلق">{{ formLanguage === 'ar' ? 'معلق' : 'Pending' }}</option>
-          <option value="قيد التنفيذ">{{ formLanguage === 'ar' ? 'قيد التنفيذ' : 'In Progress' }}</option>
-          <option value="مكتمل">{{ formLanguage === 'ar' ? 'مكتمل' : 'Completed' }}</option>
-          <option value="جزئي">{{ formLanguage === 'ar' ? 'جزئي' : 'Partial' }}</option>
-        </select>
+        <!-- Status Filter -->
+        <div class="filter-group">
+          <label class="filter-label">
+            <i class="bi bi-flag"></i>
+            {{ formLanguage === 'ar' ? 'الحالة' : 'Status' }}
+          </label>
+          <select
+            class="filter-select"
+            [(ngModel)]="selectedStatus"
+            (change)="onFilterChange()">
+            <option value="">{{ formLanguage === 'ar' ? 'جميع الحالات' : 'All Statuses' }}</option>
+            <option value="معلق">{{ formLanguage === 'ar' ? 'معلق' : 'Pending' }}</option>
+            <option value="قيد التنفيذ">{{ formLanguage === 'ar' ? 'قيد التنفيذ' : 'In Progress' }}</option>
+            <option value="مكتمل">{{ formLanguage === 'ar' ? 'مكتمل' : 'Completed' }}</option>
+            <option value="جزئي">{{ formLanguage === 'ar' ? 'جزئي' : 'Partial' }}</option>
+          </select>
+        </div>
 
-        <select
-          class="filter-select"
-          [(ngModel)]="selectedMaterialType"
-          (ngModelChange)="onFilterChange()">
-          <option value="">{{ formLanguage === 'ar' ? 'جميع المواد' : 'All Materials' }}</option>
-          <option *ngFor="let material of materialTypes" [value]="material.value">
-            {{ formLanguage === 'ar' ? material.label : material.labelEn }}
-          </option>
-        </select>
+        <!-- Material Filter -->
+        <div class="filter-group">
+          <label class="filter-label">
+            <i class="bi bi-layers"></i>
+            {{ formLanguage === 'ar' ? 'نوع المادة' : 'Material' }}
+          </label>
+          <select
+            class="filter-select"
+            [(ngModel)]="selectedMaterialType"
+            (change)="onFilterChange()">
+            <option value="">{{ formLanguage === 'ar' ? 'جميع المواد' : 'All Materials' }}</option>
+            <option *ngFor="let material of materialTypes" [value]="material.value">
+              {{ formLanguage === 'ar' ? material.label : material.labelEn }}
+            </option>
+          </select>
+        </div>
 
-        <button class="btn-clear-filters" (click)="clearFilters()" *ngIf="selectedStatus || selectedMaterialType || searchTerm || dateFrom || dateTo">
-          <i class="bi bi-x-circle"></i>
-          {{ formLanguage === 'ar' ? 'مسح الفلاتر' : 'Clear Filters' }}
-        </button>
+        <!-- Clear Filters -->
+        <div class="filter-group">
+          <label class="filter-label">&nbsp;</label>
+          <button class="btn btn-secondary" (click)="clearFilters()" *ngIf="selectedStatus || selectedMaterialType || searchTerm">
+            <i class="bi bi-x-circle"></i>
+            {{ formLanguage === 'ar' ? 'مسح الفلاتر' : 'Clear Filters' }}
+          </button>
+        </div>
       </div>
     </div>
 
     <!-- Table -->
     <div class="table-container">
+      <!-- Loading State -->
+      <div class="loading-overlay" *ngIf="loading">
+        <div class="spinner">
+          <i class="bi bi-arrow-clockwise spin"></i>
+        </div>
+        <p>{{ formLanguage === 'ar' ? 'جاري التحميل...' : 'Loading...' }}</p>
+      </div>
+
+      <!-- Cutting Jobs Table -->
       <table class="cutting-table">
         <thead>
           <tr>
-            <th class="text-center">{{ formLanguage === 'ar' ? 'الإجراءات' : 'Actions' }}</th>
-            <th class="text-center">{{ formLanguage === 'ar' ? 'رقم المهمة' : 'Job ID' }}</th>
-            <th class="text-center">{{ formLanguage === 'ar' ? 'اسم المشروع' : 'Project Name' }}</th>
-            <th class="text-center">{{ formLanguage === 'ar' ? 'اسم القطعة' : 'Piece Name' }}</th>
-            <th class="text-center">{{ formLanguage === 'ar' ? 'الكمية' : 'Quantity' }}</th>
-            <th class="text-center">{{ formLanguage === 'ar' ? 'نوع المادة' : 'Material' }}</th>
-            <th class="text-center">{{ formLanguage === 'ar' ? 'السماكة (مم)' : 'Thickness (mm)' }}</th>
-            <th class="text-center">{{ formLanguage === 'ar' ? 'الملف' : 'File' }}</th>
-            <th class="text-center">{{ formLanguage === 'ar' ? 'الحالة' : 'Status' }}</th>
-            <th class="text-center">{{ formLanguage === 'ar' ? 'التاريخ' : 'Date' }}</th>
+            <th>{{ formLanguage === 'ar' ? 'رقم المهمة' : 'Job ID' }}</th>
+            <th>{{ formLanguage === 'ar' ? 'المشروع والقطعة' : 'Project & Piece' }}</th>
+            <th>{{ formLanguage === 'ar' ? 'المادة والسماكة' : 'Material & Thickness' }}</th>
+            <th>{{ formLanguage === 'ar' ? 'الكمية' : 'Quantity' }}</th>
+            <th>{{ formLanguage === 'ar' ? 'التقدم' : 'Progress' }}</th>
+            <th>{{ formLanguage === 'ar' ? 'الحالة' : 'Status' }}</th>
+            <th>{{ formLanguage === 'ar' ? 'تاريخ الإنشاء' : 'Created Date' }}</th>
+            <th>{{ formLanguage === 'ar' ? 'الإجراءات' : 'Actions' }}</th>
           </tr>
         </thead>
+
         <tbody *ngIf="!loading && cuttingJobs.length > 0">
           <tr *ngFor="let job of cuttingJobs">
-            <td class="actions-cell text-center">
-              <!-- NEW: View Details Button -->
-              <button
-                class="btn-icon btn-view"
-                (click)="openViewModal(job)"
-                [title]="formLanguage === 'ar' ? 'عرض التفاصيل' : 'View Details'">
-                <i class="bi bi-eye"></i>
-              </button>
-
-              <button
-                class="btn-icon btn-edit"
-                (click)="openEditModal(job)"
-                [title]="formLanguage === 'ar' ? 'تعديل' : 'Edit'">
-                <i class="bi bi-pencil"></i>
-              </button>
-
-              <button
-                class="btn-icon btn-delete"
-                (click)="openDeleteModal(job)"
-                [title]="formLanguage === 'ar' ? 'حذف' : 'Delete'">
-                <i class="bi bi-trash"></i>
-              </button>
+            <!-- Job ID -->
+            <td>
+              <span class="job-id-badge">{{ job.id }}</span>
             </td>
-            <td class="job-number text-center">{{ job.id }}</td>
-            <td class="text-center">{{ job.projectName }}</td>
-            <td class="text-center">{{ job.pieceName || '-' }}</td>
-            <td class="text-center">
-              <div class="quantity-badge">
-                {{ job.quantity }}
+
+            <!-- Project & Piece -->
+            <td>
+              <div class="project-cell">
+                <span class="project-name">{{ job.projectName }}</span>
+                <span class="piece-name" *ngIf="job.pieceName">{{ job.pieceName }}</span>
               </div>
             </td>
-            <td class="text-center">
-              <span class="material-badge">
-                {{ getMaterialTypeLabel(job.materialType) }}
-              </span>
+
+            <!-- Material & Thickness -->
+            <td>
+              <div class="material-cell">
+                <span class="material-badge">{{ getMaterialTypeLabel(job.materialType) }}</span>
+                <span class="thickness-text">{{ job.thickness }} {{ formLanguage === 'ar' ? 'مم' : 'mm' }}</span>
+              </div>
             </td>
-            <td class="text-center">{{ job.thickness }}</td>
-            <td class="text-center">
-              <!-- NEW: Clickable Download Button -->
-              <button
-                class="file-download-btn"
-                *ngIf="job.fileName && job.filePath"
-                (click)="downloadFile(job.filePath, job.fileName)"
-                [title]="formLanguage === 'ar' ? 'تحميل الملف' : 'Download File'">
-                <i class="bi" [ngClass]="getFileIcon(job.fileName)"></i>
-                <span>{{ job.fileName }}</span>
-                <i class="bi bi-download"></i>
-              </button>
-              <span class="no-file" *ngIf="!job.fileName">-</span>
+
+            <!-- Quantity -->
+            <td>
+              <div class="quantity-cell">
+                <span class="quantity-badge">{{ job.quantity }}</span>
+              </div>
             </td>
-            <td class="text-center">
+
+            <!-- Progress -->
+            <td>
+              <div class="progress-cell">
+                <div class="progress-info">
+                  <span class="progress-text">{{ job.currentlyCut || 0 }} / {{ job.quantity }}</span>
+                  <span class="progress-percentage">{{ calculateProgress(job) }}%</span>
+                </div>
+                <div class="mini-progress-bar">
+                  <div class="mini-progress-fill"
+                       [style.width.%]="calculateProgress(job)"
+                       [style.background]="getProgressColor(calculateProgress(job))">
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <!-- Status -->
+            <td>
               <span class="status-badge" [ngClass]="getStatusColor(job.fileStatus)">
                 {{ getStatusLabel(job.fileStatus) }}
               </span>
             </td>
-            <td class="text-center">{{ formatDate(job.createdAt) }}</td>
+
+            <!-- Created Date -->
+            <td>
+              <span class="date-text">{{ formatDate(job.createdAt) }}</span>
+            </td>
+
+            <!-- Actions Dropdown Menu -->
+            <td>
+              <div class="actions-dropdown">
+                <button
+                  class="actions-trigger"
+                  type="button"
+                  [attr.data-job-id]="job.id"
+                  (click)="toggleActionsMenu(job.id, $event)"
+                >
+                  <i class="bi bi-three-dots-vertical"></i>
+                </button>
+
+                <div
+                  class="actions-menu"
+                  [ngClass]="{ 'open-upward': menuShouldOpenUp[job.id] }"
+                  *ngIf="activeActionsMenu === job.id"
+                >
+                  <button type="button" class="action-menu-item" (click)="openTrackingViewForJob(job); closeActionsMenu(); $event.stopPropagation()">
+                    <i class="bi bi-clipboard-check"></i>
+                    <span>{{ formLanguage === 'ar' ? 'متابعة القص' : 'Track Cutting' }}</span>
+                  </button>
+
+                  <button type="button" class="action-menu-item" (click)="openUserHistoryModal(job); closeActionsMenu(); $event.stopPropagation()">
+                    <i class="bi bi-clock-history"></i>
+                    <span>{{ formLanguage === 'ar' ? 'سجل المستخدمين' : 'User History' }}</span>
+                  </button>
+
+                  <button type="button" class="action-menu-item" (click)="openViewModal(job); closeActionsMenu(); $event.stopPropagation()">
+                    <i class="bi bi-eye"></i>
+                    <span>{{ formLanguage === 'ar' ? 'عرض التفاصيل' : 'View Details' }}</span>
+                  </button>
+
+                  <button type="button" class="action-menu-item" (click)="downloadFile(job.id, job.fileName); closeActionsMenu(); $event.stopPropagation()" *ngIf="job.fileName">
+                    <i class="bi bi-download"></i>
+                    <span>{{ formLanguage === 'ar' ? 'تحميل الملف' : 'Download File' }}</span>
+                  </button>
+
+                  <button type="button" class="action-menu-item" (click)="openEditModal(job); closeActionsMenu(); $event.stopPropagation()">
+                    <i class="bi bi-pencil"></i>
+                    <span>{{ formLanguage === 'ar' ? 'تعديل' : 'Edit' }}</span>
+                  </button>
+
+                  <div class="menu-divider"></div>
+
+                  <button type="button" class="action-menu-item danger" (click)="openDeleteModal(job); closeActionsMenu(); $event.stopPropagation()">
+                    <i class="bi bi-trash"></i>
+                    <span>{{ formLanguage === 'ar' ? 'حذف' : 'Delete' }}</span>
+                  </button>
+                </div>
+              </div>
+            </td>
           </tr>
         </tbody>
+
         <tbody *ngIf="loading">
           <tr>
-            <td colspan="10" class="text-center loading-cell">
+            <td colspan="8" class="loading-cell">
               <i class="bi bi-arrow-clockwise spin"></i> {{ formLanguage === 'ar' ? 'جاري التحميل...' : 'Loading...' }}
             </td>
           </tr>
         </tbody>
+
         <tbody *ngIf="!loading && cuttingJobs.length === 0">
           <tr>
-            <td colspan="10" class="text-center empty-cell">
+            <td colspan="8" class="empty-cell">
               {{ formLanguage === 'ar' ? 'لا توجد مهام قص' : 'No cutting jobs found' }}
             </td>
           </tr>
         </tbody>
       </table>
-    </div>
 
-    <!-- Pagination -->
-    <div class="pagination" *ngIf="totalPages > 1">
-      <button
-        class="btn-page"
-        [disabled]="currentPage === 1"
-        (click)="goToPage(currentPage - 1)">
-        <i class="bi bi-chevron-left"></i>
-      </button>
+      <!-- Pagination -->
+      <div class="pagination" *ngIf="!loading && totalPages > 1">
+        <button
+          class="btn-page"
+          [disabled]="currentPage === 1"
+          (click)="previousPage()">
+          <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-chevron-right' : 'bi-chevron-left'"></i>
+        </button>
 
-      <span class="page-info">
-        {{ formLanguage === 'ar' ? 'صفحة' : 'Page' }} {{ currentPage }} {{ formLanguage === 'ar' ? 'من' : 'of' }} {{ totalPages }}
-      </span>
+        <span class="page-info">
+          {{ formLanguage === 'ar' ? 'صفحة' : 'Page' }} {{ currentPage }} {{ formLanguage === 'ar' ? 'من' : 'of' }} {{ totalPages }}
+        </span>
 
-      <button
-        class="btn-page"
-        [disabled]="currentPage === totalPages"
-        (click)="goToPage(currentPage + 1)">
-        <i class="bi bi-chevron-right"></i>
-      </button>
+        <button
+          class="btn-page"
+          [disabled]="currentPage === totalPages"
+          (click)="nextPage()">
+          <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-chevron-left' : 'bi-chevron-right'"></i>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -254,30 +339,35 @@
   <!-- ============================================ -->
   <div *ngIf="currentView === 'create'" class="form-view" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
     <!-- Header -->
-    <div class="form-header">
-      <h1 class="form-title">
-        {{ formLanguage === 'ar' ? 'إنشاء مهمة قص جديدة' : 'Create New Cutting Job' }}
-      </h1>
-      <div class="form-actions">
-        <button class="btn-secondary" (click)="backToList()">
-          {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
-        </button>
-        <button
-          class="btn-primary"
-          (click)="saveJob()"
-          [disabled]="creatingJob">
-          <i class="bi bi-save"></i>
-          {{ creatingJob
-            ? (formLanguage === 'ar' ? 'جاري الحفظ...' : 'Saving...')
-            : (formLanguage === 'ar' ? 'حفظ' : 'Save')
-          }}
-        </button>
+    <div class="page-header">
+      <div class="header-content">
+        <div class="header-left">
+          <h1 class="page-title">
+            <i class="bi bi-plus-circle"></i>
+            {{ formLanguage === 'ar' ? 'إنشاء مهمة قص جديدة' : 'Create New Cutting Job' }}
+          </h1>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-secondary" (click)="backToList()">
+            {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
+          </button>
+          <button
+            class="btn btn-primary"
+            (click)="saveJob()"
+            [disabled]="creatingJob">
+            <i class="bi" [ngClass]="creatingJob ? 'bi-arrow-clockwise spin' : 'bi-check-lg'"></i>
+            {{ creatingJob
+              ? (formLanguage === 'ar' ? 'جاري الحفظ...' : 'Saving...')
+              : (formLanguage === 'ar' ? 'حفظ' : 'Save')
+            }}
+          </button>
+        </div>
       </div>
     </div>
 
     <!-- Error Alert -->
-    <div class="error-alert" *ngIf="formError">
-      <i class="bi bi-exclamation-circle"></i>
+    <div class="alert alert-error" *ngIf="formError">
+      <i class="bi bi-exclamation-circle-fill"></i>
       <span>{{ formError }}</span>
     </div>
 
@@ -291,14 +381,13 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label>
+            <label class="form-label">
               <i class="bi bi-folder"></i>
               {{ formLanguage === 'ar' ? 'اسم المشروع' : 'Project Name' }}
-              <span class="required">*</span>
             </label>
             <input
               type="text"
-              class="form-control"
+              class="form-input"
               [(ngModel)]="formData.projectName"
               [class.error]="fieldErrors['projectName']"
               [placeholder]="formLanguage === 'ar' ? 'أدخل اسم المشروع' : 'Enter project name'"
@@ -310,13 +399,13 @@
           </div>
 
           <div class="form-group">
-            <label>
+            <label class="form-label">
               <i class="bi bi-puzzle"></i>
               {{ formLanguage === 'ar' ? 'اسم القطعة' : 'Piece Name' }}
             </label>
             <input
               type="text"
-              class="form-control"
+              class="form-input"
               [(ngModel)]="formData.pieceName"
               [placeholder]="formLanguage === 'ar' ? 'أدخل اسم القطعة (اختياري)' : 'Enter piece name (optional)'"
             />
@@ -325,14 +414,13 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label>
+            <label class="form-label">
               <i class="bi bi-hash"></i>
               {{ formLanguage === 'ar' ? 'الكمية' : 'Quantity' }}
-              <span class="required">*</span>
             </label>
             <input
               type="number"
-              class="form-control"
+              class="form-input"
               [(ngModel)]="formData.quantity"
               [class.error]="fieldErrors['quantity']"
               min="1"
@@ -345,14 +433,13 @@
           </div>
 
           <div class="form-group">
-            <label>
+            <label class="form-label">
               <i class="bi bi-rulers"></i>
               {{ formLanguage === 'ar' ? 'السماكة (مم)' : 'Thickness (mm)' }}
-              <span class="required">*</span>
             </label>
             <input
               type="number"
-              class="form-control"
+              class="form-input"
               [(ngModel)]="formData.thickness"
               [class.error]="fieldErrors['thickness']"
               min="0"
@@ -367,13 +454,12 @@
         </div>
 
         <div class="form-group">
-          <label>
+          <label class="form-label">
             <i class="bi bi-layers"></i>
             {{ formLanguage === 'ar' ? 'نوع المادة' : 'Material Type' }}
-            <span class="required">*</span>
           </label>
           <select
-            class="form-control"
+            class="form-select"
             [(ngModel)]="formData.materialType"
             [class.error]="fieldErrors['materialType']">
             <option value="">{{ formLanguage === 'ar' ? '-- اختر نوع المادة --' : '-- Select Material Type --' }}</option>
@@ -388,12 +474,12 @@
         </div>
 
         <div class="form-group">
-          <label>
+          <label class="form-label">
             <i class="bi bi-chat-text"></i>
             {{ formLanguage === 'ar' ? 'ملاحظات' : 'Notes' }}
           </label>
           <textarea
-            class="form-control"
+            class="form-input"
             [(ngModel)]="formData.notes"
             rows="3"
             [placeholder]="formLanguage === 'ar' ? 'أدخل أي ملاحظات إضافية (اختياري)' : 'Enter any additional notes (optional)'"
@@ -443,55 +529,45 @@
           </small>
         </div>
       </div>
-
-      <!-- Save Button -->
-      <div class="save-section">
-        <button
-          class="btn-save-form"
-          (click)="saveJob()"
-          [disabled]="creatingJob">
-          <i class="bi" [ngClass]="creatingJob ? 'bi-arrow-clockwise spin' : 'bi-check-circle'"></i>
-          {{ creatingJob
-            ? (formLanguage === 'ar' ? 'جاري إنشاء المهمة...' : 'Creating Job...')
-            : (formLanguage === 'ar' ? 'حفظ وإنشاء المهمة' : 'Save & Create Job')
-          }}
-        </button>
-      </div>
     </div>
   </div>
 
   <!-- ============================================ -->
   <!-- TRACKING VIEW -->
   <!-- ============================================ -->
-  <div *ngIf="currentView === 'track'" class="tracking-view" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
+  <div *ngIf="currentView === 'track'" class="form-view" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
     <!-- Header -->
-    <div class="form-header">
-      <h1 class="form-title">
-        {{ formLanguage === 'ar' ? 'متابعة عمليات القص' : 'Track Cutting Operations' }}
-      </h1>
-      <div class="form-actions">
-        <button class="btn-secondary" (click)="backToList()">
-          {{ formLanguage === 'ar' ? 'رجوع' : 'Back' }}
-        </button>
+    <div class="page-header">
+      <div class="header-content">
+        <div class="header-left">
+          <h1 class="page-title">
+            <i class="bi bi-clipboard-check"></i>
+            {{ formLanguage === 'ar' ? 'متابعة عمليات القص' : 'Track Cutting Operations' }}
+          </h1>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-secondary" (click)="backToList()">
+            {{ formLanguage === 'ar' ? 'رجوع' : 'Back' }}
+          </button>
+        </div>
       </div>
     </div>
 
     <!-- Tracking Content -->
-    <div class="tracking-content">
+    <div class="form-content">
       <!-- Job Selection -->
-      <div class="tracking-section">
+      <div class="form-section">
         <h2 class="section-title">
           {{ formLanguage === 'ar' ? 'اختر مهمة القص' : 'Select Cutting Job' }}
-          <span class="required">*</span>
         </h2>
 
         <div class="form-group">
-          <label>
+          <label class="form-label">
             <i class="bi bi-list-check"></i>
             {{ formLanguage === 'ar' ? 'رقم المهمة' : 'Job ID' }}
           </label>
           <select
-            class="form-control"
+            class="form-select"
             [(ngModel)]="trackingData.jobId"
             (ngModelChange)="onJobSelected()">
             <option value="">{{ formLanguage === 'ar' ? '-- اختر مهمة قص --' : '-- Select Cutting Job --' }}</option>
@@ -503,7 +579,7 @@
       </div>
 
       <!-- Job Details -->
-      <div class="tracking-section" *ngIf="selectedJob">
+      <div class="form-section" *ngIf="selectedJob">
         <h2 class="section-title">
           {{ formLanguage === 'ar' ? 'تفاصيل المهمة' : 'Job Details' }}
         </h2>
@@ -571,29 +647,24 @@
               </div>
             </div>
           </div>
-
-          <div class="detail-item detail-full">
-            <span class="detail-label">{{ formLanguage === 'ar' ? 'تم الرفع بواسطة:' : 'Uploaded By:' }}</span>
-            <span class="detail-value">{{ selectedJob.uploadedBy }}</span>
-          </div>
         </div>
       </div>
 
       <!-- Update Section -->
-      <div class="tracking-section" *ngIf="selectedJob">
+      <div class="form-section" *ngIf="selectedJob">
         <h2 class="section-title">
           {{ formLanguage === 'ar' ? 'تحديث حالة القص' : 'Update Cutting Status' }}
         </h2>
 
         <div class="form-row">
           <div class="form-group">
-            <label>
+            <label class="form-label">
               <i class="bi bi-scissors"></i>
               {{ formLanguage === 'ar' ? 'العدد الذي تم قصه في هذه الدفعة' : 'Quantity Cut in This Batch' }}
             </label>
             <input
               type="number"
-              class="form-control"
+              class="form-input"
               [(ngModel)]="trackingData.currentlyCut"
               min="0"
               [max]="selectedJob.remaining || selectedJob.quantity"
@@ -605,12 +676,12 @@
           </div>
 
           <div class="form-group">
-            <label>
+            <label class="form-label">
               <i class="bi bi-flag"></i>
               {{ formLanguage === 'ar' ? 'الحالة الجديدة' : 'New Status' }}
             </label>
             <select
-              class="form-control"
+              class="form-select"
               [(ngModel)]="trackingData.newStatus">
               <option value="معلق">{{ formLanguage === 'ar' ? 'معلق' : 'Pending' }}</option>
               <option value="قيد التنفيذ">{{ formLanguage === 'ar' ? 'قيد التنفيذ' : 'In Progress' }}</option>
@@ -621,21 +692,21 @@
         </div>
 
         <div class="form-group">
-          <label>
+          <label class="form-label">
             <i class="bi bi-chat-text"></i>
             {{ formLanguage === 'ar' ? 'ملاحظات القص' : 'Cutting Notes' }}
           </label>
           <textarea
-            class="form-control"
+            class="form-input"
             [(ngModel)]="trackingData.notes"
             rows="3"
             [placeholder]="formLanguage === 'ar' ? 'أدخل أي ملاحظات حول عملية القص (اختياري)' : 'Enter any notes about the cutting process (optional)'"
           ></textarea>
         </div>
 
-        <div class="save-section">
+        <div class="form-actions-bottom">
           <button
-            class="btn-save-form"
+            class="btn btn-primary btn-large"
             (click)="updateTracking()"
             [disabled]="updatingJob">
             <i class="bi" [ngClass]="updatingJob ? 'bi-arrow-clockwise spin' : 'bi-check-circle'"></i>
@@ -654,398 +725,536 @@
       </div>
     </div>
   </div>
+</div>
 
-  <!-- ============================================ -->
-  <!-- VIEW DETAILS MODAL (NEW) -->
-  <!-- ============================================ -->
-  <div class="modal-overlay" *ngIf="showViewModal" (click)="closeViewModal()">
-    <div class="modal-content modal-xlarge" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h2 class="modal-title">
-          <i class="bi bi-eye text-info"></i>
-          {{ formLanguage === 'ar' ? 'تفاصيل مهمة القص' : 'Cutting Job Details' }}
-        </h2>
-        <button class="modal-close" (click)="closeViewModal()">
-          <i class="bi bi-x-lg"></i>
-        </button>
+<!-- ============================================ -->
+<!-- MENU BACKDROP (Click Outside to Close) -->
+<!-- ============================================ -->
+<div class="menu-backdrop" *ngIf="activeActionsMenu" (click)="closeActionsMenu()"></div>
+
+<!-- ============================================ -->
+<!-- VIEW DETAILS MODAL -->
+<!-- ============================================ -->
+<div class="modal-overlay" *ngIf="showViewModal" (click)="closeViewModal()">
+  <div class="modal-container modal-large" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <i class="bi bi-eye"></i>
+        {{ formLanguage === 'ar' ? 'تفاصيل مهمة القص' : 'Cutting Job Details' }}
+      </h2>
+      <button class="modal-close" (click)="closeViewModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="modal-body" *ngIf="selectedJob">
+      <!-- Job Information Section -->
+      <div class="details-section">
+        <h3 class="details-section-title">
+          <i class="bi bi-info-circle"></i>
+          {{ formLanguage === 'ar' ? 'معلومات المهمة' : 'Job Information' }}
+        </h3>
+
+        <div class="details-grid">
+          <div class="detail-item">
+            <span class="detail-label">{{ formLanguage === 'ar' ? 'رقم المهمة:' : 'Job ID:' }}</span>
+            <span class="detail-value job-id">{{ selectedJob.id }}</span>
+          </div>
+
+          <div class="detail-item">
+            <span class="detail-label">{{ formLanguage === 'ar' ? 'اسم المشروع:' : 'Project Name:' }}</span>
+            <span class="detail-value">{{ selectedJob.projectName }}</span>
+          </div>
+
+          <div class="detail-item">
+            <span class="detail-label">{{ formLanguage === 'ar' ? 'اسم القطعة:' : 'Piece Name:' }}</span>
+            <span class="detail-value">{{ selectedJob.pieceName || '-' }}</span>
+          </div>
+
+          <div class="detail-item">
+            <span class="detail-label">{{ formLanguage === 'ar' ? 'الكمية:' : 'Quantity:' }}</span>
+            <span class="detail-value">
+              <span class="quantity-badge">{{ selectedJob.quantity }}</span>
+            </span>
+          </div>
+        </div>
       </div>
 
-      <div class="modal-body" *ngIf="selectedJob">
-        <!-- Job Information Section -->
-        <div class="details-section">
-          <h3 class="details-section-title">
-            <i class="bi bi-info-circle"></i>
-            {{ formLanguage === 'ar' ? 'معلومات المهمة' : 'Job Information' }}
-          </h3>
+      <!-- Material Information Section -->
+      <div class="details-section">
+        <h3 class="details-section-title">
+          <i class="bi bi-layers"></i>
+          {{ formLanguage === 'ar' ? 'معلومات المادة' : 'Material Information' }}
+        </h3>
 
-          <div class="details-grid">
-            <div class="detail-item">
-              <span class="detail-label">{{ formLanguage === 'ar' ? 'رقم المهمة:' : 'Job ID:' }}</span>
-              <span class="detail-value job-id">{{ selectedJob.id }}</span>
+        <div class="details-grid">
+          <div class="detail-item">
+            <span class="detail-label">{{ formLanguage === 'ar' ? 'نوع المادة:' : 'Material Type:' }}</span>
+            <span class="detail-value">
+              <span class="material-badge">{{ getMaterialTypeLabel(selectedJob.materialType) }}</span>
+            </span>
+          </div>
+
+          <div class="detail-item">
+            <span class="detail-label">{{ formLanguage === 'ar' ? 'السماكة:' : 'Thickness:' }}</span>
+            <span class="detail-value">{{ selectedJob.thickness }} {{ formLanguage === 'ar' ? 'مم' : 'mm' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress Section -->
+      <div class="details-section" *ngIf="selectedJob.currentlyCut !== undefined">
+        <h3 class="details-section-title">
+          <i class="bi bi-graph-up"></i>
+          {{ formLanguage === 'ar' ? 'التقدم' : 'Progress' }}
+        </h3>
+
+        <div class="quantity-tracker">
+          <div class="quantity-item quantity-total">
+            <i class="bi bi-box"></i>
+            <div class="quantity-info">
+              <span class="quantity-label">{{ formLanguage === 'ar' ? 'العدد الكلي' : 'Total Quantity' }}</span>
+              <span class="quantity-number">{{ selectedJob.quantity }}</span>
             </div>
+          </div>
 
-            <div class="detail-item">
-              <span class="detail-label">{{ formLanguage === 'ar' ? 'اسم المشروع:' : 'Project Name:' }}</span>
-              <span class="detail-value">{{ selectedJob.projectName }}</span>
+          <div class="quantity-item quantity-cut">
+            <i class="bi bi-check2-circle"></i>
+            <div class="quantity-info">
+              <span class="quantity-label">{{ formLanguage === 'ar' ? 'المقصود' : 'Cut' }}</span>
+              <span class="quantity-number">{{ selectedJob.currentlyCut || 0 }}</span>
             </div>
+          </div>
 
-            <div class="detail-item">
-              <span class="detail-label">{{ formLanguage === 'ar' ? 'اسم القطعة:' : 'Piece Name:' }}</span>
-              <span class="detail-value">{{ selectedJob.pieceName || '-' }}</span>
-            </div>
-
-            <div class="detail-item">
-              <span class="detail-label">{{ formLanguage === 'ar' ? 'الكمية:' : 'Quantity:' }}</span>
-              <span class="detail-value">
-                <span class="quantity-badge">{{ selectedJob.quantity }}</span>
-              </span>
+          <div class="quantity-item quantity-remaining">
+            <i class="bi bi-hourglass-split"></i>
+            <div class="quantity-info">
+              <span class="quantity-label">{{ formLanguage === 'ar' ? 'المتبقي' : 'Remaining' }}</span>
+              <span class="quantity-number">{{ selectedJob.remaining || selectedJob.quantity }}</span>
             </div>
           </div>
         </div>
 
-        <!-- Material Information Section -->
-        <div class="details-section">
-          <h3 class="details-section-title">
-            <i class="bi bi-layers"></i>
-            {{ formLanguage === 'ar' ? 'معلومات المادة' : 'Material Information' }}
-          </h3>
-
-          <div class="details-grid">
-            <div class="detail-item">
-              <span class="detail-label">{{ formLanguage === 'ar' ? 'نوع المادة:' : 'Material Type:' }}</span>
-              <span class="detail-value">
-                <span class="material-badge">{{ getMaterialTypeLabel(selectedJob.materialType) }}</span>
-              </span>
-            </div>
-
-            <div class="detail-item">
-              <span class="detail-label">{{ formLanguage === 'ar' ? 'السماكة:' : 'Thickness:' }}</span>
-              <span class="detail-value">{{ selectedJob.thickness }} {{ formLanguage === 'ar' ? 'مم' : 'mm' }}</span>
-            </div>
+        <div class="progress-section">
+          <div class="progress-header">
+            <span>{{ formLanguage === 'ar' ? 'نسبة الإنجاز:' : 'Completion:' }}</span>
+            <span class="progress-percentage">{{ calculateProgress(selectedJob) }}%</span>
           </div>
-        </div>
-
-        <!-- Progress Section -->
-        <div class="details-section" *ngIf="selectedJob.currentlyCut !== undefined">
-          <h3 class="details-section-title">
-            <i class="bi bi-graph-up"></i>
-            {{ formLanguage === 'ar' ? 'التقدم' : 'Progress' }}
-          </h3>
-
-          <div class="quantity-tracker">
-            <div class="quantity-item quantity-total">
-              <i class="bi bi-box"></i>
-              <div class="quantity-info">
-                <span class="quantity-label">{{ formLanguage === 'ar' ? 'العدد الكلي' : 'Total Quantity' }}</span>
-                <span class="quantity-number">{{ selectedJob.quantity }}</span>
-              </div>
-            </div>
-
-            <div class="quantity-item quantity-cut">
-              <i class="bi bi-check2-circle"></i>
-              <div class="quantity-info">
-                <span class="quantity-label">{{ formLanguage === 'ar' ? 'المقصود' : 'Cut' }}</span>
-                <span class="quantity-number">{{ selectedJob.currentlyCut || 0 }}</span>
-              </div>
-            </div>
-
-            <div class="quantity-item quantity-remaining">
-              <i class="bi bi-hourglass-split"></i>
-              <div class="quantity-info">
-                <span class="quantity-label">{{ formLanguage === 'ar' ? 'المتبقي' : 'Remaining' }}</span>
-                <span class="quantity-number">{{ selectedJob.remaining || selectedJob.quantity }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="progress-section">
-            <div class="progress-header">
-              <span>{{ formLanguage === 'ar' ? 'نسبة الإنجاز:' : 'Completion:' }}</span>
-              <span class="progress-percentage">{{ calculateProgress(selectedJob) }}%</span>
-            </div>
-            <div class="progress-bar">
-              <div
-                class="progress-fill"
-                [style.width.%]="calculateProgress(selectedJob)"
-                [style.background]="getProgressColor(calculateProgress(selectedJob))">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Status & File Section -->
-        <div class="details-section">
-          <h3 class="details-section-title">
-            <i class="bi bi-flag"></i>
-            {{ formLanguage === 'ar' ? 'الحالة والملف' : 'Status & File' }}
-          </h3>
-
-          <div class="details-grid">
-            <div class="detail-item">
-              <span class="detail-label">{{ formLanguage === 'ar' ? 'الحالة:' : 'Status:' }}</span>
-              <span class="detail-value">
-                <span class="status-badge" [ngClass]="getStatusColor(selectedJob.fileStatus)">
-                  {{ getStatusLabel(selectedJob.fileStatus) }}
-                </span>
-              </span>
-            </div>
-
-            <div class="detail-item">
-              <span class="detail-label">{{ formLanguage === 'ar' ? 'الملف:' : 'File:' }}</span>
-              <span class="detail-value">
-                <button
-                  class="file-download-btn inline"
-                  *ngIf="selectedJob.fileName && selectedJob.filePath"
-                  (click)="downloadFile(selectedJob.filePath, selectedJob.fileName)">
-                  <i class="bi" [ngClass]="getFileIcon(selectedJob.fileName)"></i>
-                  <span>{{ selectedJob.fileName }}</span>
-                  <i class="bi bi-download"></i>
-                </button>
-                <span *ngIf="!selectedJob.fileName">-</span>
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Notes Section -->
-        <div class="details-section" *ngIf="selectedJob.notes">
-          <h3 class="details-section-title">
-            <i class="bi bi-chat-text"></i>
-            {{ formLanguage === 'ar' ? 'الملاحظات' : 'Notes' }}
-          </h3>
-
-          <div class="notes-box">
-            <p>{{ selectedJob.notes }}</p>
-          </div>
-        </div>
-
-        <!-- Additional Information Section -->
-        <div class="details-section">
-          <h3 class="details-section-title">
-            <i class="bi bi-clock-history"></i>
-            {{ formLanguage === 'ar' ? 'معلومات إضافية' : 'Additional Information' }}
-          </h3>
-
-          <div class="details-grid">
-            <div class="detail-item">
-              <span class="detail-label">{{ formLanguage === 'ar' ? 'تم الرفع بواسطة:' : 'Uploaded By:' }}</span>
-              <span class="detail-value">{{ selectedJob.uploadedBy }}</span>
-            </div>
-
-            <div class="detail-item">
-              <span class="detail-label">{{ formLanguage === 'ar' ? 'تاريخ الإنشاء:' : 'Created At:' }}</span>
-              <span class="detail-value">{{ formatDate(selectedJob.createdAt) }}</span>
-            </div>
-
-            <div class="detail-item">
-              <span class="detail-label">{{ formLanguage === 'ar' ? 'آخر تحديث:' : 'Last Updated:' }}</span>
-              <span class="detail-value">{{ formatDate(selectedJob.updatedAt) }}</span>
-            </div>
-
-            <div class="detail-item" *ngIf="selectedJob.dateFrom">
-              <span class="detail-label">{{ formLanguage === 'ar' ? 'تاريخ البدء:' : 'Start Date:' }}</span>
-              <span class="detail-value">{{ formatDate(selectedJob.dateFrom) }}</span>
+          <div class="progress-bar">
+            <div
+              class="progress-fill"
+              [style.width.%]="calculateProgress(selectedJob)"
+              [style.background]="getProgressColor(calculateProgress(selectedJob))">
             </div>
           </div>
         </div>
       </div>
 
-      <div class="modal-footer">
-        <button type="button" class="btn-secondary" (click)="closeViewModal()">
-          <i class="bi bi-x-circle"></i>
-          {{ formLanguage === 'ar' ? 'إغلاق' : 'Close' }}
-        </button>
-        <button type="button" class="btn-primary" (click)="openEditModalFromView()">
-          <i class="bi bi-pencil"></i>
-          {{ formLanguage === 'ar' ? 'تعديل' : 'Edit' }}
-        </button>
+      <!-- Status & File Section -->
+      <div class="details-section">
+        <h3 class="details-section-title">
+          <i class="bi bi-flag"></i>
+          {{ formLanguage === 'ar' ? 'الحالة والملف' : 'Status & File' }}
+        </h3>
+
+        <div class="details-grid">
+          <div class="detail-item">
+            <span class="detail-label">{{ formLanguage === 'ar' ? 'الحالة:' : 'Status:' }}</span>
+            <span class="detail-value">
+              <span class="status-badge" [ngClass]="getStatusColor(selectedJob.fileStatus)">
+                {{ getStatusLabel(selectedJob.fileStatus) }}
+              </span>
+            </span>
+          </div>
+
+          <div class="detail-item">
+            <span class="detail-label">{{ formLanguage === 'ar' ? 'الملف:' : 'File:' }}</span>
+            <span class="detail-value">
+              <button
+                class="file-download-btn inline"
+                *ngIf="selectedJob.fileName && selectedJob.filePath"
+                (click)="downloadFile(selectedJob.id, selectedJob.fileName)">
+                <i class="bi" [ngClass]="getFileIcon(selectedJob.fileName)"></i>
+                <span>{{ selectedJob.fileName }}</span>
+                <i class="bi bi-download"></i>
+              </button>
+              <span *ngIf="!selectedJob.fileName">-</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes Section -->
+      <div class="details-section" *ngIf="selectedJob.notes">
+        <h3 class="details-section-title">
+          <i class="bi bi-chat-text"></i>
+          {{ formLanguage === 'ar' ? 'الملاحظات' : 'Notes' }}
+        </h3>
+
+        <div class="notes-box">
+          <p>{{ selectedJob.notes }}</p>
+        </div>
+      </div>
+
+      <!-- Additional Information Section -->
+      <div class="details-section">
+        <h3 class="details-section-title">
+          <i class="bi bi-clock-history"></i>
+          {{ formLanguage === 'ar' ? 'معلومات إضافية' : 'Additional Information' }}
+        </h3>
+
+        <div class="details-grid">
+          <div class="detail-item">
+            <span class="detail-label">{{ formLanguage === 'ar' ? 'تم الرفع بواسطة:' : 'Uploaded By:' }}</span>
+            <span class="detail-value">
+              {{ selectedJob.uploadedByInfo ? (selectedJob.uploadedByInfo.name || selectedJob.uploadedByInfo.username) : selectedJob.uploadedBy }}
+            </span>
+          </div>
+
+          <div class="detail-item">
+            <span class="detail-label">{{ formLanguage === 'ar' ? 'تاريخ الإنشاء:' : 'Created At:' }}</span>
+            <span class="detail-value">{{ formatDate(selectedJob.createdAt) }}</span>
+          </div>
+
+          <div class="detail-item">
+            <span class="detail-label">{{ formLanguage === 'ar' ? 'آخر تحديث:' : 'Last Updated:' }}</span>
+            <span class="detail-value">{{ formatDate(selectedJob.updatedAt) }}</span>
+          </div>
+        </div>
       </div>
     </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="closeViewModal()">
+        <i class="bi bi-x-circle"></i>
+        {{ formLanguage === 'ar' ? 'إغلاق' : 'Close' }}
+      </button>
+      <button type="button" class="btn btn-primary" (click)="openEditModalFromView()">
+        <i class="bi bi-pencil"></i>
+        {{ formLanguage === 'ar' ? 'تعديل' : 'Edit' }}
+      </button>
+    </div>
   </div>
+</div>
 
-  <!-- ============================================ -->
-  <!-- EDIT MODAL -->
-  <!-- ============================================ -->
-  <div class="modal-overlay" *ngIf="showEditModal" (click)="closeEditModal()">
-    <div class="modal-content modal-large" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h2 class="modal-title">
-          <i class="bi bi-pencil-square"></i>
-          {{ formLanguage === 'ar' ? 'تعديل مهمة القص' : 'Edit Cutting Job' }}
-        </h2>
-        <button class="modal-close" (click)="closeEditModal()">
-          <i class="bi bi-x-lg"></i>
-        </button>
-      </div>
+<!-- ============================================ -->
+<!-- EDIT MODAL -->
+<!-- ============================================ -->
+<div class="modal-overlay" *ngIf="showEditModal" (click)="closeEditModal()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <i class="bi bi-pencil-square"></i>
+        {{ formLanguage === 'ar' ? 'تعديل مهمة القص' : 'Edit Cutting Job' }}
+      </h2>
+      <button class="modal-close" (click)="closeEditModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
 
-      <div class="modal-body">
-        <div class="form-row">
-          <div class="form-group">
-            <label>
-              {{ formLanguage === 'ar' ? 'اسم المشروع' : 'Project Name' }}
-              <span class="required">*</span>
-            </label>
-            <input
-              type="text"
-              class="form-control"
-              [(ngModel)]="formData.projectName"
-              [class.error]="fieldErrors['projectName']"
-            />
-          </div>
-
-          <div class="form-group">
-            <label>{{ formLanguage === 'ar' ? 'اسم القطعة' : 'Piece Name' }}</label>
-            <input
-              type="text"
-              class="form-control"
-              [(ngModel)]="formData.pieceName"
-            />
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label>
-              {{ formLanguage === 'ar' ? 'الكمية' : 'Quantity' }}
-              <span class="required">*</span>
-            </label>
-            <input
-              type="number"
-              class="form-control"
-              [(ngModel)]="formData.quantity"
-              [class.error]="fieldErrors['quantity']"
-              min="1"
-            />
-          </div>
-
-          <div class="form-group">
-            <label>
-              {{ formLanguage === 'ar' ? 'السماكة (مم)' : 'Thickness (mm)' }}
-              <span class="required">*</span>
-            </label>
-            <input
-              type="number"
-              class="form-control"
-              [(ngModel)]="formData.thickness"
-              [class.error]="fieldErrors['thickness']"
-              min="0"
-              step="0.1"
-            />
-          </div>
-        </div>
-
+    <div class="modal-body">
+      <div class="form-row">
         <div class="form-group">
-          <label>
-            {{ formLanguage === 'ar' ? 'نوع المادة' : 'Material Type' }}
-            <span class="required">*</span>
+          <label class="form-label">
+            {{ formLanguage === 'ar' ? 'اسم المشروع' : 'Project Name' }}
           </label>
-          <select
-            class="form-control"
-            [(ngModel)]="formData.materialType"
-            [class.error]="fieldErrors['materialType']">
-            <option value="">{{ formLanguage === 'ar' ? '-- اختر نوع المادة --' : '-- Select Material Type --' }}</option>
-            <option *ngFor="let material of materialTypes" [value]="material.value">
-              {{ formLanguage === 'ar' ? material.label : material.labelEn }}
-            </option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label>{{ formLanguage === 'ar' ? 'ملاحظات' : 'Notes' }}</label>
-          <textarea
-            class="form-control"
-            [(ngModel)]="formData.notes"
-            rows="3"
-          ></textarea>
-        </div>
-
-        <div class="file-upload-area">
           <input
-            type="file"
-            id="edit-file-input"
-            class="file-input"
-            (change)="onFileSelected($event)"
-            accept=".dwg,.dxf,.dwt,.nc,.txt"
+            type="text"
+            class="form-input"
+            [(ngModel)]="formData.projectName"
+            [class.error]="fieldErrors['projectName']"
           />
+        </div>
 
-          <label for="edit-file-input" class="file-upload-label" *ngIf="!selectedFileName">
-            <i class="bi bi-cloud-upload"></i>
-            <span>{{ formLanguage === 'ar' ? 'تحديث الملف (اختياري)' : 'Update File (Optional)' }}</span>
-            <small>{{ formLanguage === 'ar' ? 'DWG, DXF, DWT, NC, TXT (الحد الأقصى 50 ميجابايت)' : 'DWG, DXF, DWT, NC, TXT (Max 50MB)' }}</small>
-          </label>
-
-          <div class="file-selected" *ngIf="selectedFileName">
-            <div class="file-icon">
-              <i class="bi" [ngClass]="getFileIcon(selectedFileName)"></i>
-            </div>
-            <div class="file-details">
-              <p class="file-name">{{ selectedFileName }}</p>
-            </div>
-            <button type="button" class="btn-remove-file" (click)="removeSelectedFile()">
-              <i class="bi bi-x-circle"></i>
-            </button>
-          </div>
+        <div class="form-group">
+          <label class="form-label">{{ formLanguage === 'ar' ? 'اسم القطعة' : 'Piece Name' }}</label>
+          <input
+            type="text"
+            class="form-input"
+            [(ngModel)]="formData.pieceName"
+          />
         </div>
       </div>
 
-      <div class="modal-footer">
-        <button type="button" class="btn-secondary" (click)="closeEditModal()" [disabled]="updatingJob">
-          {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
-        </button>
-        <button type="button" class="btn-primary" (click)="updateJob()" [disabled]="updatingJob">
-          <i class="bi" [ngClass]="updatingJob ? 'bi-arrow-clockwise spin' : 'bi-check-lg'"></i>
-          {{ updatingJob
-            ? (formLanguage === 'ar' ? 'جاري التحديث...' : 'Updating...')
-            : (formLanguage === 'ar' ? 'تحديث' : 'Update')
-          }}
-        </button>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">
+            {{ formLanguage === 'ar' ? 'الكمية' : 'Quantity' }}
+          </label>
+          <input
+            type="number"
+            class="form-input"
+            [(ngModel)]="formData.quantity"
+            [class.error]="fieldErrors['quantity']"
+            min="1"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            {{ formLanguage === 'ar' ? 'السماكة (مم)' : 'Thickness (mm)' }}
+          </label>
+          <input
+            type="number"
+            class="form-input"
+            [(ngModel)]="formData.thickness"
+            [class.error]="fieldErrors['thickness']"
+            min="0"
+            step="0.1"
+          />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          {{ formLanguage === 'ar' ? 'نوع المادة' : 'Material Type' }}
+        </label>
+        <select
+          class="form-select"
+          [(ngModel)]="formData.materialType"
+          [class.error]="fieldErrors['materialType']">
+          <option value="">{{ formLanguage === 'ar' ? '-- اختر نوع المادة --' : '-- Select Material Type --' }}</option>
+          <option *ngFor="let material of materialTypes" [value]="material.value">
+            {{ formLanguage === 'ar' ? material.label : material.labelEn }}
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">{{ formLanguage === 'ar' ? 'ملاحظات' : 'Notes' }}</label>
+        <textarea
+          class="form-input"
+          [(ngModel)]="formData.notes"
+          rows="3"
+        ></textarea>
+      </div>
+
+      <div class="file-upload-area">
+        <input
+          type="file"
+          id="edit-file-input"
+          class="file-input"
+          (change)="onFileSelected($event)"
+          accept=".dwg,.dxf,.dwt,.nc,.txt"
+        />
+
+        <label for="edit-file-input" class="file-upload-label" *ngIf="!selectedFileName">
+          <i class="bi bi-cloud-upload"></i>
+          <span>{{ formLanguage === 'ar' ? 'تحديث الملف (اختياري)' : 'Update File (Optional)' }}</span>
+          <small>{{ formLanguage === 'ar' ? 'DWG, DXF, DWT, NC, TXT (الحد الأقصى 50 ميجابايت)' : 'DWG, DXF, DWT, NC, TXT (Max 50MB)' }}</small>
+        </label>
+
+        <div class="file-selected" *ngIf="selectedFileName">
+          <div class="file-icon">
+            <i class="bi" [ngClass]="getFileIcon(selectedFileName)"></i>
+          </div>
+          <div class="file-details">
+            <p class="file-name">{{ selectedFileName }}</p>
+          </div>
+          <button type="button" class="btn-remove-file" (click)="removeSelectedFile()">
+            <i class="bi bi-x-circle"></i>
+          </button>
+        </div>
       </div>
     </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="closeEditModal()" [disabled]="updatingJob">
+        {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
+      </button>
+      <button type="button" class="btn btn-primary" (click)="updateJob()" [disabled]="updatingJob">
+        <i class="bi" [ngClass]="updatingJob ? 'bi-arrow-clockwise spin' : 'bi-check-lg'"></i>
+        {{ updatingJob
+          ? (formLanguage === 'ar' ? 'جاري التحديث...' : 'Updating...')
+          : (formLanguage === 'ar' ? 'تحديث' : 'Update')
+        }}
+      </button>
+    </div>
   </div>
+</div>
 
-  <!-- ============================================ -->
-  <!-- DELETE CONFIRMATION MODAL -->
-  <!-- ============================================ -->
-  <div class="modal-overlay" *ngIf="showDeleteModal" (click)="closeDeleteModal()">
-    <div class="modal-content modal-small" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h2 class="modal-title">
-          <i class="bi bi-exclamation-triangle text-danger"></i>
-          {{ formLanguage === 'ar' ? 'تأكيد الحذف' : 'Confirm Delete' }}
-        </h2>
-        <button class="modal-close" (click)="closeDeleteModal()">
-          <i class="bi bi-x-lg"></i>
-        </button>
-      </div>
+<!-- ============================================ -->
+<!-- DELETE CONFIRMATION MODAL -->
+<!-- ============================================ -->
+<div class="modal-overlay" *ngIf="showDeleteModal" (click)="closeDeleteModal()">
+  <div class="modal-container modal-small" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <i class="bi bi-exclamation-triangle text-danger"></i>
+        {{ formLanguage === 'ar' ? 'تأكيد الحذف' : 'Confirm Delete' }}
+      </h2>
+      <button class="modal-close" (click)="closeDeleteModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
 
-      <div class="modal-body">
-        <p class="delete-message">
-          {{ formLanguage === 'ar'
-            ? 'هل أنت متأكد من حذف مهمة القص'
-            : 'Are you sure you want to delete cutting job'
-          }}
-          <strong>{{ selectedJob?.id }}</strong>؟
-          <br>
-          <span class="text-warning">
-            {{ formLanguage === 'ar' ? 'لا يمكن التراجع عن هذا الإجراء!' : 'This action cannot be undone!' }}
-          </span>
+    <div class="modal-body">
+      <p class="delete-message">
+        {{ formLanguage === 'ar'
+          ? 'هل أنت متأكد من حذف مهمة القص'
+          : 'Are you sure you want to delete cutting job'
+        }}
+        <strong>{{ selectedJob?.id }}</strong>؟
+        <br>
+        <span class="text-warning">
+          {{ formLanguage === 'ar' ? 'لا يمكن التراجع عن هذا الإجراء!' : 'This action cannot be undone!' }}
+        </span>
+      </p>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="closeDeleteModal()" [disabled]="deletingJob">
+        {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
+      </button>
+      <button type="button" class="btn btn-danger" (click)="confirmDelete()" [disabled]="deletingJob">
+        <i class="bi bi-trash" *ngIf="!deletingJob"></i>
+        <i class="bi bi-arrow-clockwise spin" *ngIf="deletingJob"></i>
+        {{ deletingJob
+          ? (formLanguage === 'ar' ? 'جاري الحذف...' : 'Deleting...')
+          : (formLanguage === 'ar' ? 'حذف' : 'Delete')
+        }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- USER HISTORY MODAL -->
+<!-- ============================================ -->
+<div class="modal-overlay" *ngIf="showUserHistoryModal" (click)="closeUserHistoryModal()">
+  <div class="modal-container modal-large" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <i class="bi bi-clock-history"></i>
+        {{ formLanguage === 'ar' ? 'سجل المستخدمين' : 'User History' }}
+      </h2>
+      <button class="modal-close" (click)="closeUserHistoryModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="modal-body" *ngIf="selectedJob">
+      <!-- Job Info Header -->
+      <div class="history-job-header">
+        <h3 class="job-title">
+          <span class="job-id">{{ selectedJob.id }}</span>
+          <span class="separator">-</span>
+          <span class="project-name">{{ selectedJob.projectName }}</span>
+        </h3>
+        <p class="job-piece-name" *ngIf="selectedJob.pieceName">
+          {{ selectedJob.pieceName }}
         </p>
       </div>
 
-      <div class="modal-footer">
-        <button type="button" class="btn-secondary" (click)="closeDeleteModal()" [disabled]="deletingJob">
-          {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
-        </button>
-        <button type="button" class="btn-danger" (click)="confirmDelete()" [disabled]="deletingJob">
-          <i class="bi bi-trash" *ngIf="!deletingJob"></i>
-          <i class="bi bi-arrow-clockwise spin" *ngIf="deletingJob"></i>
-          {{ deletingJob
-            ? (formLanguage === 'ar' ? 'جاري الحذف...' : 'Deleting...')
-            : (formLanguage === 'ar' ? 'حذف' : 'Delete')
-          }}
-        </button>
+      <!-- User Activities Timeline -->
+      <div class="timeline-container">
+        <div class="timeline-header">
+          <i class="bi bi-people-fill"></i>
+          <h3>
+            {{ formLanguage === 'ar'
+              ? 'المستخدمون الذين شاركوا في هذه المهمة'
+              : 'Users Who Worked on This Job'
+            }}
+          </h3>
+        </div>
+
+        <!-- No activities message -->
+        <div class="no-activities" *ngIf="userActivities.length === 0">
+          <i class="bi bi-info-circle"></i>
+          <p>
+            {{ formLanguage === 'ar'
+              ? 'لا توجد أنشطة مسجلة'
+              : 'No activities recorded'
+            }}
+          </p>
+        </div>
+
+        <!-- Activities List -->
+        <div class="timeline" *ngIf="userActivities.length > 0">
+          <div
+            class="timeline-item"
+            *ngFor="let activity of userActivities; let i = index"
+            [class.timeline-item-first]="i === 0">
+
+            <!-- Timeline Dot -->
+            <div class="timeline-dot" [style.background]="getActionColor(activity.action)">
+              <i class="bi" [ngClass]="{
+                'bi-plus-circle': activity.action === 'created',
+                'bi-pencil': activity.action === 'updated',
+                'bi-flag': activity.action === 'status_changed'
+              }"></i>
+            </div>
+
+            <!-- Timeline Content -->
+            <div class="timeline-content">
+              <div class="timeline-content-header">
+                <div class="user-info">
+                  <i class="bi bi-person-circle"></i>
+                  <span class="user-name">{{ activity.userName }}</span>
+                  <span
+                    class="action-badge"
+                    [style.background]="getActionColor(activity.action)">
+                    {{ getActionLabel(activity.action) }}
+                  </span>
+                </div>
+                <div class="time-info">
+                  <span class="time-ago">{{ getTimeAgo(activity.timestamp) }}</span>
+                </div>
+              </div>
+
+              <div class="timeline-content-body">
+                <p class="activity-details">{{ activity.details }}</p>
+                <small class="activity-timestamp">
+                  <i class="bi bi-calendar-event"></i>
+                  {{ formatDateTime(activity.timestamp) }}
+                </small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary Section -->
+      <div class="history-summary">
+        <div class="summary-item">
+          <i class="bi bi-people"></i>
+          <div class="summary-content">
+            <span class="summary-label">
+              {{ formLanguage === 'ar' ? 'إجمالي المستخدمين' : 'Total Users' }}
+            </span>
+            <span class="summary-value">{{ userActivities.length }}</span>
+          </div>
+        </div>
+
+        <div class="summary-item">
+          <i class="bi bi-person-plus"></i>
+          <div class="summary-content">
+            <span class="summary-label">
+              {{ formLanguage === 'ar' ? 'تم الإنشاء بواسطة' : 'Created By' }}
+            </span>
+            <span class="summary-value">
+              {{ selectedJob.uploadedByInfo ? (selectedJob.uploadedByInfo.name || selectedJob.uploadedByInfo.username) : selectedJob.uploadedBy }}
+            </span>
+          </div>
+        </div>
+
+        <div class="summary-item">
+          <i class="bi bi-clock"></i>
+          <div class="summary-content">
+            <span class="summary-label">
+              {{ formLanguage === 'ar' ? 'آخر تحديث' : 'Last Updated' }}
+            </span>
+            <span class="summary-value">{{ formatDateTime(selectedJob.updatedAt) }}</span>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
 
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="closeUserHistoryModal()">
+        <i class="bi bi-x-circle"></i>
+        {{ formLanguage === 'ar' ? 'إغلاق' : 'Close' }}
+      </button>
+    </div>
+  </div>
 </div>

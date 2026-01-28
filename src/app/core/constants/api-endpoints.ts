@@ -183,7 +183,8 @@ export const API_ENDPOINTS = {
     DELETE: (id: string) => `${environment.apiUrl}/cutting/${id}`,
     GET_STATISTICS: `${environment.apiUrl}/cutting/statistics`,
     UPDATE_STATUS: (id: string) => `${environment.apiUrl}/cutting/${id}/status`,
-    DOWNLOAD_FILE: `${environment.apiUrl}/cutting/download`
+    DOWNLOAD_FILE: (id: string) => `${environment.apiUrl}/cutting/download/${id}`,
+    TRACK: (id: string) =>`${environment.apiUrl}/cutting/${id}/track`
   },
 
   // ============================================

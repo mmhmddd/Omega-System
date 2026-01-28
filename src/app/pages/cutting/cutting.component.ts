@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -17,6 +17,14 @@ interface Toast {
   id: string;
   type: ToastType;
   message: string;
+}
+
+interface UserActivity {
+  userId: string;
+  userName: string;
+  action: 'created' | 'updated' | 'status_changed';
+  timestamp: string;
+  details?: string;
 }
 
 @Component({
@@ -121,12 +129,28 @@ export class CuttingComponent implements OnInit, OnDestroy {
   showDeleteModal: boolean = false;
   showEditModal: boolean = false;
   showTrackModal: boolean = false;
-  showViewModal: boolean = false; // NEW: View details modal
+  showViewModal: boolean = false;
+  showUserHistoryModal: boolean = false;
+
+  // ============================================
+  // USER HISTORY
+  // ============================================
+  userActivities: UserActivity[] = [];
+
+  // ============================================
+  // ACTIONS MENU
+  // ============================================
+  activeActionsMenu: string | null = null;
+  menuShouldOpenUp: { [jobId: string]: boolean } = {};
 
   constructor(
     public cuttingService: CuttingService,
     private authService: AuthService
   ) {}
+
+  // ============================================
+  // LIFECYCLE HOOKS
+  // ============================================
 
   ngOnInit(): void {
     this.checkAccess();
@@ -137,6 +161,48 @@ export class CuttingComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.toastTimeouts.forEach(timeout => clearTimeout(timeout));
     this.toastTimeouts.clear();
+  }
+
+  // ============================================
+  // ACTIONS MENU
+  // ============================================
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (target.closest('.actions-menu') || target.closest('.actions-trigger')) {
+      return;
+    }
+    this.closeActionsMenu();
+  }
+
+  toggleActionsMenu(jobId: string, event?: MouseEvent): void {
+    if (event) {
+      event.stopPropagation();
+    }
+
+    if (this.activeActionsMenu === jobId) {
+      this.activeActionsMenu = null;
+      return;
+    }
+
+    this.menuShouldOpenUp = {};
+    this.activeActionsMenu = jobId;
+
+    setTimeout(() => {
+      const button = document.querySelector(`[data-job-id="${jobId}"]`) as HTMLElement;
+      if (!button) return;
+
+      const rect = button.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const menuHeightEstimate = 300;
+
+      this.menuShouldOpenUp[jobId] = spaceBelow < menuHeightEstimate;
+    }, 0);
+  }
+
+  closeActionsMenu(): void {
+    this.activeActionsMenu = null;
   }
 
   // ============================================
@@ -159,6 +225,27 @@ export class CuttingComponent implements OnInit, OnDestroy {
         : 'You do not have access to Laser Cutting Management';
       this.showToast('error', errorMsg);
     }
+  }
+
+  // ============================================
+  // USER INFO HELPERS
+  // ============================================
+
+  getUserDisplayName(userId: string, job?: CuttingJob): string {
+    if (!job) return userId;
+
+    if (job.uploadedByInfo && job.uploadedByInfo.id === userId) {
+      return job.uploadedByInfo.name || job.uploadedByInfo.username;
+    }
+
+    if (job.cutByInfo && Array.isArray(job.cutByInfo)) {
+      const user = job.cutByInfo.find(u => u.id === userId);
+      if (user) {
+        return user.name || user.username;
+      }
+    }
+
+    return userId;
   }
 
   // ============================================
@@ -214,11 +301,14 @@ export class CuttingComponent implements OnInit, OnDestroy {
 
     this.cuttingService.getAllCuttingJobs(filters).subscribe({
       next: (response) => {
-        this.cuttingJobs = response.data.map(job => ({
-          ...job,
-          currentlyCut: job.currentlyCut || 0,
-          remaining: this.cuttingService.calculateRemaining(job.quantity, job.currentlyCut || 0)
-        }));
+        this.cuttingJobs = response.data.map(job => {
+          const currentlyCut = Number(job.currentlyCut) || 0;
+          return {
+            ...job,
+            currentlyCut: currentlyCut,
+            remaining: this.cuttingService.calculateRemaining(job.quantity, currentlyCut)
+          };
+        });
         this.totalJobs = response.pagination.totalJobs;
         this.totalPages = response.pagination.totalPages;
         this.currentPage = response.pagination.currentPage;
@@ -268,6 +358,18 @@ export class CuttingComponent implements OnInit, OnDestroy {
       newStatus: 'قيد التنفيذ',
       notes: ''
     };
+    this.selectedJob = null;
+  }
+
+  openTrackingViewForJob(job: CuttingJob): void {
+    this.currentView = 'track';
+    this.trackingData = {
+      jobId: job.id,
+      currentlyCut: 0,  // Reset to 0 for new batch input
+      newStatus: 'قيد التنفيذ',
+      notes: ''
+    };
+    this.selectedJob = job;
   }
 
   backToList(): void {
@@ -278,7 +380,7 @@ export class CuttingComponent implements OnInit, OnDestroy {
   }
 
   // ============================================
-  // NEW: VIEW DETAILS MODAL
+  // VIEW DETAILS MODAL
   // ============================================
 
   openViewModal(job: CuttingJob): void {
@@ -303,37 +405,190 @@ export class CuttingComponent implements OnInit, OnDestroy {
   }
 
   // ============================================
-  // NEW: FILE DOWNLOAD
+  // USER HISTORY MODAL
   // ============================================
 
-  downloadFile(filePath: string, fileName: string): void {
-    if (!filePath || !fileName) {
+  openUserHistoryModal(job: CuttingJob): void {
+    this.selectedJob = job;
+    this.buildUserActivityHistory(job);
+    this.showUserHistoryModal = true;
+  }
+
+  closeUserHistoryModal(): void {
+    this.showUserHistoryModal = false;
+    setTimeout(() => {
+      this.selectedJob = null;
+      this.userActivities = [];
+    }, 300);
+  }
+
+  buildUserActivityHistory(job: CuttingJob): void {
+    this.userActivities = [];
+
+    const creatorName = job.uploadedByInfo
+      ? (job.uploadedByInfo.name || job.uploadedByInfo.username)
+      : job.uploadedBy;
+
+    this.userActivities.push({
+      userId: job.uploadedBy,
+      userName: creatorName,
+      action: 'created',
+      timestamp: job.createdAt,
+      details: this.formLanguage === 'ar'
+        ? 'قام بإنشاء مهمة القص'
+        : 'Created cutting job'
+    });
+
+    if (job.cutBy && job.cutBy.length > 0 && job.cutByInfo && job.cutByInfo.length > 0) {
+      job.cutBy.forEach((userId) => {
+        const userInfo = job.cutByInfo!.find(u => u.id === userId);
+        const userName = userInfo
+          ? (userInfo.name || userInfo.username)
+          : userId;
+
+        this.userActivities.push({
+          userId: userId,
+          userName: userName,
+          action: 'updated',
+          timestamp: job.updatedAt,
+          details: this.formLanguage === 'ar'
+            ? 'قام بتحديث مهمة القص'
+            : 'Updated cutting job'
+        });
+      });
+    }
+
+    this.userActivities.sort((a, b) => {
+      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    });
+  }
+
+  getActionLabel(action: 'created' | 'updated' | 'status_changed'): string {
+    const labels: { [key: string]: { ar: string; en: string } } = {
+      'created': { ar: 'إنشاء', en: 'Created' },
+      'updated': { ar: 'تحديث', en: 'Updated' },
+      'status_changed': { ar: 'تغيير الحالة', en: 'Status Changed' }
+    };
+    return this.formLanguage === 'ar' ? labels[action].ar : labels[action].en;
+  }
+
+  getActionColor(action: 'created' | 'updated' | 'status_changed'): string {
+    const colors: { [key: string]: string } = {
+      'created': '#10b981',
+      'updated': '#3b82f6',
+      'status_changed': '#f59e0b'
+    };
+    return colors[action] || '#64748b';
+  }
+
+  formatDateTime(dateString: string): string {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleString(this.formLanguage === 'ar' ? 'ar-EG' : 'en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  getTimeAgo(dateString: string): string {
+    if (!dateString) return '-';
+
+    const now = new Date().getTime();
+    const past = new Date(dateString).getTime();
+    const diffInSeconds = Math.floor((now - past) / 1000);
+
+    if (diffInSeconds < 60) {
+      return this.formLanguage === 'ar' ? 'منذ لحظات' : 'Just now';
+    }
+
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    if (diffInMinutes < 60) {
+      return this.formLanguage === 'ar'
+        ? `منذ ${diffInMinutes} دقيقة`
+        : `${diffInMinutes} minutes ago`;
+    }
+
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) {
+      return this.formLanguage === 'ar'
+        ? `منذ ${diffInHours} ساعة`
+        : `${diffInHours} hours ago`;
+    }
+
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 30) {
+      return this.formLanguage === 'ar'
+        ? `منذ ${diffInDays} يوم`
+        : `${diffInDays} days ago`;
+    }
+
+    const diffInMonths = Math.floor(diffInDays / 30);
+    return this.formLanguage === 'ar'
+      ? `منذ ${diffInMonths} شهر`
+      : `${diffInMonths} months ago`;
+  }
+
+  // ============================================
+  // FILE DOWNLOAD
+  // ============================================
+
+  downloadFile(jobId: string, fileName: string): void {
+    if (!jobId || !fileName) {
       this.showToast('error', this.formLanguage === 'ar'
         ? 'الملف غير متوفر'
         : 'File not available');
       return;
     }
 
-    this.cuttingService.downloadFile(filePath).subscribe({
+    const loadingToastId = `loading-${Date.now()}`;
+    this.showToast('info', this.formLanguage === 'ar'
+      ? 'جاري تحميل الملف...'
+      : 'Downloading file...', 0);
+
+    this.cuttingService.downloadFile(jobId).subscribe({
       next: (blob) => {
+        this.removeToast(loadingToastId);
+
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = fileName;
+        a.style.display = 'none';
+
         document.body.appendChild(a);
         a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+
+        setTimeout(() => {
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        }, 100);
 
         this.showToast('success', this.formLanguage === 'ar'
           ? 'تم تحميل الملف بنجاح'
           : 'File downloaded successfully');
       },
       error: (error) => {
+        this.removeToast(loadingToastId);
         console.error('Error downloading file:', error);
-        this.showToast('error', this.formLanguage === 'ar'
+
+        let errorMsg = this.formLanguage === 'ar'
           ? 'حدث خطأ أثناء تحميل الملف'
-          : 'Error downloading file');
+          : 'Error downloading file';
+
+        if (error.status === 404) {
+          errorMsg = this.formLanguage === 'ar'
+            ? 'الملف غير موجود'
+            : 'File not found';
+        } else if (error.status === 401 || error.status === 403) {
+          errorMsg = this.formLanguage === 'ar'
+            ? 'ليس لديك صلاحية لتحميل هذا الملف'
+            : 'You do not have permission to download this file';
+        }
+
+        this.showToast('error', errorMsg);
       }
     });
   }
@@ -573,14 +828,15 @@ export class CuttingComponent implements OnInit, OnDestroy {
   }
 
   // ============================================
-  // TRACKING
+  // TRACKING - FIXED IMPLEMENTATION
   // ============================================
 
   onJobSelected(): void {
     const job = this.cuttingJobs.find(j => j.id === this.trackingData.jobId);
     if (job) {
       this.selectedJob = job;
-      this.trackingData.currentlyCut = job.currentlyCut || 0;
+      // Reset the input to 0 when selecting a job (user enters NEW batch amount)
+      this.trackingData.currentlyCut = 0;
     }
   }
 
@@ -595,18 +851,30 @@ export class CuttingComponent implements OnInit, OnDestroy {
     const job = this.cuttingJobs.find(j => j.id === this.trackingData.jobId);
     if (!job) return;
 
-    const totalCut = (job.currentlyCut || 0) + this.trackingData.currentlyCut;
+    // ✅ CALCULATE THE NEW TOTAL: existing cut + this batch
+    const newTotalCut = (job.currentlyCut || 0) + this.trackingData.currentlyCut;
 
-    if (totalCut > job.quantity) {
+    // Validate that we're not exceeding the total quantity
+    if (newTotalCut > job.quantity) {
       this.showToast('error', this.formLanguage === 'ar'
-        ? 'العدد المقصود يتجاوز الكمية الإجمالية'
-        : 'Cut quantity exceeds total quantity');
+        ? `لا يمكن أن يتجاوز العدد المقصوص الكمية الإجمالية. المتبقي: ${job.quantity - (job.currentlyCut || 0)}`
+        : `Cut amount cannot exceed total quantity. Remaining: ${job.quantity - (job.currentlyCut || 0)}`);
+      return;
+    }
+
+    // Validate that the increment is non-negative
+    if (this.trackingData.currentlyCut < 0) {
+      this.showToast('error', this.formLanguage === 'ar'
+        ? 'العدد المقصود يجب أن يكون صفر أو أكبر'
+        : 'Cut quantity must be zero or greater');
       return;
     }
 
     this.updatingJob = true;
 
+    // ✅ SEND THE NEW TOTAL to the backend (not the increment)
     const updateData: UpdateCuttingJobData = {
+      currentlyCut: newTotalCut,
       fileStatus: this.trackingData.newStatus,
       notes: this.trackingData.notes || undefined
     };
@@ -614,17 +882,23 @@ export class CuttingComponent implements OnInit, OnDestroy {
     this.cuttingService.updateCuttingJob(this.trackingData.jobId, updateData).subscribe({
       next: (response) => {
         const successMsg = this.formLanguage === 'ar'
-          ? 'تم تحديث حالة القص بنجاح'
-          : 'Cutting status updated successfully';
+          ? `تم تحديث حالة القص بنجاح. تم قص ${newTotalCut} من ${job.quantity}`
+          : `Cutting status updated successfully. Cut ${newTotalCut} of ${job.quantity}`;
         this.showToast('success', successMsg);
         this.updatingJob = false;
         this.backToList();
       },
       error: (error) => {
         console.error('Error updating tracking:', error);
-        const errorMsg = this.formLanguage === 'ar'
+        let errorMsg = this.formLanguage === 'ar'
           ? 'حدث خطأ أثناء تحديث حالة القص'
           : 'Error updating cutting status';
+
+        // Show specific error message from backend if available
+        if (error.error && error.error.message) {
+          errorMsg = error.error.message;
+        }
+
         this.showToast('error', errorMsg);
         this.updatingJob = false;
       }
@@ -668,6 +942,38 @@ export class CuttingComponent implements OnInit, OnDestroy {
     }
   }
 
+  nextPage(): void {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+      this.loadCuttingJobs();
+    }
+  }
+
+  previousPage(): void {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.loadCuttingJobs();
+    }
+  }
+
+  get paginationPages(): number[] {
+    const pages: number[] = [];
+    const maxVisible = 5;
+
+    let start = Math.max(1, this.currentPage - Math.floor(maxVisible / 2));
+    let end = Math.min(this.totalPages, start + maxVisible - 1);
+
+    if (end - start < maxVisible - 1) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+
+    return pages;
+  }
+
   // ============================================
   // HELPER METHODS
   // ============================================
@@ -694,9 +1000,10 @@ export class CuttingComponent implements OnInit, OnDestroy {
   }
 
   calculateProgress(job: CuttingJob): number {
-    if (!job.quantity || job.quantity === 0) return 0;
-    const currentlyCut = job.currentlyCut || 0;
-    return Math.round((currentlyCut / job.quantity) * 100);
+    if (!job || !job.quantity || job.quantity === 0) return 0;
+    const currentlyCut = Number(job.currentlyCut) || 0;
+    const progress = Math.round((currentlyCut / job.quantity) * 100);
+    return Math.min(progress, 100);
   }
 
   getProgressColor(progress: number): string {
@@ -729,5 +1036,13 @@ export class CuttingComponent implements OnInit, OnDestroy {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  }
+
+  countJobsByStatus(status: string): number {
+    return this.cuttingJobs.filter(j => j.fileStatus === status).length;
+  }
+
+  get Math() {
+    return Math;
   }
 }
