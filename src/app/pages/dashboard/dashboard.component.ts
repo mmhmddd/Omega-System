@@ -107,8 +107,8 @@ export class DashboardComponent implements OnInit {
       color: '#112e61'
     },
     {
-      title: 'الموردين والأصناف',
-      subtitle: 'إدارة الموردين وأصناف المواد',
+      title: 'الموردين',
+      subtitle: 'إدارة الموردين',
       icon: 'bi-truck',
       route: '/suppliers',
       color: '#112e61'

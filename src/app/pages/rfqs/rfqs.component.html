@@ -387,31 +387,31 @@
 
           <!-- ✅ Department Field - SELECT -->
 <!-- ✅ FIXED: Department Field - Shows label but stores it as-is -->
-<div class="form-group">
-  <label>
-    <i class="bi bi-building"></i>
-    {{ formLanguage === 'ar' ? 'القسم' : 'Department' }}
-    <span class="required">*</span>
-  </label>
-  <select 
-    [(ngModel)]="rfqForm.production"
-    class="form-control"
-    [class.error]="fieldErrors['production']"
-    required
-  >
-    <option value="" disabled selected>
-      {{ formLanguage === 'ar' ? 'اختر القسم' : 'Select Department' }}
-    </option>
-    <!-- ✅ The value will be the label itself (Arabic or English) -->
-    <option *ngFor="let dept of departments" [value]="getDepartmentLabel(dept)">
-      {{ getDepartmentLabel(dept) }}
-    </option>
-  </select>
-  <small class="error-message" *ngIf="fieldErrors['production']">
-    <i class="bi bi-exclamation-circle"></i>
-    {{ fieldErrors['production'] }}
-  </small>
-</div>
+        <div class="form-group">
+          <label>
+            <i class="bi bi-building"></i>
+            {{ formLanguage === 'ar' ? 'القسم' : 'Department' }}
+            <span class="required">*</span>
+          </label>
+          <select 
+            [(ngModel)]="rfqForm.production"
+            class="form-control"
+            [class.error]="fieldErrors['production']"
+            required
+          >
+            <option value="" disabled selected>
+              {{ formLanguage === 'ar' ? 'اختر القسم' : 'Select Department' }}
+            </option>
+            <!-- ✅ The value will be the label itself (Arabic or English) -->
+            <option *ngFor="let dept of departments" [value]="getDepartmentLabel(dept)">
+              {{ getDepartmentLabel(dept) }}
+            </option>
+          </select>
+          <small class="error-message" *ngIf="fieldErrors['production']">
+            <i class="bi bi-exclamation-circle"></i>
+            {{ fieldErrors['production'] }}
+          </small>
+        </div>
 
           <!-- ✅ Supplier Field - SELECT FROM API -->
           <div class="form-group">
