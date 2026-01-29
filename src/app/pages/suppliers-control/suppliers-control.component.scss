@@ -56,7 +56,7 @@ $info-color: #3b82f6;
 .toast-container {
   position: fixed;
   top: 90px;
-  right: 2rem;
+  left: 2rem;
   z-index: 9999;
   display: flex;
   flex-direction: column;
@@ -470,10 +470,6 @@ $info-color: #3b82f6;
         background: #f8fafc;
       }
 
-      &.inactive-row {
-        opacity: 0.6;
-      }
-
       &:last-child {
         border-bottom: none;
       }
@@ -507,7 +503,9 @@ $info-color: #3b82f6;
   }
 }
 
-// Supplier Cell
+// ============================================
+// SUPPLIER CELL WITH INACTIVE INDICATORS
+// ============================================
 .supplier-cell {
   display: flex;
   align-items: center;
@@ -526,6 +524,13 @@ $info-color: #3b82f6;
     font-weight: 700;
     font-size: 1rem;
     flex-shrink: 0;
+    transition: all 0.3s ease;
+
+    // ✅ Avatar للحالات غير النشطة
+    &.inactive-avatar {
+      background: linear-gradient(135deg, #94a3b8, #cbd5e1);
+      opacity: 0.7;
+    }
   }
 
   .supplier-info {
@@ -538,6 +543,13 @@ $info-color: #3b82f6;
       color: $dark-text;
       font-size: 0.9375rem;
       line-height: 1.2;
+      transition: all 0.3s ease;
+
+      // ✅ Text للحالات غير النشطة
+      &.inactive-text {
+        color: $light-text;
+        opacity: 0.8;
+      }
     }
 
     .supplier-id {
@@ -548,9 +560,16 @@ $info-color: #3b82f6;
   }
 }
 
+// ✅ Company Name مع inactive indicator
 .company-name {
   color: $medium-text;
   font-weight: 500;
+  transition: all 0.3s ease;
+
+  &.inactive-text {
+    color: $lighter-text;
+    opacity: 0.8;
+  }
 }
 
 // Contact Info
@@ -637,7 +656,9 @@ $info-color: #3b82f6;
   }
 }
 
-// Status Badge
+// ============================================
+// STATUS BADGE WITH PULSING ANIMATION
+// ============================================
 .status-badge {
   display: inline-block;
   padding: 0.375rem 0.875rem;
@@ -646,6 +667,21 @@ $info-color: #3b82f6;
   font-size: 0.8125rem;
   font-weight: 600;
   white-space: nowrap;
+  transition: all 0.3s ease;
+
+  // ✅ Animation للحالة pending
+  &.pulsing-badge {
+    animation: pulse 2s ease-in-out infinite;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 // ============================================
@@ -910,7 +946,7 @@ $info-color: #3b82f6;
 .modal-container {
   background: $bg-card;
   border-radius: 12px;
-  max-width: 500px; /* تصغير العرض */
+  max-width: 500px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
@@ -922,7 +958,7 @@ $info-color: #3b82f6;
   }
 
   &.modal-large {
-    max-width: 600px; /* تقليل عرض الموديل الكبير */
+    max-width: 600px;
   }
 
   @media (max-width: 768px) {

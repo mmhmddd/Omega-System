@@ -45,12 +45,6 @@
       </div>
       <div class="header-actions">
         <button
-          class="btn btn-secondary"
-          (click)="openStatsModal()">
-          <i class="bi bi-bar-chart-fill"></i>
-          الإحصائيات
-        </button>
-        <button
           class="btn btn-primary"
           (click)="openCreateModal()"
           *ngIf="canManageSuppliers">
@@ -215,15 +209,15 @@
       </thead>
 
       <tbody *ngIf="!loading && paginatedSuppliers.length > 0">
-        <tr *ngFor="let supplier of paginatedSuppliers" [class.inactive-row]="supplier.status !== 'active'">
+        <tr *ngFor="let supplier of paginatedSuppliers">
           <!-- Supplier Name -->
           <td>
             <div class="supplier-cell">
-              <div class="supplier-avatar">
+              <div class="supplier-avatar" [class.inactive-avatar]="supplier.status !== 'active'">
                 {{ supplier.name.charAt(0).toUpperCase() }}
               </div>
               <div class="supplier-info">
-                <span class="supplier-name">{{ supplier.name }}</span>
+                <span class="supplier-name" [class.inactive-text]="supplier.status !== 'active'">{{ supplier.name }}</span>
                 <span class="supplier-id">{{ supplier.id }}</span>
               </div>
             </div>
@@ -231,7 +225,7 @@
 
           <!-- Company Name -->
           <td>
-            <span class="company-name">{{ supplier.companyName }}</span>
+            <span class="company-name" [class.inactive-text]="supplier.status !== 'active'">{{ supplier.companyName }}</span>
           </td>
 
           <!-- Contact Info -->
@@ -281,51 +275,60 @@
           <td>
             <span 
               class="status-badge" 
-              [style.background-color]="getStatusColor(supplier.status)">
+              [style.background-color]="getStatusColor(supplier.status)"
+              [class.pulsing-badge]="supplier.status === 'pending'">
               {{ getStatusLabel(supplier.status) }}
             </span>
           </td>
 
-          <!-- Actions Dropdown Menu -->
+          <!-- Actions Dropdown Menu - ALWAYS ACTIVE -->
           <td>
-            <div class="actions-dropdown">
+            <div class="actions-dropdown" (click)="$event.stopPropagation()">
+              <!-- ✅ زر الإجراءات مع event.stopPropagation() -->
               <button
                 class="actions-trigger"
                 type="button"
                 [attr.data-supplier-id]="supplier.id"
-                (click)="toggleActionsMenu(supplier.id); $event.stopPropagation()"
+                (click)="toggleActionsMenu(supplier.id, $event)"
               >
                 <i class="bi bi-three-dots-vertical"></i>
               </button>
 
+              <!-- ✅ القائمة تظهر عند isMenuOpen() -->
               <div
                 class="actions-menu"
-                [ngClass]="{ 'open-upward': menuShouldOpenUp[supplier.id] }"
-                *ngIf="activeActionsMenu === supplier.id"
+                [class.show]="isMenuOpen(supplier.id)"
+                [class.open-upward]="menuShouldOpenUp[supplier.id]"
+                *ngIf="isMenuOpen(supplier.id)"
+                (click)="$event.stopPropagation()"
               >
+                <!-- ✅ تغيير الحالة متاح دائماً -->
                 <button 
                   type="button" 
                   class="action-menu-item" 
-                  (click)="openStatusModal(supplier); closeActionsMenu(); $event.stopPropagation()">
+                  (click)="handleStatusChange(supplier, $event)">
                   <i class="bi bi-arrow-repeat"></i>
                   <span>تغيير الحالة</span>
                 </button>
 
+                <!-- ✅ التعديل متاح للـ super_admin فقط -->
                 <button 
                   type="button" 
                   class="action-menu-item" 
-                  (click)="openEditModal(supplier); closeActionsMenu(); $event.stopPropagation()"
+                  (click)="handleEdit(supplier, $event)"
                   *ngIf="canManageSuppliers">
                   <i class="bi bi-pencil"></i>
                   <span>تعديل</span>
                 </button>
 
+                <!-- ✅ خط فاصل -->
                 <div class="menu-divider" *ngIf="canManageSuppliers"></div>
 
+                <!-- ✅ الحذف متاح للـ super_admin فقط -->
                 <button 
                   type="button" 
                   class="action-menu-item danger" 
-                  (click)="openDeleteModal(supplier); closeActionsMenu(); $event.stopPropagation()"
+                  (click)="handleDelete(supplier, $event)"
                   *ngIf="canManageSuppliers">
                   <i class="bi bi-trash"></i>
                   <span>حذف</span>
@@ -941,154 +944,3 @@
   </div>
 </div>
 
-<!-- ============================================ -->
-<!-- STATISTICS MODAL -->
-<!-- ============================================ -->
-<div class="modal-overlay" *ngIf="showStatsModal" (click)="closeStatsModal()">
-  <div class="modal-container modal-large" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h2 class="modal-title">
-        <i class="bi bi-bar-chart-fill"></i>
-        إحصائيات الموردين
-      </h2>
-      <button class="modal-close" (click)="closeStatsModal()">
-        <i class="bi bi-x-lg"></i>
-      </button>
-    </div>
-
-    <div class="modal-body" *ngIf="statistics">
-      <div class="stats-container">
-        <!-- Overview Stats -->
-        <div class="stats-overview">
-          <div class="stat-card">
-            <div class="stat-icon">
-              <i class="bi bi-truck"></i>
-            </div>
-            <div class="stat-content">
-              <span class="stat-number">{{ statistics.total }}</span>
-              <span class="stat-label">إجمالي الموردين</span>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon success">
-              <i class="bi bi-check-circle"></i>
-            </div>
-            <div class="stat-content">
-              <span class="stat-number">{{ statistics.active }}</span>
-              <span class="stat-label">نشط</span>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon warning">
-              <i class="bi bi-clock"></i>
-            </div>
-            <div class="stat-content">
-              <span class="stat-number">{{ statistics.pending }}</span>
-              <span class="stat-label">قيد الانتظار</span>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon danger">
-              <i class="bi bi-x-circle"></i>
-            </div>
-            <div class="stat-content">
-              <span class="stat-number">{{ statistics.inactive }}</span>
-              <span class="stat-label">غير نشط</span>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon info">
-              <i class="bi bi-star-fill"></i>
-            </div>
-            <div class="stat-content">
-              <span class="stat-number">{{ statistics.averageRating.toFixed(1) }}</span>
-              <span class="stat-label">متوسط التقييم</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- By Material -->
-        <div class="stats-section" *ngIf="objectKeys(statistics.byMaterial).length > 0">
-          <h4 class="stats-section-title">
-            <i class="bi bi-box-seam"></i>
-            الموردين حسب نوع المادة
-          </h4>
-          <div class="stats-list">
-            <div class="stats-item" *ngFor="let material of objectKeys(statistics.byMaterial)">
-              <span class="stats-item-label">{{ material }}</span>
-              <span class="stats-item-value">{{ statistics.byMaterial[material] }}</span>
-              <div class="stats-bar">
-                <div 
-                  class="stats-bar-fill" 
-                  [style.width.%]="(statistics.byMaterial[material] / statistics.total) * 100"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- By Country -->
-        <div class="stats-section" *ngIf="objectKeys(statistics.byCountry).length > 0">
-          <h4 class="stats-section-title">
-            <i class="bi bi-flag"></i>
-            الموردين حسب الدولة
-          </h4>
-          <div class="stats-list">
-            <div class="stats-item" *ngFor="let country of objectKeys(statistics.byCountry)">
-              <span class="stats-item-label">{{ country }}</span>
-              <span class="stats-item-value">{{ statistics.byCountry[country] }}</span>
-              <div class="stats-bar">
-                <div 
-                  class="stats-bar-fill" 
-                  [style.width.%]="(statistics.byCountry[country] / statistics.total) * 100"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Top Rated Suppliers -->
-        <div class="stats-section" *ngIf="statistics.topRated.length > 0">
-          <h4 class="stats-section-title">
-            <i class="bi bi-trophy"></i>
-            أفضل الموردين (التقييم)
-          </h4>
-          <div class="top-suppliers-list">
-            <div class="top-supplier-item" *ngFor="let supplier of statistics.topRated; let i = index">
-              <span class="rank-badge">{{ i + 1 }}</span>
-              <span class="supplier-name">{{ supplier.name }}</span>
-              <div class="rating-display">
-                <i class="bi bi-star-fill"></i>
-                <span>{{ supplier.rating.toFixed(1) }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Recently Added -->
-        <div class="stats-section" *ngIf="statistics.recentlyAdded.length > 0">
-          <h4 class="stats-section-title">
-            <i class="bi bi-clock-history"></i>
-            آخر الإضافات
-          </h4>
-          <div class="recent-suppliers-list">
-            <div class="recent-supplier-item" *ngFor="let supplier of statistics.recentlyAdded">
-              <div class="recent-supplier-info">
-                <span class="supplier-name">{{ supplier.name }}</span>
-                <span class="supplier-date">{{ supplier.createdAt | date:'dd/MM/yyyy' }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="modal-footer">
-      <button type="button" class="btn btn-secondary" (click)="closeStatsModal()">
-        إغلاق
-      </button>
-    </div>
-  </div>
-</div>

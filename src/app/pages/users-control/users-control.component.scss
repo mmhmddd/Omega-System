@@ -48,6 +48,151 @@ $error-border: #fecaca;
 }
 
 // ============================================
+// TOAST NOTIFICATIONS - على الشمال
+// ============================================
+.toast-container {
+  position: fixed;
+  top: 90px;
+  left: 2rem; // ✅ على الشمال عشان ميتغطاش بالـ Sidebar
+  z-index: 999999; // ✅ z-index عالي جداً
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 400px;
+  pointer-events: none;
+
+  .toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.1);
+    pointer-events: auto;
+    min-width: 320px;
+    max-width: 400px;
+    border-right: 4px solid transparent; // ✅ border على اليمين
+    transition: all 0.3s ease;
+    animation: slideInToast 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      transform: translateY(-2px) translateX(5px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18), 0 6px 16px rgba(0, 0, 0, 0.12);
+    }
+
+    .toast-icon {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      
+      i {
+        font-size: 1.5rem;
+      }
+    }
+
+    .toast-content {
+      flex: 1;
+      min-width: 0;
+
+      .toast-message {
+        margin: 0;
+        color: #1e293b;
+        font-size: 0.9375rem;
+        font-weight: 500;
+        line-height: 1.5;
+        word-wrap: break-word;
+      }
+    }
+
+    .toast-close {
+      flex-shrink: 0;
+      padding: 0.25rem;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      color: #64748b;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: -0.125rem;
+
+      &:hover {
+        background: rgba(0, 0, 0, 0.05);
+        color: #1e293b;
+      }
+
+      i {
+        font-size: 1.125rem;
+      }
+    }
+
+    // ✅ أنواع الـ Toast
+    &.toast-success {
+      border-right-color: #10b981;
+      background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+
+      .toast-icon i {
+        color: #10b981;
+      }
+    }
+
+    &.toast-error {
+      border-right-color: #ef4444;
+      background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
+
+      .toast-icon i {
+        color: #ef4444;
+      }
+    }
+
+    &.toast-info {
+      border-right-color: #1565C0;
+      background: linear-gradient(135deg, #ffffff 0%, #f0f7ff 100%);
+
+      .toast-icon i {
+        color: #1565C0;
+      }
+    }
+
+    &.toast-warning {
+      border-right-color: #f59e0b;
+      background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
+
+      .toast-icon i {
+        color: #f59e0b;
+      }
+    }
+  }
+
+  @media (max-width: 768px) {
+    left: 1rem;
+    right: 1rem;
+    max-width: none;
+
+    .toast {
+      min-width: unset;
+      max-width: none;
+    }
+  }
+}
+
+// ✅ Animation من الشمال
+@keyframes slideInToast {
+  from {
+    opacity: 0;
+    transform: translateX(-120%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+// ============================================
 // PAGE HEADER
 // ============================================
 .page-header {
@@ -105,48 +250,6 @@ $error-border: #fecaca;
   .header-actions {
     display: flex;
     gap: 1rem;
-  }
-}
-
-// ============================================
-// ALERTS
-// ============================================
-.alert {
-  padding: 1rem 1.25rem;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  animation: slideDown 0.3s ease;
-
-  i {
-    font-size: 1.25rem;
-    flex-shrink: 0;
-  }
-
-  &.alert-success {
-    background: #f0fdf4;
-    border: 1px solid #86efac;
-    border-right: 4px solid #22c55e;
-    color: $success-text;
-
-    i {
-      color: #22c55e;
-    }
-  }
-
-  &.alert-error {
-    background: $error-bg;
-    border: 1px solid $error-border;
-    border-right: 4px solid #ef4444;
-    color: $error-text;
-
-    i {
-      color: #dc2626;
-    }
   }
 }
 
@@ -292,12 +395,11 @@ $error-border: #fecaca;
   background: $bg-card;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: visible; // CRITICAL: Must be visible for dropdowns
+  overflow: visible;
   margin-bottom: 1.5rem;
   position: relative;
 }
 
-// Loading Overlay
 .loading-overlay {
   position: absolute;
   top: 0;
@@ -358,10 +460,6 @@ $error-border: #fecaca;
         background: #f8fafc;
       }
 
-      &.inactive-row {
-        opacity: 0.6;
-      }
-
       &:last-child {
         border-bottom: none;
       }
@@ -390,7 +488,9 @@ $error-border: #fecaca;
   }
 }
 
-// User Cell
+// ============================================
+// USER CELL WITH INACTIVE INDICATORS
+// ============================================
 .user-cell {
   display: flex;
   align-items: center;
@@ -408,6 +508,12 @@ $error-border: #fecaca;
     font-weight: 700;
     font-size: 0.875rem;
     flex-shrink: 0;
+    transition: all 0.3s ease;
+
+    &.inactive-avatar {
+      opacity: 0.5;
+      filter: grayscale(50%);
+    }
   }
 
   .user-info {
@@ -420,6 +526,12 @@ $error-border: #fecaca;
       color: $dark-text;
       font-size: 0.9375rem;
       line-height: 1.2;
+      transition: all 0.3s ease;
+
+      &.inactive-text {
+        color: $light-text;
+        opacity: 0.7;
+      }
     }
   }
 }
@@ -427,6 +539,12 @@ $error-border: #fecaca;
 .user-email {
   color: $light-text;
   font-size: 0.875rem;
+  transition: all 0.3s ease;
+
+  &.inactive-text {
+    color: $lighter-text;
+    opacity: 0.7;
+  }
 }
 
 .username-badge {
@@ -438,6 +556,13 @@ $error-border: #fecaca;
   font-size: 0.8125rem;
   font-weight: 600;
   font-family: 'Courier New', monospace;
+  transition: all 0.3s ease;
+
+  &.inactive-badge {
+    background: #f8fafc;
+    color: $lighter-text;
+    opacity: 0.7;
+  }
 }
 
 .role-badge {
@@ -450,6 +575,9 @@ $error-border: #fecaca;
   white-space: nowrap;
 }
 
+// ============================================
+// STATUS BADGE WITH PULSING ANIMATION
+// ============================================
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -459,6 +587,7 @@ $error-border: #fecaca;
   font-size: 0.8125rem;
   font-weight: 600;
   white-space: nowrap;
+  transition: all 0.3s ease;
 
   &.status-active {
     background: #d1fae5;
@@ -477,6 +606,19 @@ $error-border: #fecaca;
       font-size: 0.875rem;
     }
   }
+
+  &.pulsing-badge {
+    animation: pulse 2s ease-in-out infinite;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 
 .date-text {
@@ -485,7 +627,7 @@ $error-border: #fecaca;
 }
 
 // ============================================
-// ACTIONS DROPDOWN MENU - FIXED VERSION
+// ACTIONS DROPDOWN MENU
 // ============================================
 .actions-dropdown {
   position: relative;
@@ -518,7 +660,7 @@ $error-border: #fecaca;
 
   i {
     font-size: 1.25rem;
-    pointer-events: none; // Prevent icon from blocking clicks
+    pointer-events: none;
   }
 }
 
@@ -530,10 +672,9 @@ $error-border: #fecaca;
   border-radius: 8px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
   min-width: 200px;
-  z-index: 10000; // Very high z-index - above everything
+  z-index: 10000;
   padding: 0.5rem;
   animation: menuSlideDown 0.2s ease;
-  // Ensure menu is always clickable
   pointer-events: auto;
 
   &.open-upward {
@@ -564,14 +705,8 @@ $error-border: #fecaca;
   gap: 0.75rem;
   border-radius: 6px;
   transition: all 0.2s ease;
-  // Ensure all parts are clickable
   pointer-events: auto;
-
-  // Prevent text selection interfering with clicks
   user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
 
   &:hover {
     background: #f8fafc;
@@ -596,11 +731,11 @@ $error-border: #fecaca;
     width: 20px;
     text-align: center;
     flex-shrink: 0;
-    pointer-events: none; // Prevent icon from blocking clicks
+    pointer-events: none;
   }
 
   span {
-    pointer-events: none; // Prevent text from blocking clicks
+    pointer-events: none;
   }
 }
 
@@ -617,7 +752,7 @@ $error-border: #fecaca;
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 9999; // Just below the menu
+  z-index: 9999;
   background: transparent;
   cursor: default;
 }
@@ -744,7 +879,7 @@ $error-border: #fecaca;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10001; // Higher than menu
+  z-index: 10001;
   padding: 1.5rem;
   animation: fadeIn 0.3s ease;
 }
@@ -922,7 +1057,6 @@ $error-border: #fecaca;
   }
 }
 
-// Checkbox & Radio
 .checkbox-group {
   display: flex;
   flex-direction: column;
@@ -974,7 +1108,6 @@ $error-border: #fecaca;
   }
 }
 
-// Routes Grid
 .routes-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -1033,7 +1166,6 @@ $error-border: #fecaca;
   }
 }
 
-// Delete Message
 .delete-message {
   font-size: 0.9375rem;
   color: $medium-text;

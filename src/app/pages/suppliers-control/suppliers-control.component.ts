@@ -114,7 +114,9 @@ export class SuppliersControlComponent implements OnInit {
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     const target = event.target as HTMLElement;
-    if (!target.closest('.actions-menu') && !target.closest('.actions-trigger')) {
+    
+    // Check if click is outside both trigger and menu
+    if (!target.closest('.actions-dropdown')) {
       this.closeActionsMenu();
     }
   }
@@ -315,22 +317,34 @@ export class SuppliersControlComponent implements OnInit {
   }
 
   // ============================================
-  // ACTIONS MENU
+  // ACTIONS MENU - COMPLETELY FIXED
   // ============================================
 
-  toggleActionsMenu(supplierId: string, event?: MouseEvent): void {
-    if (event) event.stopPropagation();
+  /**
+   * Toggle actions menu with improved event handling
+   */
+  toggleActionsMenu(supplierId: string, event: MouseEvent): void {
+    // CRITICAL: Stop event propagation
+    event.stopPropagation();
+    event.preventDefault();
 
+    console.log('Toggle menu for supplier:', supplierId);
+    console.log('Current active menu:', this.activeActionsMenu);
+
+    // If clicking the same menu, close it
     if (this.activeActionsMenu === supplierId) {
+      console.log('Closing menu');
       this.activeActionsMenu = null;
       return;
     }
 
-    this.menuShouldOpenUp = {};
+    // Open the new menu
+    console.log('Opening menu');
     this.activeActionsMenu = supplierId;
 
+    // Calculate menu direction after a small delay
     setTimeout(() => {
-      const button = document.querySelector(`[data-supplier-id="${supplierId}"]`) as HTMLElement;
+      const button = event.currentTarget as HTMLElement;
       if (!button) return;
 
       const rect = button.getBoundingClientRect();
@@ -338,11 +352,54 @@ export class SuppliersControlComponent implements OnInit {
       const menuHeightEstimate = 200;
 
       this.menuShouldOpenUp[supplierId] = spaceBelow < menuHeightEstimate;
+      console.log('Menu should open up:', this.menuShouldOpenUp[supplierId]);
     }, 0);
   }
 
   closeActionsMenu(): void {
+    console.log('Closing all menus');
     this.activeActionsMenu = null;
+  }
+
+  /**
+   * Check if menu is open for a specific supplier
+   */
+  isMenuOpen(supplierId: string): boolean {
+    return this.activeActionsMenu === supplierId;
+  }
+
+  // ============================================
+  // ACTION HANDLERS
+  // ============================================
+
+  handleStatusChange(supplier: Supplier, event: MouseEvent): void {
+    console.log('Status change clicked for:', supplier.name);
+    event.stopPropagation();
+    event.preventDefault();
+    this.closeActionsMenu();
+    setTimeout(() => {
+      this.openStatusModal(supplier);
+    }, 100);
+  }
+
+  handleEdit(supplier: Supplier, event: MouseEvent): void {
+    console.log('Edit clicked for:', supplier.name);
+    event.stopPropagation();
+    event.preventDefault();
+    this.closeActionsMenu();
+    setTimeout(() => {
+      this.openEditModal(supplier);
+    }, 100);
+  }
+
+  handleDelete(supplier: Supplier, event: MouseEvent): void {
+    console.log('Delete clicked for:', supplier.name);
+    event.stopPropagation();
+    event.preventDefault();
+    this.closeActionsMenu();
+    setTimeout(() => {
+      this.openDeleteModal(supplier);
+    }, 100);
   }
 
   // ============================================
@@ -412,6 +469,7 @@ export class SuppliersControlComponent implements OnInit {
   // ============================================
 
   openEditModal(supplier: Supplier): void {
+    console.log('Opening edit modal for:', supplier);
     this.selectedSupplier = supplier;
     this.editSupplierForm.patchValue({
       name: supplier.name,
@@ -501,7 +559,8 @@ export class SuppliersControlComponent implements OnInit {
   // ============================================
 
   openStatusModal(supplier: Supplier): void {
-    this.selectedSupplier = supplier;
+    console.log('Opening status modal for:', supplier);
+    this.selectedSupplier = { ...supplier };
     this.newStatus = supplier.status;
     this.showStatusModal = true;
   }
@@ -513,7 +572,12 @@ export class SuppliersControlComponent implements OnInit {
   }
 
   confirmStatusChange(): void {
-    if (!this.selectedSupplier) return;
+    if (!this.selectedSupplier) {
+      console.error('No supplier selected');
+      return;
+    }
+
+    console.log('Changing status from', this.selectedSupplier.status, 'to', this.newStatus);
 
     this.changingStatus = true;
 
@@ -522,6 +586,7 @@ export class SuppliersControlComponent implements OnInit {
       this.newStatus as 'active' | 'inactive' | 'pending' | 'suspended'
     ).subscribe({
       next: (response) => {
+        console.log('Status changed successfully:', response);
         this.showToast('success', 'تم تغيير حالة المورد بنجاح');
         this.changingStatus = false;
         this.closeStatusModal();

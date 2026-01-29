@@ -1,1 +1,839 @@
-<p>files-control works!</p>
+<!-- src/app/pages/files-control/files-control.component.html -->
+<div class="files-control-container">
+  <!-- ============================================ -->
+  <!-- TOAST NOTIFICATIONS CONTAINER -->
+  <!-- ============================================ -->
+  <div class="toast-container">
+    <div 
+      *ngFor="let toast of toasts" 
+      class="toast"
+      [class.toast-success]="toast.type === 'success'"
+      [class.toast-error]="toast.type === 'error'"
+      [class.toast-info]="toast.type === 'info'"
+      [class.toast-warning]="toast.type === 'warning'">
+      
+      <div class="toast-icon">
+        <i class="bi" 
+           [ngClass]="{
+             'bi-check-circle-fill': toast.type === 'success',
+             'bi-x-circle-fill': toast.type === 'error',
+             'bi-info-circle-fill': toast.type === 'info',
+             'bi-exclamation-triangle-fill': toast.type === 'warning'
+           }"></i>
+      </div>
+      
+      <div class="toast-content">
+        <p class="toast-message">{{ toast.message }}</p>
+      </div>
+      
+      <button class="toast-close" (click)="removeToast(toast.id)">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- HEADER SECTION -->
+  <!-- ============================================ -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="page-title">
+          <i class="bi bi-folder2-open"></i>
+          إدارة الملفات
+        </h1>
+        <p class="page-subtitle">عرض وإدارة جميع ملفات النظام</p>
+      </div>
+      <div class="header-actions">
+        <button
+          class="btn btn-secondary"
+          (click)="openStatsModal()">
+          <i class="bi bi-bar-chart-fill"></i>
+          الإحصائيات
+        </button>
+        <button
+          class="btn btn-secondary"
+          (click)="exportFileList()">
+          <i class="bi bi-download"></i>
+          تصدير القائمة
+        </button>
+        <button
+          class="btn btn-danger"
+          (click)="openBulkDeleteModal()"
+          *ngIf="canDeleteFiles && selectedFiles.length > 0">
+          <i class="bi bi-trash"></i>
+          حذف المحدد ({{ selectedFiles.length }})
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- FILTERS SECTION -->
+  <!-- ============================================ -->
+  <div class="filters-section">
+    <div class="filters-grid">
+      <!-- Search -->
+      <div class="filter-group search-group">
+        <label class="filter-label">
+          <i class="bi bi-search"></i>
+          البحث
+        </label>
+        <input
+          type="text"
+          class="filter-input"
+          placeholder="ابحث بالاسم، رقم المستند، اسم المشروع..."
+          [(ngModel)]="searchTerm"
+          (input)="onSearchChange()"
+        />
+      </div>
+
+      <!-- Type Filter -->
+      <div class="filter-group">
+        <label class="filter-label">
+          <i class="bi bi-folder"></i>
+          نوع الملف
+        </label>
+        <select
+          class="filter-select"
+          [(ngModel)]="selectedType"
+          (change)="onFilterChange()">
+          <option value="">جميع الأنواع</option>
+          <option *ngFor="let type of fileTypes" [value]="type.value">
+            {{ type.icon }} {{ type.label }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Category Filter -->
+      <div class="filter-group">
+        <label class="filter-label">
+          <i class="bi bi-tags"></i>
+          التصنيف
+        </label>
+        <select
+          class="filter-select"
+          [(ngModel)]="selectedCategory"
+          (change)="onFilterChange()">
+          <option value="">جميع التصنيفات</option>
+          <option *ngFor="let category of fileCategories" [value]="category.value">
+            {{ category.icon }} {{ category.label }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Extension Filter -->
+      <div class="filter-group">
+        <label class="filter-label">
+          <i class="bi bi-file-earmark"></i>
+          الامتداد
+        </label>
+        <select
+          class="filter-select"
+          [(ngModel)]="selectedExtension"
+          (change)="onFilterChange()">
+          <option value="">جميع الامتدادات</option>
+          <option *ngFor="let ext of availableExtensions" [value]="ext">
+            {{ ext }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Creator Filter -->
+      <div class="filter-group">
+        <label class="filter-label">
+          <i class="bi bi-person"></i>
+          المنشئ
+        </label>
+        <select
+          class="filter-select"
+          [(ngModel)]="selectedCreator"
+          (change)="onFilterChange()">
+          <option value="">الكل</option>
+          <option *ngFor="let creator of availableCreators" [value]="creator">
+            {{ creator }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Start Date Filter -->
+      <div class="filter-group">
+        <label class="filter-label">
+          <i class="bi bi-calendar"></i>
+          من تاريخ
+        </label>
+        <input
+          type="date"
+          class="filter-input"
+          [(ngModel)]="startDate"
+          (change)="onFilterChange()"
+        />
+      </div>
+
+      <!-- End Date Filter -->
+      <div class="filter-group">
+        <label class="filter-label">
+          <i class="bi bi-calendar"></i>
+          إلى تاريخ
+        </label>
+        <input
+          type="date"
+          class="filter-input"
+          [(ngModel)]="endDate"
+          (change)="onFilterChange()"
+        />
+      </div>
+
+      <!-- Sort By Filter -->
+      <div class="filter-group">
+        <label class="filter-label">
+          <i class="bi bi-sort-down"></i>
+          ترتيب حسب
+        </label>
+        <select
+          class="filter-select"
+          [(ngModel)]="sortBy"
+          (change)="onFilterChange()">
+          <option *ngFor="let option of sortOptions" [value]="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Sort Order Filter -->
+      <div class="filter-group">
+        <label class="filter-label">
+          <i class="bi bi-arrow-down-up"></i>
+          الترتيب
+        </label>
+        <select
+          class="filter-select"
+          [(ngModel)]="sortOrder"
+          (change)="onFilterChange()">
+          <option *ngFor="let order of sortOrders" [value]="order.value">
+            {{ order.label }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Clear Filters -->
+      <div class="filter-group">
+        <label class="filter-label">&nbsp;</label>
+        <button class="btn btn-secondary" (click)="clearFilters()">
+          <i class="bi bi-x-circle"></i>
+          مسح الفلاتر
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- STATISTICS BAR -->
+  <!-- ============================================ -->
+  <div class="statistics-bar" *ngIf="statistics">
+    <div class="stat-item">
+      <i class="bi bi-file-earmark"></i>
+      <div>
+        <span class="stat-value">{{ statistics.totalFiles }}</span>
+        <span class="stat-label">إجمالي الملفات</span>
+      </div>
+    </div>
+    <div class="stat-item">
+      <i class="bi bi-hdd"></i>
+      <div>
+        <span class="stat-value">{{ statistics.totalSizeFormatted }}</span>
+        <span class="stat-label">إجمالي الحجم</span>
+      </div>
+    </div>
+    <div class="stat-item">
+      <i class="bi bi-collection"></i>
+      <div>
+        <span class="stat-value">{{ objectKeys(statistics.byType).length }}</span>
+        <span class="stat-label">أنواع مختلفة</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- TABLE SECTION -->
+  <!-- ============================================ -->
+  <div class="table-container">
+    <!-- Loading State -->
+    <div class="loading-overlay" *ngIf="loading">
+      <div class="spinner">
+        <i class="bi bi-arrow-clockwise spin"></i>
+      </div>
+      <p>جاري التحميل...</p>
+    </div>
+
+    <!-- Files Table -->
+    <table class="files-table">
+      <thead>
+        <tr>
+          <th *ngIf="canDeleteFiles" class="checkbox-col">
+            <input 
+              type="checkbox" 
+              [(ngModel)]="selectAll" 
+              (change)="toggleSelectAll()"
+              class="table-checkbox"
+            />
+          </th>
+          <th>الملف</th>
+          <th>النوع</th>
+          <th>التصنيف</th>
+          <th>الحجم</th>
+          <th>المنشئ</th>
+          <th>تاريخ الإنشاء</th>
+          <th>الإجراءات</th>
+        </tr>
+      </thead>
+
+      <tbody *ngIf="!loading && files.length > 0">
+        <tr *ngFor="let file of files">
+          <!-- Checkbox -->
+          <td *ngIf="canDeleteFiles" class="checkbox-col">
+            <input 
+              type="checkbox" 
+              [(ngModel)]="file.selected" 
+              (change)="toggleFileSelection(file)"
+              class="table-checkbox"
+            />
+          </td>
+
+          <!-- File Name -->
+          <td>
+            <div class="file-cell">
+              <div class="file-icon">
+                {{ file.icon }}
+              </div>
+              <div class="file-info">
+                <span class="file-name" [title]="file.name">{{ file.name }}</span>
+                <span class="file-number" *ngIf="file.documentNumber">
+                  {{ file.documentNumber }}
+                </span>
+              </div>
+            </div>
+          </td>
+
+          <!-- Type -->
+          <td>
+            <span class="type-badge">
+              {{ getTypeLabel(file.type) }}
+            </span>
+          </td>
+
+          <!-- Category -->
+          <td>
+            <span 
+              class="category-badge" 
+              [style.background-color]="getCategoryColor(file.category)">
+              {{ getCategoryLabel(file.category) }}
+            </span>
+          </td>
+
+          <!-- Size -->
+          <td>
+            <span class="file-size">{{ file.sizeFormatted }}</span>
+          </td>
+
+          <!-- Creator -->
+          <td>
+            <div class="creator-info">
+              <span class="creator-name">{{ file.createdBy }}</span>
+              <span class="creator-role" *ngIf="file.createdByRole">
+                {{ file.createdByRole }}
+              </span>
+            </div>
+          </td>
+
+          <!-- Created At -->
+          <td>
+            <span class="date-text">{{ formatDate(file.createdAt) }}</span>
+          </td>
+
+          <!-- Actions Dropdown -->
+          <td>
+            <div class="actions-dropdown" (click)="$event.stopPropagation()">
+              <button
+                class="actions-trigger"
+                type="button"
+                [attr.data-file-id]="file.id"
+                (click)="toggleActionsMenu(file.id, $event)"
+              >
+                <i class="bi bi-three-dots-vertical"></i>
+              </button>
+
+              <div
+                class="actions-menu"
+                [class.show]="isMenuOpen(file.id)"
+                [class.open-upward]="menuShouldOpenUp[file.id]"
+                *ngIf="isMenuOpen(file.id)"
+                (click)="$event.stopPropagation()"
+              >
+                <button 
+                  type="button" 
+                  class="action-menu-item" 
+                  (click)="handleViewDetails(file, $event)">
+                  <i class="bi bi-info-circle"></i>
+                  <span>التفاصيل</span>
+                </button>
+
+                <button 
+                  type="button" 
+                  class="action-menu-item" 
+                  (click)="handleDownload(file, $event)">
+                  <i class="bi bi-download"></i>
+                  <span>تحميل</span>
+                </button>
+
+                <button 
+                  type="button" 
+                  class="action-menu-item" 
+                  (click)="handlePreview(file, $event)"
+                  *ngIf="canPreviewFile(file)">
+                  <i class="bi bi-eye"></i>
+                  <span>معاينة</span>
+                </button>
+
+                <div class="menu-divider" *ngIf="canDeleteFiles"></div>
+
+                <button 
+                  type="button" 
+                  class="action-menu-item danger" 
+                  (click)="handleDelete(file, $event)"
+                  *ngIf="canDeleteFiles">
+                  <i class="bi bi-trash"></i>
+                  <span>حذف</span>
+                </button>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+
+      <tbody *ngIf="loading">
+        <tr>
+          <td [attr.colspan]="canDeleteFiles ? 8 : 7" class="loading-cell">
+            <i class="bi bi-arrow-clockwise spin"></i> جاري التحميل...
+          </td>
+        </tr>
+      </tbody>
+
+      <tbody *ngIf="!loading && files.length === 0">
+        <tr>
+          <td [attr.colspan]="canDeleteFiles ? 8 : 7" class="empty-cell">
+            <i class="bi bi-inbox"></i>
+            <p>لا توجد ملفات</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div class="pagination" *ngIf="!loading && totalPages > 1">
+      <button
+        class="btn-page"
+        [disabled]="currentPage === 1"
+        (click)="previousPage()">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+
+      <span class="page-info">
+        صفحة {{ currentPage }} من {{ totalPages }} ({{ totalFiles }} ملف)
+      </span>
+
+      <button
+        class="btn-page"
+        [disabled]="currentPage === totalPages"
+        (click)="nextPage()">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- MENU BACKDROP -->
+<!-- ============================================ -->
+<div class="menu-backdrop" *ngIf="activeActionsMenu" (click)="closeActionsMenu()"></div>
+
+<!-- ============================================ -->
+<!-- FILE DETAILS MODAL -->
+<!-- ============================================ -->
+<div class="modal-overlay" *ngIf="showFileDetailsModal" (click)="closeFileDetailsModal()">
+  <div class="modal-container modal-large" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <i class="bi bi-info-circle"></i>
+        تفاصيل الملف
+      </h2>
+      <button class="modal-close" (click)="closeFileDetailsModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="modal-body" *ngIf="selectedFile">
+      <div class="details-container">
+        <!-- File Info Section -->
+        <div class="details-section">
+          <h3 class="section-title">
+            <i class="bi bi-file-earmark"></i>
+            معلومات الملف
+          </h3>
+          <div class="details-grid">
+            <div class="detail-item">
+              <span class="detail-label">اسم الملف:</span>
+              <span class="detail-value">{{ selectedFile.name }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">النوع:</span>
+              <span class="detail-value">{{ getTypeLabel(selectedFile.type) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">التصنيف:</span>
+              <span class="detail-value">{{ getCategoryLabel(selectedFile.category) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">الامتداد:</span>
+              <span class="detail-value">{{ selectedFile.extension }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">الحجم:</span>
+              <span class="detail-value">{{ selectedFile.sizeFormatted }}</span>
+            </div>
+            <div class="detail-item" *ngIf="selectedFile.documentNumber">
+              <span class="detail-label">رقم المستند:</span>
+              <span class="detail-value">{{ selectedFile.documentNumber }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Creator Info Section -->
+        <div class="details-section">
+          <h3 class="section-title">
+            <i class="bi bi-person"></i>
+            معلومات المنشئ
+          </h3>
+          <div class="details-grid">
+            <div class="detail-item">
+              <span class="detail-label">المنشئ:</span>
+              <span class="detail-value">{{ selectedFile.createdBy }}</span>
+            </div>
+            <div class="detail-item" *ngIf="selectedFile.createdByRole">
+              <span class="detail-label">الدور:</span>
+              <span class="detail-value">{{ selectedFile.createdByRole }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">تاريخ الإنشاء:</span>
+              <span class="detail-value">{{ formatDate(selectedFile.createdAt) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">تاريخ التعديل:</span>
+              <span class="detail-value">{{ formatDate(selectedFile.modifiedAt) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Additional Info Section -->
+        <div class="details-section" *ngIf="selectedFile.projectName || selectedFile.clientName || selectedFile.supplier">
+          <h3 class="section-title">
+            <i class="bi bi-list-ul"></i>
+            معلومات إضافية
+          </h3>
+          <div class="details-grid">
+            <div class="detail-item" *ngIf="selectedFile.projectName">
+              <span class="detail-label">اسم المشروع:</span>
+              <span class="detail-value">{{ selectedFile.projectName }}</span>
+            </div>
+            <div class="detail-item" *ngIf="selectedFile.clientName">
+              <span class="detail-label">العميل:</span>
+              <span class="detail-value">{{ selectedFile.clientName }}</span>
+            </div>
+            <div class="detail-item" *ngIf="selectedFile.supplier">
+              <span class="detail-label">المورد:</span>
+              <span class="detail-value">{{ selectedFile.supplier }}</span>
+            </div>
+            <div class="detail-item" *ngIf="selectedFile.employeeName">
+              <span class="detail-label">الموظف:</span>
+              <span class="detail-value">{{ selectedFile.employeeName }}</span>
+            </div>
+            <div class="detail-item" *ngIf="selectedFile.formType">
+              <span class="detail-label">نوع النموذج:</span>
+              <span class="detail-value">{{ selectedFile.formType }}</span>
+            </div>
+            <div class="detail-item" *ngIf="selectedFile.fileStatus">
+              <span class="detail-label">حالة الملف:</span>
+              <span class="detail-value">{{ selectedFile.fileStatus }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Path Section -->
+        <div class="details-section">
+          <h3 class="section-title">
+            <i class="bi bi-folder"></i>
+            المسار
+          </h3>
+          <div class="path-display">
+            <code>{{ selectedFile.relativePath }}</code>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="closeFileDetailsModal()">
+        إغلاق
+      </button>
+      <button type="button" class="btn btn-primary" (click)="fileService.downloadFile(selectedFile!.id)">
+        <i class="bi bi-download"></i>
+        تحميل
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- DELETE CONFIRMATION MODAL -->
+<!-- ============================================ -->
+<div class="modal-overlay" *ngIf="showDeleteModal" (click)="closeDeleteModal()">
+  <div class="modal-container modal-small" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <i class="bi bi-exclamation-triangle text-danger"></i>
+        تأكيد الحذف
+      </h2>
+      <button class="modal-close" (click)="closeDeleteModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <p class="delete-message">
+        هل أنت متأكد من حذف الملف <strong>{{ selectedFile?.name }}</strong>؟
+        <br>
+        <span class="text-warning">لا يمكن التراجع عن هذا الإجراء!</span>
+      </p>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="closeDeleteModal()" [disabled]="deletingFile">
+        إلغاء
+      </button>
+      <button type="button" class="btn btn-danger" (click)="confirmDelete()" [disabled]="deletingFile">
+        <i class="bi bi-trash" *ngIf="!deletingFile"></i>
+        <i class="bi bi-arrow-clockwise spin" *ngIf="deletingFile"></i>
+        {{ deletingFile ? 'جاري الحذف...' : 'حذف' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- BULK DELETE MODAL -->
+<!-- ============================================ -->
+<div class="modal-overlay" *ngIf="showBulkDeleteModal" (click)="closeBulkDeleteModal()">
+  <div class="modal-container modal-small" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <i class="bi bi-exclamation-triangle text-danger"></i>
+        تأكيد الحذف الجماعي
+      </h2>
+      <button class="modal-close" (click)="closeBulkDeleteModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <p class="delete-message">
+        هل أنت متأكد من حذف <strong>{{ selectedFiles.length }}</strong> ملف؟
+        <br>
+        <span class="text-warning">لا يمكن التراجع عن هذا الإجراء!</span>
+      </p>
+      <div class="selected-files-list">
+        <div class="selected-file-item" *ngFor="let file of selectedFiles.slice(0, 5)">
+          <span class="file-icon">{{ file.icon }}</span>
+          <span class="file-name">{{ file.name }}</span>
+        </div>
+        <p class="more-files" *ngIf="selectedFiles.length > 5">
+          و {{ selectedFiles.length - 5 }} ملف آخر...
+        </p>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="closeBulkDeleteModal()" [disabled]="bulkDeleting">
+        إلغاء
+      </button>
+      <button type="button" class="btn btn-danger" (click)="confirmBulkDelete()" [disabled]="bulkDeleting">
+        <i class="bi bi-trash" *ngIf="!bulkDeleting"></i>
+        <i class="bi bi-arrow-clockwise spin" *ngIf="bulkDeleting"></i>
+        {{ bulkDeleting ? 'جاري الحذف...' : 'حذف الكل' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- STATISTICS MODAL -->
+<!-- ============================================ -->
+<div class="modal-overlay" *ngIf="showStatsModal" (click)="closeStatsModal()">
+  <div class="modal-container modal-large" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <i class="bi bi-bar-chart-fill"></i>
+        إحصائيات الملفات
+      </h2>
+      <button class="modal-close" (click)="closeStatsModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="modal-body" *ngIf="statistics">
+      <div class="stats-container">
+        <!-- Overview Stats -->
+        <div class="stats-overview">
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="bi bi-file-earmark"></i>
+            </div>
+            <div class="stat-content">
+              <span class="stat-number">{{ statistics.totalFiles }}</span>
+              <span class="stat-label">إجمالي الملفات</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon success">
+              <i class="bi bi-hdd"></i>
+            </div>
+            <div class="stat-content">
+              <span class="stat-number">{{ statistics.totalSizeFormatted }}</span>
+              <span class="stat-label">إجمالي الحجم</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon info">
+              <i class="bi bi-folder"></i>
+            </div>
+            <div class="stat-content">
+              <span class="stat-number">{{ objectKeys(statistics.byType).length }}</span>
+              <span class="stat-label">أنواع الملفات</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon warning">
+              <i class="bi bi-tags"></i>
+            </div>
+            <div class="stat-content">
+              <span class="stat-number">{{ objectKeys(statistics.byCategory).length }}</span>
+              <span class="stat-label">التصنيفات</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- By Type -->
+        <div class="stats-section" *ngIf="objectKeys(statistics.byType).length > 0">
+          <h4 class="stats-section-title">
+            <i class="bi bi-folder"></i>
+            الملفات حسب النوع
+          </h4>
+          <div class="stats-list">
+            <div class="stats-item" *ngFor="let type of objectKeys(statistics.byType)">
+              <span class="stats-item-label">{{ getTypeLabel(type) }}</span>
+              <span class="stats-item-value">{{ statistics.byType[type] }}</span>
+              <div class="stats-bar">
+                <div 
+                  class="stats-bar-fill" 
+                  [style.width.%]="(statistics.byType[type] / statistics.totalFiles) * 100"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- By Category -->
+        <div class="stats-section" *ngIf="objectKeys(statistics.byCategory).length > 0">
+          <h4 class="stats-section-title">
+            <i class="bi bi-tags"></i>
+            الملفات حسب التصنيف
+          </h4>
+          <div class="stats-list">
+            <div class="stats-item" *ngFor="let category of objectKeys(statistics.byCategory)">
+              <span class="stats-item-label">{{ getCategoryLabel(category) }}</span>
+              <span class="stats-item-value">{{ statistics.byCategory[category] }}</span>
+              <div class="stats-bar">
+                <div 
+                  class="stats-bar-fill" 
+                  [style.width.%]="(statistics.byCategory[category] / statistics.totalFiles) * 100"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- By Extension -->
+        <div class="stats-section" *ngIf="objectKeys(statistics.byExtension).length > 0">
+          <h4 class="stats-section-title">
+            <i class="bi bi-file-earmark-code"></i>
+            الملفات حسب الامتداد
+          </h4>
+          <div class="stats-list">
+            <div class="stats-item" *ngFor="let ext of objectKeys(statistics.byExtension)">
+              <span class="stats-item-label">{{ ext }}</span>
+              <span class="stats-item-value">{{ statistics.byExtension[ext] }}</span>
+              <div class="stats-bar">
+                <div 
+                  class="stats-bar-fill" 
+                  [style.width.%]="(statistics.byExtension[ext] / statistics.totalFiles) * 100"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- By Creator -->
+        <div class="stats-section" *ngIf="objectKeys(statistics.byCreator).length > 0">
+          <h4 class="stats-section-title">
+            <i class="bi bi-person"></i>
+            الملفات حسب المنشئ
+          </h4>
+          <div class="stats-list">
+            <div class="stats-item" *ngFor="let creator of objectKeys(statistics.byCreator)">
+              <span class="stats-item-label">{{ creator }}</span>
+              <span class="stats-item-value">{{ statistics.byCreator[creator] }}</span>
+              <div class="stats-bar">
+                <div 
+                  class="stats-bar-fill" 
+                  [style.width.%]="(statistics.byCreator[creator] / statistics.totalFiles) * 100"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Files -->
+        <div class="stats-section" *ngIf="statistics.recentFiles.length > 0">
+          <h4 class="stats-section-title">
+            <i class="bi bi-clock-history"></i>
+            آخر الملفات
+          </h4>
+          <div class="recent-files-list">
+            <div class="recent-file-item" *ngFor="let file of statistics.recentFiles">
+              <span class="file-icon">{{ file.icon }}</span>
+              <div class="recent-file-info">
+                <span class="file-name">{{ file.name }}</span>
+                <span class="file-date">{{ formatDate(file.createdAt) }}</span>
+              </div>
+              <span class="file-size">{{ file.sizeFormatted }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="closeStatsModal()">
+        إغلاق
+      </button>
+    </div>
+  </div>
+</div>

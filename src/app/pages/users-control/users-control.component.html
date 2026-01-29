@@ -1,5 +1,37 @@
 <div class="users-control-container">
   <!-- ============================================ -->
+  <!-- TOAST NOTIFICATIONS CONTAINER -->
+  <!-- ============================================ -->
+  <div class="toast-container">
+    <div 
+      *ngFor="let toast of toasts" 
+      class="toast"
+      [class.toast-success]="toast.type === 'success'"
+      [class.toast-error]="toast.type === 'error'"
+      [class.toast-info]="toast.type === 'info'"
+      [class.toast-warning]="toast.type === 'warning'">
+      
+      <div class="toast-icon">
+        <i class="bi" 
+           [ngClass]="{
+             'bi-check-circle-fill': toast.type === 'success',
+             'bi-x-circle-fill': toast.type === 'error',
+             'bi-info-circle-fill': toast.type === 'info',
+             'bi-exclamation-triangle-fill': toast.type === 'warning'
+           }"></i>
+      </div>
+      
+      <div class="toast-content">
+        <p class="toast-message">{{ toast.message }}</p>
+      </div>
+      
+      <button class="toast-close" (click)="removeToast(toast.id)">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
   <!-- HEADER SECTION -->
   <!-- ============================================ -->
   <div class="page-header">
@@ -21,22 +53,6 @@
         </button>
       </div>
     </div>
-  </div>
-
-  <!-- ============================================ -->
-  <!-- SUCCESS MESSAGE -->
-  <!-- ============================================ -->
-  <div class="alert alert-success" *ngIf="successMessage">
-    <i class="bi bi-check-circle-fill"></i>
-    <span>{{ successMessage }}</span>
-  </div>
-
-  <!-- ============================================ -->
-  <!-- ERROR MESSAGE -->
-  <!-- ============================================ -->
-  <div class="alert alert-error" *ngIf="errorMessage">
-    <i class="bi bi-exclamation-circle-fill"></i>
-    <span>{{ errorMessage }}</span>
   </div>
 
   <!-- ============================================ -->
@@ -157,27 +173,29 @@
       </thead>
 
       <tbody *ngIf="!loading && filteredUsers.length > 0">
-        <tr *ngFor="let user of filteredUsers" [class.inactive-row]="!user.active">
+        <tr *ngFor="let user of filteredUsers">
           <!-- User Info -->
           <td>
             <div class="user-cell">
-              <div class="user-avatar" [style.background-color]="getRoleColor(user.role)">
+              <div class="user-avatar" 
+                   [style.background-color]="getRoleColor(user.role)"
+                   [class.inactive-avatar]="!user.active">
                 {{ user.name.charAt(0).toUpperCase() }}
               </div>
               <div class="user-info">
-                <span class="user-name">{{ user.name }}</span>
+                <span class="user-name" [class.inactive-text]="!user.active">{{ user.name }}</span>
               </div>
             </div>
           </td>
 
           <!-- Email -->
           <td>
-            <span class="user-email">{{ user.email }}</span>
+            <span class="user-email" [class.inactive-text]="!user.active">{{ user.email }}</span>
           </td>
 
           <!-- Username -->
           <td>
-            <span class="username-badge">{{ user.username }}</span>
+            <span class="username-badge" [class.inactive-badge]="!user.active">{{ user.username }}</span>
           </td>
 
           <!-- Role -->
@@ -189,7 +207,10 @@
 
           <!-- Status -->
           <td>
-            <span class="status-badge" [class.status-active]="user.active" [class.status-inactive]="!user.active">
+            <span class="status-badge" 
+                  [class.status-active]="user.active" 
+                  [class.status-inactive]="!user.active"
+                  [class.pulsing-badge]="!user.active">
               <i class="bi" [class.bi-check-circle]="user.active" [class.bi-x-circle]="!user.active"></i>
               {{ user.active ? 'نشط' : 'غير نشط' }}
             </span>
@@ -200,22 +221,24 @@
             <span class="date-text">{{ user.createdAt | date:'dd/MM/yyyy' }}</span>
           </td>
 
-          <!-- Actions Dropdown Menu -->
+          <!-- Actions Dropdown Menu - ALWAYS ACTIVE -->
           <td>
-            <div class="actions-dropdown">
+            <div class="actions-dropdown" (click)="$event.stopPropagation()">
               <button
                 class="actions-trigger"
                 type="button"
                 [attr.data-user-id]="user.id"
-                (click)="toggleActionsMenu(user.id); $event.stopPropagation()"
+                (click)="toggleActionsMenu(user.id, $event)"
               >
                 <i class="bi bi-three-dots-vertical"></i>
               </button>
 
               <div
                 class="actions-menu"
-                [ngClass]="{ 'open-upward': menuShouldOpenUp[user.id] }"
+                [class.show]="activeActionsMenu === user.id"
+                [class.open-upward]="menuShouldOpenUp[user.id]"
                 *ngIf="activeActionsMenu === user.id"
+                (click)="$event.stopPropagation()"
               >
                 <button type="button" class="action-menu-item" (click)="openEditModal(user); closeActionsMenu(); $event.stopPropagation()">
                   <i class="bi bi-pencil"></i>
@@ -239,7 +262,7 @@
                 <button
                   type="button"
                   class="action-menu-item"
-                  (click)="toggleUserActive(user); closeActionsMenu(); $event.stopPropagation()">
+                  (click)="toggleUserActive(user, $event)">
                   <i class="bi" [class.bi-toggle-on]="user.active" [class.bi-toggle-off]="!user.active"></i>
                   <span>{{ user.active ? 'إلغاء التفعيل' : 'تفعيل' }}</span>
                 </button>
@@ -559,11 +582,6 @@
         <br>
         <span class="text-warning">لا يمكن التراجع عن هذا الإجراء!</span>
       </p>
-
-      <div class="alert alert-error" *ngIf="errorMessage">
-        <i class="bi bi-exclamation-circle-fill"></i>
-        <span>{{ errorMessage }}</span>
-      </div>
     </div>
 
     <div class="modal-footer">
