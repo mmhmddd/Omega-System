@@ -1,5 +1,5 @@
 <!-- ============================================================
-     MATERIAL REQUEST COMPONENT HTML - MATCHING PURCHASE ORDER
+     MATERIAL REQUEST COMPONENT HTML - UPDATED WITH ROLE COLUMN
      materials-request.component.html (PART 1)
      ============================================================ -->
 
@@ -166,7 +166,8 @@
             <th class="text-center">{{ formLanguage === 'ar' ? 'الأولوية' : 'Priority' }}</th>
             <th class="text-center">{{ formLanguage === 'ar' ? 'التاريخ' : 'Date' }}</th>
             <th class="text-center">{{ formLanguage === 'ar' ? 'منشئ' : 'Created By' }}</th>
-            <th class="text-center">{{ formLanguage === 'ar' ? 'الحالة' : 'Status' }}</th>
+            <!-- ✅ تغيير العمود من "الحالة" إلى "الدور" -->
+            <th class="text-center">{{ formLanguage === 'ar' ? 'الدور' : 'Role' }}</th>
             <th class="text-center">{{ formLanguage === 'ar' ? 'الإجراءات' : 'Actions' }}</th>
           </tr>
         </thead>
@@ -182,9 +183,10 @@
             </td>
             <td class="text-center">{{ mr.date }}</td>
             <td class="text-center">{{ getCreatorName(mr) }}</td>
+            <!-- ✅ تغيير من status إلى role -->
             <td class="text-center">
-              <span class="status-badge" [ngClass]="getStatusClass(mr)">
-                {{ getStatusText(mr) }}
+              <span class="role-badge" [ngClass]="getRoleClass(mr.createdByRole)">
+                {{ getRoleText(mr.createdByRole) }}
               </span>
             </td>
 
@@ -261,10 +263,6 @@
       </button>
     </div>
   </div>
-  <!-- ============================================================
-     MATERIAL REQUEST COMPONENT HTML (PART 2 - Form View)
-     Continuation of materials-request.component.html
-     ============================================================ -->
 
   <!-- CREATE/EDIT VIEW -->
   <div 
@@ -355,8 +353,6 @@
           <div class="section-divider">
             <span class="section-title">{{ formLanguage === 'ar' ? 'معلومات الطلب' : 'Request Information' }}</span>
           </div>
-                        <!-- [(ngModel)]="mrForm.section" -->
-
 
           <!-- Section Field -->
         <div class="form-group">
@@ -374,7 +370,6 @@
             <option value="" disabled selected>
               {{ formLanguage === 'ar' ? 'اختر القسم' : 'Select Department' }}
             </option>
-            <!-- ✅ The value will be the label itself (Arabic or English) -->
             <option *ngFor="let dept of departments" [value]="getDepartmentLabel(dept)">
               {{ getDepartmentLabel(dept) }}
             </option>
@@ -668,10 +663,6 @@
       </div>
     </div>
   </div>
-  <!-- ============================================================
-     MATERIAL REQUEST COMPONENT HTML (PART 3 - PDF & Confirmation Modals)
-     Continuation of materials-request.component.html
-     ============================================================ -->
 
   <!-- PDF GENERATION MODAL -->
   <div *ngIf="showPDFModal" class="modal-overlay" (click)="closePDFModal()">

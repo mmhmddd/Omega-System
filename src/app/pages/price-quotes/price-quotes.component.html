@@ -1,4 +1,4 @@
-<div class="price-quotes-container">
+<div class="price-quotes-container" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
 
   <!-- TOAST NOTIFICATIONS CONTAINER -->
   <div class="toast-container" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
@@ -78,22 +78,36 @@
       </div>
     </div>
 
-    <!-- Table -->
-    <div class="table-container">
+<!-- Table -->
+ <div class="table-container">
       <table class="quotes-table">
         <thead>
           <tr>
-            <th class="text-center">{{ formLanguage === 'ar' ? 'الإجراءات' : 'Actions' }}</th>
             <th class="text-center">{{ formLanguage === 'ar' ? 'رقم العرض' : 'Quote #' }}</th>
             <th class="text-center">{{ formLanguage === 'ar' ? 'اسم العميل' : 'Client Name' }}</th>
             <th class="text-center">{{ formLanguage === 'ar' ? 'الهاتف' : 'Phone' }}</th>
             <th class="text-center">{{ formLanguage === 'ar' ? 'التاريخ' : 'Date' }}</th>
             <th class="text-center">{{ formLanguage === 'ar' ? 'المنشئ' : 'Created By' }}</th>
             <th class="text-center">{{ formLanguage === 'ar' ? 'اللغة' : 'Language' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'الإجراءات' : 'Actions' }}</th>
           </tr>
         </thead>
         <tbody *ngIf="!loading && quotes.length > 0">
           <tr *ngFor="let quote of quotes">
+            <td class="quote-number text-center">{{ quote.quoteNumber }}</td>
+            <td class="text-center">{{ quote.clientName }}</td>
+            <td class="text-center">{{ quote.clientPhone }}</td>
+            <td class="text-center">{{ formatDate(quote.date) }}</td>
+            <td class="text-center">
+              <span class="user-name">
+                {{ getCreatorName(quote) }}
+              </span>
+            </td>
+            <td class="text-center">
+              <span class="language-badge" [class.lang-ar]="quote.language === 'arabic'" [class.lang-en]="quote.language === 'english'">
+                {{ getLanguageLabel(quote.language) }}
+              </span>
+            </td>
             <td class="actions-cell text-center">
               <button
                 class="btn-icon btn-view"
@@ -128,21 +142,6 @@
                 <i class="bi bi-trash"></i>
               </button>
             </td>
-            <td class="quote-number text-center">{{ quote.quoteNumber }}</td>
-            <td class="text-center">{{ quote.clientName }}</td>
-            <td class="text-center">{{ quote.clientPhone }}</td>
-            <td class="text-center">{{ formatDate(quote.date) }}</td>
-<td class="text-center">
-  <span class="user-name">
-    {{ getCreatorName(quote) }}
-  </span>
-</td>
-            <td class="text-center">
-              <span class="language-badge" [class.lang-ar]="quote.language === 'arabic'" [class.lang-en]="quote.language === 'english'">
-                {{ getLanguageLabel(quote.language) }}
-              </span>
-            </td>
-
           </tr>
         </tbody>
         <tbody *ngIf="loading">

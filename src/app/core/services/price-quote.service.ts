@@ -143,36 +143,37 @@ export class PriceQuoteService {
     });
   }
 
-  // ============================================
-  // ✅ NEW: USER INFO HELPER METHODS
-  // ============================================
-
-  /**
-   * Get creator's display name from quote
-   */
-  getCreatorName(quote: PriceQuote): string {
-    if (quote.createdByInfo) {
-      return quote.createdByInfo.name || quote.createdByInfo.username;
-    }
-    if (quote.createdByName && quote.createdByName.trim() !== '') {
-      return quote.createdByName;
-    }
-    return quote.createdBy || '-';
+/**
+ * Get creator's display name from quote
+ */
+getCreatorName(quote: PriceQuote): string {
+  // Priority 1: Use createdByName from backend
+  if (quote.createdByName && quote.createdByName.trim() !== '' && quote.createdByName !== 'Unknown User') {
+    return quote.createdByName;
   }
-
-  /**
-   * Get creator's email from quote
-   */
-  getCreatorEmail(quote: PriceQuote): string {
-    return quote.createdByInfo?.email || 'N/A';
+  
+  // Priority 2: Use createdByInfo if available
+  if (quote.createdByInfo) {
+    return quote.createdByInfo.name || quote.createdByInfo.username;
   }
+  
+  // Priority 3: Fallback to createdBy ID
+  return quote.createdBy || '-';
+}
 
-  /**
-   * Get creator's username from quote
-   */
-  getCreatorUsername(quote: PriceQuote): string {
-    return quote.createdByInfo?.username || quote.createdBy;
-  }
+/**
+ * Get creator's email from quote
+ */
+getCreatorEmail(quote: PriceQuote): string {
+  return quote.createdByInfo?.email || 'N/A';
+}
+
+/**
+ * Get creator's username from quote
+ */
+getCreatorUsername(quote: PriceQuote): string {
+  return quote.createdByInfo?.username || quote.createdBy;
+}
 
   // ============================================
   // CREATE PRICE QUOTE
