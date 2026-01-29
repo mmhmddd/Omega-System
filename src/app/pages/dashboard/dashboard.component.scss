@@ -127,7 +127,7 @@
     .dashboard-content {
       .cards-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(3, 1fr);
         gap: 1.5rem;
 
         &.management-grid {
@@ -450,6 +450,57 @@
               font-size: 0.75rem;
               -webkit-line-clamp: 1;
             }
+          }
+        }
+      }
+    }
+  }
+}
+// Add to existing .dashboard-section styles
+.section-title {
+  // ... existing styles ...
+
+  &.purple-theme::after {
+    background: linear-gradient(90deg, #8b5cf6, #7c3aed);
+  }
+
+  &.blue-theme::after {
+    background: linear-gradient(90deg, #3b82f6, #2563eb);
+  }
+
+  &.red-theme::after {
+    background: linear-gradient(90deg, #ef4444, #dc2626);
+  }
+
+  &.gray-theme::after {
+    background: linear-gradient(90deg, #6b7280, #4b5563);
+  }
+}
+
+// Add new grid variations
+.cards-grid {
+  &.single-card {
+    grid-template-columns: 1fr;
+    max-width: 1200px;
+  }
+
+  &.two-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 991px) {
+  .dashboard-container {
+    .dashboard-section {
+      .dashboard-content {
+        .cards-grid {
+          &.single-card {
+            grid-template-columns: 1fr;
+          }
+
+          &.two-cards {
+            grid-template-columns: 1fr;
           }
         }
       }

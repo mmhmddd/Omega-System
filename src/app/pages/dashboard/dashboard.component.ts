@@ -32,21 +32,26 @@ export class DashboardComponent implements OnInit {
   usersError: string = '';
   filesError: string = '';
 
-  quickAccessCards: DashboardCard[] = [
+  // File Management Cards
+  fileManagementCards: DashboardCard[] = [
     {
-      title: 'نظام إدارة القص',
-      subtitle: 'جدولة ومتابعة أوامر القص',
-      icon: 'bi-scissors',
-      route: '/cutting',
-      color: '#ef4444'
+      title: 'إدارة الملفات',
+      subtitle: 'الأرشيف المركزي للملفات والمخططات',
+      icon: 'bi-folder2-open',
+      route: '/files-control',
+      color: '#8b5cf6'
     },
-    {
-      title: 'عرض سعر',
-      subtitle: 'إنشاء وإدارة عروض الأسعار للعملاء',
-      icon: 'bi-file-earmark-text',
-      route: '/price-quotes',
-      color: '#10b981'
-    },
+     {
+    title: 'التحليلات والإحصائيات',
+    subtitle: 'تحليل شامل لبيانات النظام والتقارير',
+    icon: 'bi-bar-chart-line',
+    route: '/analysis',
+    color: '#7c3aed'
+  }
+  ];
+
+  // Procurement & Operations Cards
+  procurementCards: DashboardCard[] = [
     {
       title: 'إشعار استلام',
       subtitle: 'تسجيل استلام المواد والأعمال',
@@ -55,25 +60,11 @@ export class DashboardComponent implements OnInit {
       color: '#3b82f6'
     },
     {
-      title: 'إدارة الملفات',
-      subtitle: 'الأرشيف المركزي للملفات والمخططات',
-      icon: 'bi-folder2-open',
-      route: '/files-control',
-      color: '#8b5cf6'
-    },
-    {
-      title: 'قسم السكرتاريا',
-      subtitle: 'نماذج الموظفين والإجازات',
-      icon: 'bi-people',
-      route: '/secretariat',
-      color: '#6b7280'
-    },
-    {
       title: 'تسعير خارجي',
       subtitle: 'طلبات تسعير من الموردين',
       icon: 'bi-file-earmark-bar-graph',
       route: '/rfqs',
-      color: '#8b5cf6'
+      color: '#10b981'
     },
     {
       title: 'طلب شراء',
@@ -88,9 +79,46 @@ export class DashboardComponent implements OnInit {
       icon: 'bi-box',
       route: '/material-requests',
       color: '#f59e0b'
+    },
+    {
+      title: 'عرض سعر',
+      subtitle: 'إنشاء وإدارة عروض الأسعار للعملاء',
+      icon: 'bi-file-earmark-text',
+      route: '/price-quotes',
+      color: '#10b981'
     }
   ];
 
+  // Laser Cutting Cards
+  cuttingCards: DashboardCard[] = [
+    {
+      title: 'نظام إدارة القص',
+      subtitle: 'جدولة ومتابعة أوامر القص',
+      icon: 'bi-scissors',
+      route: '/cutting',
+      color: '#ef4444'
+    }
+  ];
+
+  // Secretariat Cards
+  secretariatCards: DashboardCard[] = [
+    {
+      title: 'قسم السكرتاريا',
+      subtitle: 'نماذج الموظفين والإجازات',
+      icon: 'bi-people',
+      route: '/secretariat',
+      color: '#6b7280'
+    },
+    {
+      title: 'طلبات الموظفين',
+      subtitle: 'نماذج المغادرة والسلفات والإجازات وكشف الحساب للموظفين',
+      icon: 'bi-person-badge',
+      route: '/secretariat-user',
+      color: '#8b5cf6'
+    }
+  ];
+
+  // Management Cards
   managementCards: DashboardCard[] = [
     {
       title: 'إدارة المستخدمين',
@@ -104,6 +132,13 @@ export class DashboardComponent implements OnInit {
       subtitle: 'تنظيم الملفات والمستندات',
       icon: 'bi-folder',
       route: '/files-control',
+      color: '#112e61'
+    },
+    {
+      title: 'إدارة الأصناف',
+      subtitle: 'إدارة وتنظيم الأصناف والمواد',
+      icon: 'bi-box-seam',
+      route: '/items-control',
       color: '#112e61'
     },
     {
@@ -139,7 +174,6 @@ export class DashboardComponent implements OnInit {
     this.loadingUsers = true;
     this.usersError = '';
 
-    // التحقق من وجود token قبل الاستدعاء
     const token = this.authService.getToken();
     if (!token) {
       console.error('No authentication token found');
@@ -160,8 +194,6 @@ export class DashboardComponent implements OnInit {
 
         if (error.status === 401) {
           this.usersError = 'انتهت صلاحية الجلسة';
-          // يمكنك إعادة التوجيه لصفحة تسجيل الدخول
-          // this.authService.logout();
         } else if (error.status === 403) {
           this.usersError = 'ليس لديك صلاحية للوصول';
         } else {
@@ -179,7 +211,6 @@ export class DashboardComponent implements OnInit {
   private loadFilesCount(): void {
     this.loadingFiles = true;
 
-    // مؤقتاً، نضع قيمة ثابتة حتى يتم إنشاء Files Service
     setTimeout(() => {
       this.totalFiles = 0;
       this.loadingFiles = false;

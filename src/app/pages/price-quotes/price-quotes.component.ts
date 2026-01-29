@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { PriceQuoteService, PriceQuote, PriceQuoteItem, CreatePriceQuoteData } from '../../core/services/price-quote.service';
 import { AuthService } from '../../core/services/auth.service';
-import { retry } from 'rxjs';
 
 type ToastType = 'success' | 'error' | 'info' | 'warning';
 
@@ -23,11 +22,29 @@ interface Toast {
 })
 export class PriceQuotesComponent implements OnInit, OnDestroy {
 
+  // ============================================
+  // ✅ NEW: USER INFO DISPLAY METHODS
+  // ============================================
+
+  /**
+   * Get creator's display name (prioritizes createdByInfo)
+   */
   getCreatorName(quote: PriceQuote): string {
-    if (quote.createdByName && quote.createdByName.trim() !== '') {
-      return quote.createdByName;
-    }
-    return quote.createdBy || '-';
+    return this.priceQuoteService.getCreatorName(quote);
+  }
+
+  /**
+   * Get creator's email
+   */
+  getCreatorEmail(quote: PriceQuote): string {
+    return this.priceQuoteService.getCreatorEmail(quote);
+  }
+
+  /**
+   * Get creator's username
+   */
+  getCreatorUsername(quote: PriceQuote): string {
+    return this.priceQuoteService.getCreatorUsername(quote);
   }
 
   // ============================================
@@ -111,7 +128,7 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
   generatedQuoteId: string = '';
 
   constructor(
-    private priceQuoteService: PriceQuoteService,
+    public priceQuoteService: PriceQuoteService,
     private authService: AuthService
   ) {}
 

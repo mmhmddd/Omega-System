@@ -97,8 +97,12 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/files-control/files-control.component').then(m => m.FilesControlComponent),
     data: { title: 'إدارة الملفات' }
   },
+  {
+    path: 'analysis',
+    loadComponent: () => import('./pages/analysis-page/analysis-page.component').then(m => m.AnalysisPageComponent),
+    data: { title: 'التحليلات والإحصائيات' }
+  },
 
-  // Wildcard route MUST be last
   {
     path: '**',
     redirectTo: 'login'

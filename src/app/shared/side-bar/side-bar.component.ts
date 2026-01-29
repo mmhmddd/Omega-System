@@ -28,11 +28,11 @@ export class SideBarComponent {
     { title: 'طلب مواد', route: '/material-requests', icon: 'bi-box' },
     { title: 'عرض سعر', route: '/price-quotes', icon: 'bi-receipt' },
     { title: 'قسم السكرتاريا', route: '/secretariat', icon: 'bi-people' },
+    { title: 'طلبات الموظفين', route: '/secretariat-user', icon: 'bi-person-badge' },
     { title: 'نظام إدارة القص', route: '/cutting', icon: 'bi-scissors' }
   ];
 
   toggleSidebar() {
-    // On mobile, auto-close after clicking menu item
     if (window.innerWidth < 992) {
       this.isSidebarOpen = !this.isSidebarOpen;
     }
@@ -40,6 +40,5 @@ export class SideBarComponent {
 
   logout() {
     console.log('Logging out...');
-    // Add your logout logic here
   }
 }

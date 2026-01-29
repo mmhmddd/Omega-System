@@ -8,19 +8,13 @@
           <i class="bi bi-people-fill"></i>
         </div>
         <div class="stat-content">
-          <!-- Loading State -->
           <div class="stat-loading" *ngIf="loadingUsers">
             <i class="bi bi-arrow-clockwise spin-animation"></i>
           </div>
-
-          <!-- Success State -->
           <h3 class="stat-value" *ngIf="!loadingUsers && !usersError">{{ totalUsers }}</h3>
-
-          <!-- Error State -->
           <div class="stat-error" *ngIf="!loadingUsers && usersError">
             <i class="bi bi-exclamation-triangle"></i>
           </div>
-
           <p class="stat-label">إجمالي المستخدمين</p>
           <small class="stat-error-text" *ngIf="usersError">{{ usersError }}</small>
         </div>
@@ -52,16 +46,74 @@
       </div>
     </div>
   </div>
-
-  <!-- Quick Access Section -->
+  <!-- Procurement & Operations Section -->
   <div class="dashboard-section">
     <div class="section-header">
-      <h2 class="section-title">الوصول السريع</h2>
+      <h2 class="section-title blue-theme">المشتريات والعمليات</h2>
     </div>
-
     <div class="dashboard-content">
       <div class="cards-grid">
-        <div class="dashboard-card" *ngFor="let card of quickAccessCards" [routerLink]="card.route">
+        <div class="dashboard-card" *ngFor="let card of procurementCards" [routerLink]="card.route">
+          <div class="card-icon" [style.background-color]="card.color">
+            <i class="bi {{ card.icon }}"></i>
+          </div>
+          <div class="card-content">
+            <h3 class="card-title">{{ card.title }}</h3>
+            <p class="card-subtitle">{{ card.subtitle }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+    <!-- File Management Section -->
+  <div class="dashboard-section">
+    <div class="section-header">
+      <h2 class="section-title purple-theme">إدارة الملفات</h2>
+    </div>
+    <div class="dashboard-content">
+      <div class="cards-grid single-card">
+        <div class="dashboard-card" *ngFor="let card of fileManagementCards" [routerLink]="card.route">
+          <div class="card-icon" [style.background-color]="card.color">
+            <i class="bi {{ card.icon }}"></i>
+          </div>
+          <div class="card-content">
+            <h3 class="card-title">{{ card.title }}</h3>
+            <p class="card-subtitle">{{ card.subtitle }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Laser Cutting Section -->
+  <div class="dashboard-section">
+    <div class="section-header">
+      <h2 class="section-title red-theme">نظام القص بالليزر</h2>
+    </div>
+    <div class="dashboard-content">
+      <div class="cards-grid single-card">
+        <div class="dashboard-card" *ngFor="let card of cuttingCards" [routerLink]="card.route">
+          <div class="card-icon" [style.background-color]="card.color">
+            <i class="bi {{ card.icon }}"></i>
+          </div>
+          <div class="card-content">
+            <h3 class="card-title">{{ card.title }}</h3>
+            <p class="card-subtitle">{{ card.subtitle }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Secretariat Section -->
+  <div class="dashboard-section">
+    <div class="section-header">
+      <h2 class="section-title gray-theme">قسم السكرتاريا</h2>
+    </div>
+    <div class="dashboard-content">
+      <div class="cards-grid two-cards">
+        <div class="dashboard-card" *ngFor="let card of secretariatCards" [routerLink]="card.route">
           <div class="card-icon" [style.background-color]="card.color">
             <i class="bi {{ card.icon }}"></i>
           </div>
@@ -79,7 +131,6 @@
     <div class="section-header">
       <h2 class="section-title">إدارة</h2>
     </div>
-
     <div class="dashboard-content">
       <div class="cards-grid management-grid">
         <div class="dashboard-card" *ngFor="let card of managementCards" [routerLink]="card.route">

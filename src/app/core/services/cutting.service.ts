@@ -7,6 +7,34 @@ import { API_ENDPOINTS } from '../constants/api-endpoints';
 // INTERFACES
 // ============================================
 
+export interface UserInfo {
+  id: string;
+  name: string;
+  username: string;
+  email: string;
+}
+
+export interface UpdateHistoryChange {
+  field: string;
+  oldValue: any;
+  newValue: any;
+  progress?: string;
+  reason?: string;
+  action?: string;
+  userId?: string;
+}
+
+export interface UpdateHistoryEntry {
+  updatedBy: string;
+  updatedByInfo?: UserInfo;
+  timestamp: string;
+  changes: {
+    action: string;
+    description?: string;
+    modifications?: UpdateHistoryChange[];
+  };
+}
+
 export interface CuttingJob {
   id: string;
   projectName: string;
@@ -23,17 +51,15 @@ export interface CuttingJob {
   dateFrom: string | null;
   createdAt: string;
   updatedAt: string;
-  currentlyCut: number;  // ✅ Always present, defaults to 0
-  remaining?: number;    // Calculated on frontend
+  currentlyCut: number;
+  remaining?: number;
+
+  // ✅ NEW: Enhanced user information fields
   uploadedByInfo?: UserInfo;
   cutByInfo?: UserInfo[];
-}
-
-export interface UserInfo {
-  id: string;
-  name: string;
-  username: string;
-  email: string;
+  lastUpdatedBy?: string;
+  lastUpdatedByInfo?: UserInfo;
+  updateHistory?: UpdateHistoryEntry[];
 }
 
 export interface CreateCuttingJobData {
@@ -56,7 +82,7 @@ export interface UpdateCuttingJobData {
   fileStatus?: 'معلق' | 'قيد التنفيذ' | 'مكتمل' | 'جزئي';
   dateFrom?: string;
   file?: File;
-  currentlyCut?: number;  // ✅ NEW: Support for updating cut progress
+  currentlyCut?: number;
 }
 
 export interface CuttingJobsResponse {
@@ -86,6 +112,11 @@ export interface CuttingStatistics {
   };
   byMaterial: {
     [key: string]: number;
+  };
+  totalProgress?: {
+    totalQuantity: number;
+    totalCut: number;
+    percentageComplete: number;
   };
 }
 
@@ -128,6 +159,51 @@ export class CuttingService {
       'Authorization': `Bearer ${token}`
       // Don't set Content-Type for multipart, browser will set it automatically
     });
+  }
+
+  // ============================================
+  // USER DISPLAY HELPERS
+  // ============================================
+
+  /**
+   * Get display name from UserInfo object
+   */
+  getUserDisplayName(userInfo?: UserInfo, fallbackId?: string): string {
+    if (!userInfo) {
+      return fallbackId || 'Unknown User';
+    }
+    return userInfo.name || userInfo.username || userInfo.id;
+  }
+
+  /**
+   * Get uploaded by display name
+   */
+  getUploadedByName(job: CuttingJob): string {
+    return this.getUserDisplayName(job.uploadedByInfo, job.uploadedBy);
+  }
+
+  /**
+   * Get last updated by display name
+   */
+  getLastUpdatedByName(job: CuttingJob): string {
+    return this.getUserDisplayName(job.lastUpdatedByInfo, job.lastUpdatedBy);
+  }
+
+  /**
+   * Get all workers names as comma-separated string
+   */
+  getCutByNames(job: CuttingJob): string {
+    if (!job.cutByInfo || job.cutByInfo.length === 0) {
+      return '-';
+    }
+    return job.cutByInfo.map(user => user.name || user.username).join(', ');
+  }
+
+  /**
+   * Get workers count
+   */
+  getCutByCount(job: CuttingJob): number {
+    return job.cutByInfo ? job.cutByInfo.length : 0;
   }
 
   // ============================================
@@ -237,7 +313,6 @@ export class CuttingService {
     if (updateData.dateFrom !== undefined) {
       formData.append('dateFrom', updateData.dateFrom);
     }
-    // ✅ NEW: Include currentlyCut in form data
     if (updateData.currentlyCut !== undefined) {
       formData.append('currentlyCut', updateData.currentlyCut.toString());
     }
@@ -260,7 +335,6 @@ export class CuttingService {
     );
   }
 
-  // ✅ NEW: Dedicated method for tracking cutting progress
   updateCuttingProgress(id: string, currentlyCut: number, fileStatus?: string, notes?: string): Observable<CuttingJobResponse> {
     const body: any = { currentlyCut };
     if (fileStatus) {
@@ -348,7 +422,6 @@ export class CuttingService {
   }
 
   getMaterialTypeLabel(materialType: string): string {
-    // Add your material types here
     const materials: { [key: string]: string } = {
       'steel': 'فولاذ',
       'aluminum': 'ألومنيوم',
@@ -366,6 +439,18 @@ export class CuttingService {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
+    });
+  }
+
+  formatDateTime(dateString: string): string {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleString('ar-EG', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   }
 

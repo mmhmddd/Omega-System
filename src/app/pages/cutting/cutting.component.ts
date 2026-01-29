@@ -227,26 +227,7 @@ export class CuttingComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ============================================
-  // USER INFO HELPERS
-  // ============================================
 
-  getUserDisplayName(userId: string, job?: CuttingJob): string {
-    if (!job) return userId;
-
-    if (job.uploadedByInfo && job.uploadedByInfo.id === userId) {
-      return job.uploadedByInfo.name || job.uploadedByInfo.username;
-    }
-
-    if (job.cutByInfo && Array.isArray(job.cutByInfo)) {
-      const user = job.cutByInfo.find(u => u.id === userId);
-      if (user) {
-        return user.name || user.username;
-      }
-    }
-
-    return userId;
-  }
 
   // ============================================
   // TOAST METHODS
@@ -422,9 +403,57 @@ export class CuttingComponent implements OnInit, OnDestroy {
     }, 300);
   }
 
-  buildUserActivityHistory(job: CuttingJob): void {
-    this.userActivities = [];
+buildUserActivityHistory(job: CuttingJob): void {
+  this.userActivities = [];
 
+  // ✅ NEW: Use updateHistory from backend if available
+  if (job.updateHistory && job.updateHistory.length > 0) {
+    job.updateHistory.forEach((historyEntry) => {
+      const userName = historyEntry.updatedByInfo
+        ? (historyEntry.updatedByInfo.name || historyEntry.updatedByInfo.username)
+        : historyEntry.updatedBy;
+
+      let actionType: 'created' | 'updated' | 'status_changed' = 'updated';
+      let details = '';
+
+      if (historyEntry.changes.action === 'created') {
+        actionType = 'created';
+        details = this.formLanguage === 'ar'
+          ? 'قام بإنشاء مهمة القص'
+          : 'Created cutting job';
+      } else if (historyEntry.changes.modifications && historyEntry.changes.modifications.length > 0) {
+        const mods = historyEntry.changes.modifications;
+
+        // Check if status was changed
+        const statusChange = mods.find(m => m.field === 'fileStatus');
+        if (statusChange) {
+          actionType = 'status_changed';
+          details = this.formLanguage === 'ar'
+            ? `قام بتغيير الحالة من "${statusChange.oldValue}" إلى "${statusChange.newValue}"`
+            : `Changed status from "${statusChange.oldValue}" to "${statusChange.newValue}"`;
+        } else {
+          // General update
+          const changedFields = mods.map(m => m.field).join(', ');
+          details = this.formLanguage === 'ar'
+            ? `قام بتحديث: ${changedFields}`
+            : `Updated: ${changedFields}`;
+        }
+      } else {
+        details = this.formLanguage === 'ar'
+          ? 'قام بتحديث مهمة القص'
+          : 'Updated cutting job';
+      }
+
+      this.userActivities.push({
+        userId: historyEntry.updatedBy,
+        userName: userName,
+        action: actionType,
+        timestamp: historyEntry.timestamp,
+        details: details
+      });
+    });
+  } else {
+    // ✅ FALLBACK: Use old method if updateHistory is not available
     const creatorName = job.uploadedByInfo
       ? (job.uploadedByInfo.name || job.uploadedByInfo.username)
       : job.uploadedBy;
@@ -457,11 +486,14 @@ export class CuttingComponent implements OnInit, OnDestroy {
         });
       });
     }
-
-    this.userActivities.sort((a, b) => {
-      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-    });
   }
+
+  // Sort by timestamp (newest first)
+  this.userActivities.sort((a, b) => {
+    return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+  });
+}
+
 
   getActionLabel(action: 'created' | 'updated' | 'status_changed'): string {
     const labels: { [key: string]: { ar: string; en: string } } = {
@@ -1045,4 +1077,64 @@ export class CuttingComponent implements OnInit, OnDestroy {
   get Math() {
     return Math;
   }
+
+
+  getUploadedByName(job: CuttingJob): string {
+  if (job.uploadedByInfo) {
+    return job.uploadedByInfo.name || job.uploadedByInfo.username;
+  }
+  return job.uploadedBy;
+}
+
+/**
+ * Get the name of last user who updated the job
+ */
+getLastUpdatedByName(job: CuttingJob): string {
+  if (job.lastUpdatedByInfo) {
+    return job.lastUpdatedByInfo.name || job.lastUpdatedByInfo.username;
+  }
+  return job.lastUpdatedBy || '-';
+}
+
+/**
+ * Get names of all users who worked on the job
+ */
+getCutByNames(job: CuttingJob): string {
+  if (!job.cutByInfo || job.cutByInfo.length === 0) {
+    return this.formLanguage === 'ar' ? 'لا أحد' : 'None';
+  }
+  return job.cutByInfo.map(user => user.name || user.username).join(', ');
+}
+
+/**
+ * Get count of users who worked on the job
+ */
+getCutByCount(job: CuttingJob): number {
+  return job.cutByInfo ? job.cutByInfo.length : 0;
+}
+
+// REPLACE the existing getUserDisplayName method with this improved version:
+getUserDisplayName(userId: string, job?: CuttingJob): string {
+  if (!job) return userId;
+
+  // Check uploadedByInfo
+  if (job.uploadedByInfo && job.uploadedByInfo.id === userId) {
+    return job.uploadedByInfo.name || job.uploadedByInfo.username;
+  }
+
+  // Check lastUpdatedByInfo
+  if (job.lastUpdatedByInfo && job.lastUpdatedByInfo.id === userId) {
+    return job.lastUpdatedByInfo.name || job.lastUpdatedByInfo.username;
+  }
+
+  // Check cutByInfo
+  if (job.cutByInfo && Array.isArray(job.cutByInfo)) {
+    const user = job.cutByInfo.find(u => u.id === userId);
+    if (user) {
+      return user.name || user.username;
+    }
+  }
+
+  return userId;
+}
 }
