@@ -7,6 +7,14 @@ import { API_ENDPOINTS } from '../constants/api-endpoints';
 // INTERFACES
 // ============================================
 
+// ✅ NEW: User information interface
+export interface UserInfo {
+  id: string;
+  name: string;
+  username: string;
+  email: string;
+}
+
 export interface PriceQuoteItem {
   description: string;
   unit: string;
@@ -15,7 +23,7 @@ export interface PriceQuoteItem {
 }
 
 export interface PriceQuote {
-[x: string]: any;
+  [x: string]: any;
   id: string;
   quoteNumber: string;
   clientName: string;
@@ -36,9 +44,10 @@ export interface PriceQuote {
   pdfPath: string;
   attachmentPath?: string | null;
   createdBy: string;
+  createdByName?: string;
+  createdByInfo?: UserInfo;  // ✅ NEW: Full user information
   createdAt: string;
   updatedAt: string;
-  createdByName?: string;
 }
 
 export interface CreatePriceQuoteData {
@@ -132,6 +141,37 @@ export class PriceQuoteService {
     return new HttpHeaders({
       'Authorization': `Bearer ${token}`
     });
+  }
+
+  // ============================================
+  // ✅ NEW: USER INFO HELPER METHODS
+  // ============================================
+
+  /**
+   * Get creator's display name from quote
+   */
+  getCreatorName(quote: PriceQuote): string {
+    if (quote.createdByInfo) {
+      return quote.createdByInfo.name || quote.createdByInfo.username;
+    }
+    if (quote.createdByName && quote.createdByName.trim() !== '') {
+      return quote.createdByName;
+    }
+    return quote.createdBy || '-';
+  }
+
+  /**
+   * Get creator's email from quote
+   */
+  getCreatorEmail(quote: PriceQuote): string {
+    return quote.createdByInfo?.email || 'N/A';
+  }
+
+  /**
+   * Get creator's username from quote
+   */
+  getCreatorUsername(quote: PriceQuote): string {
+    return quote.createdByInfo?.username || quote.createdBy;
   }
 
   // ============================================

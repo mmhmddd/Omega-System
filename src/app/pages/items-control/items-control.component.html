@@ -1,1 +1,280 @@
-<p>items-control works!</p>
+<div class="items-control-container">
+
+  <!-- TOAST NOTIFICATIONS CONTAINER -->
+  <div class="toast-container" dir="rtl">
+    <div
+      *ngFor="let toast of toasts"
+      class="toast"
+      [class.toast-success]="toast.type === 'success'"
+      [class.toast-error]="toast.type === 'error'"
+      [class.toast-info]="toast.type === 'info'"
+      [class.toast-warning]="toast.type === 'warning'">
+
+      <div class="toast-icon">
+        <i class="bi"
+           [ngClass]="{
+             'bi-check-circle-fill': toast.type === 'success',
+             'bi-x-circle-fill': toast.type === 'error',
+             'bi-info-circle-fill': toast.type === 'info',
+             'bi-exclamation-triangle-fill': toast.type === 'warning'
+           }"></i>
+      </div>
+
+      <div class="toast-content">
+        <p class="toast-message">{{ toast.message }}</p>
+      </div>
+
+      <button class="toast-close" (click)="removeToast(toast.id)">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- LIST VIEW -->
+  <!-- ============================================ -->
+  <div *ngIf="currentView === 'list'" class="list-view">
+    <!-- Header -->
+    <div class="page-header">
+      <h1 class="page-title">إدارة الأصناف</h1>
+      <div class="header-actions">
+        <button class="btn-primary" (click)="createItem()" *ngIf="hasAccess()">
+          <i class="bi bi-plus-lg"></i>
+          إنشاء صنف جديد
+        </button>
+      </div>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="search-filter-section" dir="rtl">
+      <div class="search-box main-search">
+        <i class="bi bi-search"></i>
+        <input
+          type="text"
+          placeholder="بحث بالاسم أو الوصف..."
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="onSearchChange()"
+          (keyup.enter)="onSearch()"
+        />
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-container">
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th class="text-center">الإجراءات</th>
+            <th class="text-center">رقم الصنف</th>
+            <th class="text-center">اسم الصنف</th>
+            <th class="text-center">الوصف</th>
+            <th class="text-center">تاريخ الإنشاء</th>
+            <th class="text-center">آخر تحديث</th>
+          </tr>
+        </thead>
+        <tbody *ngIf="!loading && items.length > 0">
+          <tr *ngFor="let item of items">
+            <td class="actions-cell text-center">
+              <button
+                class="btn-icon btn-edit"
+                (click)="editItem(item)"
+                [title]="'تعديل'"
+                *ngIf="hasAccess()">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button
+                class="btn-icon btn-delete"
+                (click)="openDeleteModal(item)"
+                [title]="'حذف'"
+                *ngIf="hasAccess()">
+                <i class="bi bi-trash"></i>
+              </button>
+            </td>
+            <td class="item-id text-center">{{ item.id }}</td>
+            <td class="text-center">
+              <span class="item-name">{{ item.name }}</span>
+            </td>
+            <td class="text-center">
+              <span class="item-description">{{ item.description || '-' }}</span>
+            </td>
+            <td class="text-center">{{ formatDate(item.createdAt) }}</td>
+            <td class="text-center">{{ formatDate(item.updatedAt) }}</td>
+          </tr>
+        </tbody>
+        <tbody *ngIf="loading">
+          <tr>
+            <td colspan="6" class="text-center loading-cell">
+              <i class="bi bi-arrow-clockwise spin"></i> جاري التحميل...
+            </td>
+          </tr>
+        </tbody>
+        <tbody *ngIf="!loading && items.length === 0">
+          <tr>
+            <td colspan="6" class="text-center empty-cell">
+              لا توجد أصناف
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button
+        class="btn-page"
+        [disabled]="currentPage === 1"
+        (click)="goToPage(currentPage - 1)">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+
+      <span class="page-info">
+        صفحة {{ currentPage }} من {{ totalPages }}
+      </span>
+
+      <button
+        class="btn-page"
+        [disabled]="currentPage === totalPages"
+        (click)="goToPage(currentPage + 1)">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- CREATE/EDIT VIEW -->
+  <!-- ============================================ -->
+  <div
+    *ngIf="currentView === 'create' || currentView === 'edit'"
+    class="form-view"
+    dir="rtl">
+    <!-- Header -->
+    <div class="form-header">
+      <h1 class="form-title">
+        {{ currentView === 'create' ? 'إنشاء صنف جديد' : 'تعديل الصنف' }}
+      </h1>
+      <div class="form-header-actions">
+        <div class="form-actions">
+          <button class="btn-secondary" (click)="backToList()">
+            إلغاء
+          </button>
+          <button
+            class="btn-primary"
+            (click)="saveItem()"
+            [disabled]="savingItem">
+            <i class="bi bi-save"></i>
+            {{ savingItem ? 'جاري الحفظ...' : 'حفظ' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Alert -->
+    <div class="error-alert" *ngIf="formError">
+      <i class="bi bi-exclamation-circle"></i>
+      <span>{{ formError }}</span>
+    </div>
+
+    <!-- Form Content -->
+    <div class="form-content">
+      <div class="form-fields">
+
+        <!-- Item Name -->
+        <div class="form-group">
+          <label>
+            <i class="bi bi-box"></i>
+            اسم الصنف
+            <span class="required">*</span>
+          </label>
+          <input
+            type="text"
+            [(ngModel)]="itemForm.name"
+            placeholder="أدخل اسم الصنف"
+            class="form-control"
+            [class.error]="fieldErrors['name']"
+            required
+          />
+          <small class="error-message" *ngIf="fieldErrors['name']">
+            <i class="bi bi-exclamation-circle"></i>
+            {{ fieldErrors['name'] }}
+          </small>
+        </div>
+
+        <!-- Description -->
+        <div class="form-group">
+          <label>
+            <i class="bi bi-card-text"></i>
+            الوصف
+          </label>
+          <textarea
+            [(ngModel)]="itemForm.description"
+            placeholder="أدخل وصف الصنف (اختياري)"
+            class="form-control"
+            [class.error]="fieldErrors['description']"
+            rows="4"
+          ></textarea>
+          <small class="error-message" *ngIf="fieldErrors['description']">
+            <i class="bi bi-exclamation-circle"></i>
+            {{ fieldErrors['description'] }}
+          </small>
+          <small class="help-text">
+            الوصف اختياري ويمكن أن يساعد في توضيح تفاصيل الصنف
+          </small>
+        </div>
+
+        <!-- Save Button at Bottom -->
+        <div class="save-section">
+          <button
+            class="btn-save-item"
+            (click)="saveItem()"
+            [disabled]="savingItem">
+            <i class="bi" [ngClass]="savingItem ? 'bi-arrow-clockwise spin' : 'bi-check-lg'"></i>
+            {{ savingItem
+              ? 'جاري حفظ الصنف...'
+              : (currentView === 'create' ? 'إنشاء الصنف' : 'تحديث الصنف')
+            }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- DELETE CONFIRMATION MODAL -->
+  <!-- ============================================ -->
+  <div class="modal-overlay" *ngIf="showDeleteModal" (click)="closeDeleteModal()">
+    <div class="modal-content modal-small" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title">
+          <i class="bi bi-exclamation-triangle text-danger"></i>
+          تأكيد الحذف
+        </h2>
+        <button class="modal-close" (click)="closeDeleteModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p class="delete-message">
+          هل أنت متأكد من حذف الصنف
+          <strong>{{ selectedItem?.name }}</strong>؟
+          <br>
+          <span class="text-warning">
+            لا يمكن التراجع عن هذا الإجراء!
+          </span>
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeDeleteModal()" [disabled]="deletingItem">
+          إلغاء
+        </button>
+        <button type="button" class="btn-danger" (click)="confirmDelete()" [disabled]="deletingItem">
+          <i class="bi bi-trash" *ngIf="!deletingItem"></i>
+          <i class="bi bi-arrow-clockwise spin" *ngIf="deletingItem"></i>
+          {{ deletingItem ? 'جاري الحذف...' : 'حذف' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>

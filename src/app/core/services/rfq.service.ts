@@ -12,10 +12,10 @@ export interface RFQItem {
   description: string;
   unit: string;
   quantity: number | string;
-  taskNo?: string | null;              // ✅ NEW: رقم المهمة (Task Number)
-  jobNo?: string | null;               // ✅ NEW: رقم العمل (Job Number)
-  estimatedUnitPrice?: number | string | null;  // ✅ NEW: السعر التقديري للوحدة (Estimated Unit Price)
-  totalPrice?: number | string | null;          // ✅ NEW: الإجمالي (Total Price = Quantity × Estimated Unit Price)
+  taskNo?: string | null;        
+  jobNo?: string | null;
+  estimatedUnitPrice?: number | string | null;
+  totalPrice?: number | string | null;
 }
 
 /**
@@ -166,7 +166,7 @@ export class RfqService {
     limit?: number;
   }): Observable<RFQResponse> {
     let params = new HttpParams();
-    
+
     if (filters) {
       if (filters.rfqNumber) params = params.set('rfqNumber', filters.rfqNumber);
       if (filters.startDate) params = params.set('startDate', filters.startDate);
@@ -175,8 +175,8 @@ export class RfqService {
       if (filters.production) params = params.set('production', filters.production);
       if (filters.status) params = params.set('status', filters.status);
       if (filters.urgent !== undefined) {
-        const urgentValue = typeof filters.urgent === 'boolean' 
-          ? filters.urgent.toString() 
+        const urgentValue = typeof filters.urgent === 'boolean'
+          ? filters.urgent.toString()
           : filters.urgent;
         params = params.set('urgent', urgentValue);
       }
@@ -206,7 +206,7 @@ export class RfqService {
 
   generatePDF(id: string, attachmentFile?: File): Observable<PDFGenerateResponse> {
     const formData = new FormData();
-    
+
     if (attachmentFile) {
       formData.append('attachment', attachmentFile);
     }
@@ -230,7 +230,7 @@ export class RfqService {
     }
 
     const url = API_ENDPOINTS.RFQ.DOWNLOAD_PDF(id);
-    
+
     fetch(url, {
       method: 'GET',
       headers: {
@@ -245,12 +245,12 @@ export class RfqService {
     })
     .then(blob => {
       const blobUrl = URL.createObjectURL(blob);
-      
+
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
       iframe.src = blobUrl;
       document.body.appendChild(iframe);
-      
+
       iframe.onload = () => {
         setTimeout(() => {
           try {
@@ -261,7 +261,7 @@ export class RfqService {
           }
         }, 250);
       };
-      
+
       setTimeout(() => {
         document.body.removeChild(iframe);
         URL.revokeObjectURL(blobUrl);
@@ -274,7 +274,7 @@ export class RfqService {
   }
 
   getPDFBlob(id: string): Observable<Blob> {
-    return this.http.get(API_ENDPOINTS.RFQ.DOWNLOAD_PDF(id), { 
+    return this.http.get(API_ENDPOINTS.RFQ.DOWNLOAD_PDF(id), {
       responseType: 'blob'
     });
   }
@@ -287,7 +287,7 @@ export class RfqService {
     }
 
     const url = API_ENDPOINTS.RFQ.DOWNLOAD_PDF(id);
-    
+
     fetch(url, {
       method: 'GET',
       headers: {
@@ -303,7 +303,7 @@ export class RfqService {
     .then(blob => {
       const blobUrl = URL.createObjectURL(blob);
       const newWindow = window.open(blobUrl, '_blank');
-      
+
       if (autoPrint && newWindow) {
         newWindow.onload = () => {
           setTimeout(() => {
@@ -311,7 +311,7 @@ export class RfqService {
           }, 500);
         };
       }
-      
+
       setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
     })
     .catch(error => {
@@ -328,7 +328,7 @@ export class RfqService {
     }
 
     const url = API_ENDPOINTS.RFQ.DOWNLOAD_PDF(id);
-    
+
     fetch(url, {
       method: 'GET',
       headers: {
@@ -344,7 +344,7 @@ export class RfqService {
     .then(blob => {
       const blobUrl = URL.createObjectURL(blob);
       window.open(blobUrl, '_blank');
-      
+
       setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
     })
     .catch(error => {
@@ -361,7 +361,7 @@ export class RfqService {
     }
 
     const url = API_ENDPOINTS.RFQ.DOWNLOAD_PDF(id);
-    
+
     fetch(url, {
       method: 'GET',
       headers: {
@@ -383,7 +383,7 @@ export class RfqService {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
     })
     .catch(error => {
@@ -454,7 +454,7 @@ export class RfqService {
           return 'قيد الانتظار';
       }
     }
-    
+
     switch (status) {
       case 'approved':
         return 'Approved';
@@ -472,7 +472,7 @@ export class RfqService {
    */
   calculateTotalPrice(items: RFQItem[]): number {
     if (!items || items.length === 0) return 0;
-    
+
     return items.reduce((total, item) => {
       const quantity = parseFloat(item.quantity.toString()) || 0;
       const price = parseFloat((item.estimatedUnitPrice || '0').toString()) || 0;
@@ -489,7 +489,7 @@ export class RfqService {
     if (!data.production || data.production.trim() === '') errors.push('Production/Department is required');
     if (!data.supplier || data.supplier.trim() === '') errors.push('Supplier is required');
     if (!data.supplierAddress || data.supplierAddress.trim() === '') errors.push('Supplier Address is required');
-    
+
     if (!data.items || data.items.length === 0) {
       errors.push('At least one item is required');
     } else {
@@ -547,13 +547,13 @@ export class RfqService {
     if (original.supplierAddress !== modified.supplierAddress) return true;
     if (original.urgent !== modified.urgent) return true;
     if ((original.notes || '') !== (modified.notes || '')) return true;
-    
+
     if (original.items.length !== modified.items.length) return true;
-    
+
     for (let i = 0; i < original.items.length; i++) {
       const origItem = original.items[i];
       const modItem = modified.items[i];
-      
+
       if (origItem.description !== modItem.description) return true;
       if (origItem.unit !== modItem.unit) return true;
       if (origItem.quantity.toString() !== modItem.quantity.toString()) return true;
@@ -561,7 +561,7 @@ export class RfqService {
       if ((origItem.jobNo || '').toString() !== (modItem.jobNo || '').toString()) return true;
       if ((origItem.estimatedUnitPrice || '').toString() !== (modItem.estimatedUnitPrice || '').toString()) return true;
     }
-    
+
     return false;
   }
 
@@ -591,10 +591,10 @@ export class RfqService {
 
   searchRFQs(rfqs: RFQ[], searchTerm: string): RFQ[] {
     if (!searchTerm || searchTerm.trim() === '') return rfqs;
-    
+
     const term = searchTerm.toLowerCase().trim();
-    
-    return rfqs.filter(rfq => 
+
+    return rfqs.filter(rfq =>
       rfq.rfqNumber.toLowerCase().includes(term) ||
       rfq.requester.toLowerCase().includes(term) ||
       rfq.production.toLowerCase().includes(term) ||
