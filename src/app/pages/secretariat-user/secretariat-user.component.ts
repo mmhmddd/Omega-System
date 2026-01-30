@@ -2,11 +2,13 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { trigger, transition, style, animate } from '@angular/animations';
 import {
   SecretariatUserService,
   UserForm,
   CreateUserFormData,
-  FormType
+  FormType,
+  ManualFormData
 } from '../../core/services/secretariat-user.service';
 import { AuthService } from '../../core/services/auth.service';
 
@@ -23,7 +25,30 @@ interface Toast {
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './secretariat-user.component.html',
-  styleUrl: './secretariat-user.component.scss'
+  styleUrl: './secretariat-user.component.scss',
+  animations: [
+    trigger('slideIn', [
+      transition(':enter', [
+        style({
+          opacity: 0,
+          transform: 'translateY(-20px)',
+          maxHeight: 0
+        }),
+        animate('400ms cubic-bezier(0.4, 0, 0.2, 1)', style({
+          opacity: 1,
+          transform: 'translateY(0)',
+          maxHeight: '3000px'
+        }))
+      ]),
+      transition(':leave', [
+        animate('300ms cubic-bezier(0.4, 0, 1, 1)', style({
+          opacity: 0,
+          transform: 'translateY(-10px)',
+          maxHeight: 0
+        }))
+      ])
+    ])
+  ]
 })
 export class SecretariatUserComponent implements OnInit, OnDestroy {
 
@@ -38,6 +63,7 @@ export class SecretariatUserComponent implements OnInit, OnDestroy {
   // ============================================
   forms: UserForm[] = [];
   formTypes: FormType[] = [];
+  currentUser: any = null;
 
   // ============================================
   // TOAST NOTIFICATIONS
@@ -53,6 +79,8 @@ export class SecretariatUserComponent implements OnInit, OnDestroy {
     projectName: '',
     date: ''
   };
+
+  manualData: ManualFormData = {};
 
   // ============================================
   // FILTERS
@@ -93,6 +121,7 @@ export class SecretariatUserComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.checkAccess();
+    this.loadCurrentUser();
     this.loadFormTypes();
     this.loadMyForms();
   }
@@ -116,7 +145,6 @@ export class SecretariatUserComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // UPDATED: Allow super_admin, admin, AND employees with proper routeAccess
     const hasAccess =
       currentUser.role === 'super_admin' ||
       currentUser.role === 'admin' ||
@@ -128,6 +156,10 @@ export class SecretariatUserComponent implements OnInit, OnDestroy {
         : 'You do not have permission to access this page';
       this.showToast('error', errorMsg);
     }
+  }
+
+  loadCurrentUser(): void {
+    this.currentUser = this.authService.currentUserValue;
   }
 
   // ============================================
@@ -239,6 +271,7 @@ export class SecretariatUserComponent implements OnInit, OnDestroy {
       projectName: '',
       date: this.getTodayDate()
     };
+    this.manualData = {};
     this.fieldErrors = {};
     this.formError = '';
   }
@@ -248,19 +281,17 @@ export class SecretariatUserComponent implements OnInit, OnDestroy {
   }
 
   // ============================================
-  // LANGUAGE TOGGLE
-  // ============================================
-
-  toggleFormLanguage(lang: 'ar' | 'en'): void {
-    this.formLanguage = lang;
-  }
-
-  // ============================================
   // FORM TYPE SELECTION
   // ============================================
 
   selectFormType(formType: string): void {
     this.formData.formType = formType as any;
+
+    // Initialize manual data based on form type - now empty by default
+    this.manualData = this.secretariatUserService.createEmptyManualData(formType);
+
+    // Clear field errors
+    delete this.fieldErrors['formType'];
   }
 
   // ============================================
@@ -285,6 +316,19 @@ export class SecretariatUserComponent implements OnInit, OnDestroy {
       isValid = false;
     }
 
+    // Validate manual data if provided
+    if (Object.keys(this.manualData).length > 0) {
+      const validation = this.secretariatUserService.validateManualData(
+        this.formData.formType,
+        this.manualData
+      );
+
+      if (!validation.isValid) {
+        this.formError = validation.errors.join(', ');
+        isValid = false;
+      }
+    }
+
     return isValid;
   }
 
@@ -304,7 +348,28 @@ export class SecretariatUserComponent implements OnInit, OnDestroy {
     this.creatingForm = true;
     this.formError = '';
 
-    this.secretariatUserService.createUserForm(this.formData).subscribe({
+    // Prepare form data with optional manual inputs
+    const submitData: CreateUserFormData = {
+      formType: this.formData.formType,
+      projectName: this.formData.projectName,
+      date: this.formData.date
+    };
+
+    // Add manual data if provided (filter out empty values)
+    if (Object.keys(this.manualData).length > 0) {
+      const filteredManualData: ManualFormData = {};
+      for (const [key, value] of Object.entries(this.manualData)) {
+        if (value !== null && value !== undefined && value !== '') {
+          filteredManualData[key as keyof ManualFormData] = value;
+        }
+      }
+
+      if (Object.keys(filteredManualData).length > 0) {
+        submitData.manualData = filteredManualData;
+      }
+    }
+
+    this.secretariatUserService.createUserForm(submitData).subscribe({
       next: (response) => {
         this.creatingForm = false;
         this.generatedFormId = response.data.id;
@@ -316,9 +381,17 @@ export class SecretariatUserComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         console.error('Error creating form:', error);
-        const errorMsg = error.error?.message || (this.formLanguage === 'ar'
+
+        let errorMsg = this.formLanguage === 'ar'
           ? 'حدث خطأ أثناء إنشاء النموذج'
-          : 'Error creating form');
+          : 'Error creating form';
+
+        if (error.error?.message) {
+          errorMsg = error.error.message;
+        } else if (error.error?.errors && Array.isArray(error.error.errors)) {
+          errorMsg = error.error.errors.join(', ');
+        }
+
         this.formError = errorMsg;
         this.showToast('error', errorMsg);
         this.creatingForm = false;
@@ -518,5 +591,25 @@ export class SecretariatUserComponent implements OnInit, OnDestroy {
 
   getFormTypeColor(formType: string): string {
     return this.secretariatUserService.getFormTypeColor(formType);
+  }
+
+  // ============================================
+  // CHECK IF FORM TYPE HAS SPECIFIC FIELDS
+  // ============================================
+
+  isDepartureForm(): boolean {
+    return this.formData.formType === 'departure';
+  }
+
+  isVacationForm(): boolean {
+    return this.formData.formType === 'vacation';
+  }
+
+  isAdvanceForm(): boolean {
+    return this.formData.formType === 'advance';
+  }
+
+  isAccountStatementForm(): boolean {
+    return this.formData.formType === 'account_statement';
   }
 }

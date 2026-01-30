@@ -21,12 +21,54 @@ export interface UserForm {
   createdAt: string;
   updatedAt: string;
   pdfPath?: string;
+  // Optional manual fields
+  manualData?: ManualFormData;
+}
+
+// Define manual input data based on form type
+export interface ManualFormData {
+  // Common fields
+  employeeName?: string;
+  employeeNumber?: string;
+  department?: string;
+  position?: string;
+
+  // Departure specific
+  departureDate?: string;
+  departureTime?: string;
+  returnDate?: string;
+  returnTime?: string;
+  destination?: string;
+  purpose?: string;
+
+  // Vacation specific
+  vacationType?: 'annual' | 'sick' | 'emergency' | 'unpaid';
+  startDate?: string;
+  endDate?: string;
+  numberOfDays?: number;
+  reason?: string;
+  replacementEmployee?: string;
+
+  // Advance specific
+  advanceAmount?: number;
+  advanceReason?: string;
+  repaymentMethod?: 'salary_deduction' | 'cash' | 'other';
+  installments?: number;
+
+  // Account statement specific
+  accountType?: 'salary' | 'bonus' | 'deduction' | 'other';
+  fromDate?: string;
+  toDate?: string;
+  totalAmount?: number;
+  description?: string;
 }
 
 export interface CreateUserFormData {
   formType: 'departure' | 'vacation' | 'advance' | 'account_statement';
   projectName?: string;
   date?: string;
+  // Optional manual data
+  manualData?: ManualFormData;
 }
 
 export interface FormType {
@@ -93,7 +135,7 @@ export class SecretariatUserService {
   // ============================================
 
   /**
-   * Create a new form for the current user
+   * Create a new form for the current user with optional manual data
    */
   createUserForm(formData: CreateUserFormData): Observable<UserFormResponse> {
     return this.http.post<UserFormResponse>(
@@ -185,6 +227,73 @@ export class SecretariatUserService {
       API_ENDPOINTS.SECRETARIAT_USER.MARK_ALL_NOTIFICATIONS_READ,
       {}
     );
+  }
+
+  // ============================================
+  // VALIDATION HELPERS
+  // ============================================
+
+  /**
+   * Validate manual data based on form type
+   */
+  validateManualData(formType: string, manualData?: ManualFormData): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    if (!manualData) {
+      return { isValid: true, errors: [] }; // Optional data, so valid if not provided
+    }
+
+    switch (formType) {
+      case 'departure':
+        if (manualData.departureDate && manualData.returnDate) {
+          const departure = new Date(manualData.departureDate);
+          const returnDate = new Date(manualData.returnDate);
+          if (returnDate < departure) {
+            errors.push('Return date cannot be before departure date');
+          }
+        }
+        if (manualData.advanceAmount && manualData.advanceAmount < 0) {
+          errors.push('Advance amount cannot be negative');
+        }
+        break;
+
+      case 'vacation':
+        if (manualData.startDate && manualData.endDate) {
+          const start = new Date(manualData.startDate);
+          const end = new Date(manualData.endDate);
+          if (end < start) {
+            errors.push('End date cannot be before start date');
+          }
+        }
+        if (manualData.numberOfDays && manualData.numberOfDays < 1) {
+          errors.push('Number of days must be at least 1');
+        }
+        break;
+
+      case 'advance':
+        if (manualData.advanceAmount && manualData.advanceAmount <= 0) {
+          errors.push('Advance amount must be greater than 0');
+        }
+        if (manualData.installments && manualData.installments < 1) {
+          errors.push('Installments must be at least 1');
+        }
+        break;
+
+      case 'account_statement':
+        if (manualData.fromDate && manualData.toDate) {
+          const from = new Date(manualData.fromDate);
+          const to = new Date(manualData.toDate);
+          if (to < from) {
+            errors.push('To date cannot be before from date');
+          }
+        }
+        break;
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
   }
 
   // ============================================
@@ -336,6 +445,64 @@ export class SecretariatUserService {
       projectName: '',
       date: this.getTodayDate()
     };
+  }
+
+  /**
+   * Create empty manual data based on form type
+   */
+  createEmptyManualData(formType: string): ManualFormData {
+    const baseData: ManualFormData = {
+      employeeName: '',
+      employeeNumber: '',
+      department: '',
+      position: ''
+    };
+
+    switch (formType) {
+      case 'departure':
+        return {
+          ...baseData,
+          departureDate: '',
+          departureTime: '',
+          returnDate: '',
+          returnTime: '',
+          destination: '',
+          purpose: ''
+        };
+
+      case 'vacation':
+        return {
+          ...baseData,
+          vacationType: 'annual',
+          startDate: '',
+          endDate: '',
+          numberOfDays: undefined,
+          reason: '',
+          replacementEmployee: ''
+        };
+
+      case 'advance':
+        return {
+          ...baseData,
+          advanceAmount: undefined,
+          advanceReason: '',
+          repaymentMethod: 'salary_deduction',
+          installments: undefined
+        };
+
+      case 'account_statement':
+        return {
+          ...baseData,
+          accountType: 'salary',
+          fromDate: '',
+          toDate: '',
+          totalAmount: undefined,
+          description: ''
+        };
+
+      default:
+        return baseData;
+    }
   }
 
   /**

@@ -327,7 +327,7 @@
 <!-- ============================================ -->
 <!-- CREATE USER MODAL -->
 <!-- ============================================ -->
-<div class="modal-overlay" *ngIf="showCreateModal" (click)="closeCreateModal()">
+<div class="modal-overlay" *ngIf="showCreateModal" >
   <div class="modal-container" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h2 class="modal-title">
@@ -474,7 +474,7 @@
 <!-- ============================================ -->
 <!-- EDIT USER MODAL -->
 <!-- ============================================ -->
-<div class="modal-overlay" *ngIf="showEditModal" (click)="closeEditModal()">
+<div class="modal-overlay" *ngIf="showEditModal">
   <div class="modal-container" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h2 class="modal-title">
@@ -590,7 +590,7 @@
 <!-- ============================================ -->
 <!-- DELETE CONFIRMATION MODAL -->
 <!-- ============================================ -->
-<div class="modal-overlay" *ngIf="showDeleteModal" (click)="closeDeleteModal()">
+<div class="modal-overlay" *ngIf="showDeleteModal">
   <div class="modal-container modal-small" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h2 class="modal-title">
