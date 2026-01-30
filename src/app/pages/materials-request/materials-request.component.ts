@@ -1,6 +1,6 @@
 // ============================================================
-// MATERIAL REQUEST COMPONENT - MATCHING PURCHASE ORDER DESIGN
-// materials-request.component.ts (PART 1 - Setup & State)
+// MATERIAL REQUEST COMPONENT - WITH DYNAMIC PDF LANGUAGE
+// materials-request.component.ts (COMPLETE)
 // ============================================================
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
@@ -64,7 +64,8 @@ export class MaterialsRequestComponent implements OnInit, OnDestroy {
     priority: '',
     status: ''
   };
-    departments: Department[] = [
+  
+  departments: Department[] = [
     { value: 'procurement', labelAr: 'المشتريات', labelEn: 'Procurement' },
     { value: 'warehouse', labelAr: 'المخزن', labelEn: 'Warehouse' },
     { value: 'maintenance', labelAr: 'الصيانة', labelEn: 'Maintenance' },
@@ -73,9 +74,11 @@ export class MaterialsRequestComponent implements OnInit, OnDestroy {
     { value: 'development', labelAr: 'التطوير', labelEn: 'Development' },
     { value: 'other', labelAr: 'أخرى', labelEn: 'Other' }
   ];
-    getDepartmentLabel(dept: Department): string {
-      return this.formLanguage === 'ar' ? dept.labelAr : dept.labelEn;
-    }
+  
+  getDepartmentLabel(dept: Department): string {
+    return this.formLanguage === 'ar' ? dept.labelAr : dept.labelEn;
+  }
+  
   private searchSubject = new Subject<string>();
   
   // Loading states
@@ -370,10 +373,6 @@ export class MaterialsRequestComponent implements OnInit, OnDestroy {
     if (!option) return priority;
     return this.formLanguage === 'ar' ? option.labelAr : option.labelEn;
   }
-  // ============================================================
-// MATERIAL REQUEST COMPONENT (PART 2 - Validation & Data)
-// Continuation of materials-request.component.ts
-// ============================================ ================
 
   // ========================================
   // VALIDATION METHODS
@@ -620,7 +619,6 @@ export class MaterialsRequestComponent implements OnInit, OnDestroy {
         this.currentView = 'edit';
         this.currentStep = 'basic';
         
-        // ✅ Deep clone items to avoid reference issues
         const clonedItems = freshMR.items ? freshMR.items.map((item: any) => ({
           description: item.description || '',
           unit: item.unit || '',
@@ -668,94 +666,90 @@ export class MaterialsRequestComponent implements OnInit, OnDestroy {
     });
   }
 
-saveMR(): void {
-  if (!this.validateForm()) {
-    if (this.fieldErrors['items'] || Object.keys(this.fieldErrors).some(key => key.startsWith('item_'))) {
-      this.currentStep = 'items';
-    } else {
-      this.currentStep = 'basic';
+  saveMR(): void {
+    if (!this.validateForm()) {
+      if (this.fieldErrors['items'] || Object.keys(this.fieldErrors).some(key => key.startsWith('item_'))) {
+        this.currentStep = 'items';
+      } else {
+        this.currentStep = 'basic';
+      }
+      return;
     }
-    return;
-  }
 
-  this.savingMR = true;
-  this.clearErrors();
-  
-  // ✅ Ensure items are properly formatted
-  const formattedItems = this.mrForm.items.map(item => ({
-    description: item.description || '',
-    unit: item.unit || '',
-    quantity: item.quantity ? Number(item.quantity) : 0,
-    requiredDate: item.requiredDate || '',
-    priority: item.priority || ''
-  }));
-  
-  const mrData = {
-    date: this.mrForm.date,
-    section: this.mrForm.section,
-    project: this.mrForm.project,
-    requestPriority: this.mrForm.requestPriority,
-    requestReason: this.mrForm.requestReason,
-    items: formattedItems,  // ✅ Use formatted items
-    additionalNotes: this.mrForm.additionalNotes
-  };
+    this.savingMR = true;
+    this.clearErrors();
+    
+    const formattedItems = this.mrForm.items.map(item => ({
+      description: item.description || '',
+      unit: item.unit || '',
+      quantity: item.quantity ? Number(item.quantity) : 0,
+      requiredDate: item.requiredDate || '',
+      priority: item.priority || ''
+    }));
+    
+    // ✅ NO forceLanguage - let the backend detect language automatically
+    const mrData = {
+      date: this.mrForm.date,
+      section: this.mrForm.section,
+      project: this.mrForm.project,
+      requestPriority: this.mrForm.requestPriority,
+      requestReason: this.mrForm.requestReason,
+      items: formattedItems,
+      additionalNotes: this.mrForm.additionalNotes
+    };
 
-  if (this.currentView === 'create') {
-    this.materialService.createMaterialRequest(mrData).subscribe({
-      next: (response: any) => {
-        const createdMR = response.data;
-        this.materialService.generatePDF(createdMR.id, this.formPdfAttachment || undefined).subscribe({
-          next: () => {
-            this.savingMR = false;
-            this.showToast('success', this.t('messages.createdWithPdf'));
-            setTimeout(() => {
-              this.openSuccessModal(createdMR.id, createdMR.mrNumber);
-            }, 500);
-          },
-          error: () => {
-            this.savingMR = false;
-            this.showToast('warning', this.t('errors.pdfGenerationWarning'));
-            this.backToList();
-            this.loadMaterialRequests();
-          }
-        });
-      },
-      error: (error: any) => {
-        this.savingMR = false;
-        this.handleBackendError(error);
-      }
-    });
-  } else if (this.currentView === 'edit' && this.selectedMR) {
-    this.materialService.updateMaterialRequest(this.selectedMR.id, mrData).subscribe({
-      next: (response: any) => {
-        const updatedMR = response.data;
-        this.materialService.generatePDF(updatedMR.id, this.formPdfAttachment || undefined).subscribe({
-          next: () => {
-            this.savingMR = false;
-            this.showToast('success', this.t('messages.updatedWithPdf'));
-            setTimeout(() => {
-              this.openSuccessModal(updatedMR.id, updatedMR.mrNumber);
-            }, 500);
-          },
-          error: () => {
-            this.savingMR = false;
-            this.showToast('warning', this.t('errors.pdfUpdateWarning'));
-            this.backToList();
-            this.loadMaterialRequests();
-          }
-        });
-      },
-      error: (error: any) => {
-        this.savingMR = false;
-        this.handleBackendError(error);
-      }
-    });
+    if (this.currentView === 'create') {
+      this.materialService.createMaterialRequest(mrData).subscribe({
+        next: (response: any) => {
+          const createdMR = response.data;
+          this.materialService.generatePDF(createdMR.id, this.formPdfAttachment || undefined).subscribe({
+            next: () => {
+              this.savingMR = false;
+              this.showToast('success', this.t('messages.createdWithPdf'));
+              setTimeout(() => {
+                this.openSuccessModal(createdMR.id, createdMR.mrNumber);
+              }, 500);
+            },
+            error: () => {
+              this.savingMR = false;
+              this.showToast('warning', this.t('errors.pdfGenerationWarning'));
+              this.backToList();
+              this.loadMaterialRequests();
+            }
+          });
+        },
+        error: (error: any) => {
+          this.savingMR = false;
+          this.handleBackendError(error);
+        }
+      });
+    } else if (this.currentView === 'edit' && this.selectedMR) {
+      this.materialService.updateMaterialRequest(this.selectedMR.id, mrData).subscribe({
+        next: (response: any) => {
+          const updatedMR = response.data;
+          this.materialService.generatePDF(updatedMR.id, this.formPdfAttachment || undefined).subscribe({
+            next: () => {
+              this.savingMR = false;
+              this.showToast('success', this.t('messages.updatedWithPdf'));
+              setTimeout(() => {
+                this.openSuccessModal(updatedMR.id, updatedMR.mrNumber);
+              }, 500);
+            },
+            error: () => {
+              this.savingMR = false;
+              this.showToast('warning', this.t('errors.pdfUpdateWarning'));
+              this.backToList();
+              this.loadMaterialRequests();
+            }
+          });
+        },
+        error: (error: any) => {
+          this.savingMR = false;
+          this.handleBackendError(error);
+        }
+      });
+    }
   }
-}
-  // ============================================================
-// MATERIAL REQUEST COMPONENT (PART 3 - PDF & Utilities)
-// Continuation of materials-request.component.ts
-// ============================================================
 
   // ========================================
   // PDF OPERATIONS
@@ -948,5 +942,4 @@ saveMR(): void {
   hasPDF(mr: MaterialRequest): boolean {
     return !!mr.pdfFilename;
   }
-  
 }
