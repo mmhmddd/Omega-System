@@ -18,6 +18,7 @@ export interface FileRecord {
   createdAt: string;
   modifiedAt: string;
   createdBy: string;
+  createdByName?: string;
   createdByRole?: string;
   documentNumber?: string;
   projectName?: string;
@@ -161,17 +162,72 @@ export class FileService {
   }
 
   /**
-   * Download file
+   * Download file with authentication
    */
   downloadFile(id: string): void {
-    window.open(this.getDownloadUrl(id), '_blank');
+    const token = localStorage.getItem('token');
+    
+    this.http.get(this.getDownloadUrl(id), {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      responseType: 'blob',
+      observe: 'response'
+    }).subscribe({
+      next: (response) => {
+        // Extract filename from Content-Disposition header
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = 'download';
+        
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+          if (filenameMatch && filenameMatch[1]) {
+            filename = filenameMatch[1].replace(/['"]/g, '');
+          }
+        }
+
+        // Create blob and download
+        const blob = response.body;
+        if (blob) {
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = filename;
+          link.click();
+          window.URL.revokeObjectURL(url);
+        }
+      },
+      error: (error) => {
+        console.error('Error downloading file:', error);
+      }
+    });
   }
 
   /**
-   * Preview file
+   * Preview file with authentication
    */
   previewFile(id: string): void {
-    window.open(this.getPreviewUrl(id), '_blank');
+    const token = localStorage.getItem('token');
+    
+    this.http.get(this.getPreviewUrl(id), {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      responseType: 'blob'
+    }).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        
+        // Clean up the URL after a delay
+        setTimeout(() => {
+          window.URL.revokeObjectURL(url);
+        }, 100);
+      },
+      error: (error) => {
+        console.error('Error previewing file:', error);
+      }
+    });
   }
 
   /**
@@ -267,7 +323,7 @@ export class FileService {
       'secretariatForms': 'نماذج السكرتارية',
       'secretariatUserForms': 'نماذج المستخدمين',
       'rfqs': 'طلبات عروض الأسعار',
-      'purchases': 'أوامر الشراء',
+      'purchases': 'طلبات الشراء',
       'materials': 'طلبات المواد'
     };
 

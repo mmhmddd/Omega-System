@@ -44,26 +44,8 @@
         </h1>
         <p class="page-subtitle">عرض وإدارة جميع ملفات النظام</p>
       </div>
-      <div class="header-actions">
-        <button
-          class="btn btn-secondary"
-          (click)="openStatsModal()">
-          <i class="bi bi-bar-chart-fill"></i>
-          الإحصائيات
-        </button>
-        <button
-          class="btn btn-secondary"
-          (click)="exportFileList()">
-          <i class="bi bi-download"></i>
-          تصدير القائمة
-        </button>
-        <button
-          class="btn btn-danger"
-          (click)="openBulkDeleteModal()"
-          *ngIf="canDeleteFiles && selectedFiles.length > 0">
-          <i class="bi bi-trash"></i>
-          حذف المحدد ({{ selectedFiles.length }})
-        </button>
+      <div class="header-icon">
+        <i class="bi bi-files"></i>
       </div>
     </div>
   </div>
@@ -74,7 +56,7 @@
   <div class="filters-section">
     <div class="filters-grid">
       <!-- Search -->
-      <div class="filter-group search-group">
+      <div class="filter-group">
         <label class="filter-label">
           <i class="bi bi-search"></i>
           البحث
@@ -122,42 +104,8 @@
         </select>
       </div>
 
-      <!-- Extension Filter -->
-      <div class="filter-group">
-        <label class="filter-label">
-          <i class="bi bi-file-earmark"></i>
-          الامتداد
-        </label>
-        <select
-          class="filter-select"
-          [(ngModel)]="selectedExtension"
-          (change)="onFilterChange()">
-          <option value="">جميع الامتدادات</option>
-          <option *ngFor="let ext of availableExtensions" [value]="ext">
-            {{ ext }}
-          </option>
-        </select>
-      </div>
-
-      <!-- Creator Filter -->
-      <div class="filter-group">
-        <label class="filter-label">
-          <i class="bi bi-person"></i>
-          المنشئ
-        </label>
-        <select
-          class="filter-select"
-          [(ngModel)]="selectedCreator"
-          (change)="onFilterChange()">
-          <option value="">الكل</option>
-          <option *ngFor="let creator of availableCreators" [value]="creator">
-            {{ creator }}
-          </option>
-        </select>
-      </div>
-
       <!-- Start Date Filter -->
-      <div class="filter-group">
+      <div class="filter-group filter-small">
         <label class="filter-label">
           <i class="bi bi-calendar"></i>
           من تاريخ
@@ -171,7 +119,7 @@
       </div>
 
       <!-- End Date Filter -->
-      <div class="filter-group">
+      <div class="filter-group filter-small">
         <label class="filter-label">
           <i class="bi bi-calendar"></i>
           إلى تاريخ
@@ -185,7 +133,7 @@
       </div>
 
       <!-- Sort By Filter -->
-      <div class="filter-group">
+      <div class="filter-group filter-small">
         <label class="filter-label">
           <i class="bi bi-sort-down"></i>
           ترتيب حسب
@@ -200,26 +148,10 @@
         </select>
       </div>
 
-      <!-- Sort Order Filter -->
-      <div class="filter-group">
-        <label class="filter-label">
-          <i class="bi bi-arrow-down-up"></i>
-          الترتيب
-        </label>
-        <select
-          class="filter-select"
-          [(ngModel)]="sortOrder"
-          (change)="onFilterChange()">
-          <option *ngFor="let order of sortOrders" [value]="order.value">
-            {{ order.label }}
-          </option>
-        </select>
-      </div>
-
-      <!-- Clear Filters -->
-      <div class="filter-group">
+      <!-- Clear Filters Button -->
+      <div class="filter-group filter-small">
         <label class="filter-label">&nbsp;</label>
-        <button class="btn btn-secondary" (click)="clearFilters()">
+        <button class="btn btn-secondary btn-clear-full" (click)="clearFilters()">
           <i class="bi bi-x-circle"></i>
           مسح الفلاتر
         </button>
@@ -270,14 +202,6 @@
     <table class="files-table">
       <thead>
         <tr>
-          <th *ngIf="canDeleteFiles" class="checkbox-col">
-            <input 
-              type="checkbox" 
-              [(ngModel)]="selectAll" 
-              (change)="toggleSelectAll()"
-              class="table-checkbox"
-            />
-          </th>
           <th>الملف</th>
           <th>النوع</th>
           <th>التصنيف</th>
@@ -290,16 +214,6 @@
 
       <tbody *ngIf="!loading && files.length > 0">
         <tr *ngFor="let file of files">
-          <!-- Checkbox -->
-          <td *ngIf="canDeleteFiles" class="checkbox-col">
-            <input 
-              type="checkbox" 
-              [(ngModel)]="file.selected" 
-              (change)="toggleFileSelection(file)"
-              class="table-checkbox"
-            />
-          </td>
-
           <!-- File Name -->
           <td>
             <div class="file-cell">
@@ -339,8 +253,8 @@
           <!-- Creator -->
           <td>
             <div class="creator-info">
-              <span class="creator-name">{{ file.createdBy }}</span>
-              <span class="creator-role" *ngIf="file.createdByRole">
+              <span class="creator-name">{{ file.createdByName || file.createdBy }}</span>
+              <span class="creator-username" *ngIf="file.createdByRole">
                 {{ file.createdByRole }}
               </span>
             </div>
@@ -413,7 +327,7 @@
 
       <tbody *ngIf="loading">
         <tr>
-          <td [attr.colspan]="canDeleteFiles ? 8 : 7" class="loading-cell">
+          <td colspan="7" class="loading-cell">
             <i class="bi bi-arrow-clockwise spin"></i> جاري التحميل...
           </td>
         </tr>
@@ -421,7 +335,7 @@
 
       <tbody *ngIf="!loading && files.length === 0">
         <tr>
-          <td [attr.colspan]="canDeleteFiles ? 8 : 7" class="empty-cell">
+          <td colspan="7" class="empty-cell">
             <i class="bi bi-inbox"></i>
             <p>لا توجد ملفات</p>
           </td>
@@ -624,51 +538,6 @@
         <i class="bi bi-trash" *ngIf="!deletingFile"></i>
         <i class="bi bi-arrow-clockwise spin" *ngIf="deletingFile"></i>
         {{ deletingFile ? 'جاري الحذف...' : 'حذف' }}
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ============================================ -->
-<!-- BULK DELETE MODAL -->
-<!-- ============================================ -->
-<div class="modal-overlay" *ngIf="showBulkDeleteModal" (click)="closeBulkDeleteModal()">
-  <div class="modal-container modal-small" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h2 class="modal-title">
-        <i class="bi bi-exclamation-triangle text-danger"></i>
-        تأكيد الحذف الجماعي
-      </h2>
-      <button class="modal-close" (click)="closeBulkDeleteModal()">
-        <i class="bi bi-x-lg"></i>
-      </button>
-    </div>
-
-    <div class="modal-body">
-      <p class="delete-message">
-        هل أنت متأكد من حذف <strong>{{ selectedFiles.length }}</strong> ملف؟
-        <br>
-        <span class="text-warning">لا يمكن التراجع عن هذا الإجراء!</span>
-      </p>
-      <div class="selected-files-list">
-        <div class="selected-file-item" *ngFor="let file of selectedFiles.slice(0, 5)">
-          <span class="file-icon">{{ file.icon }}</span>
-          <span class="file-name">{{ file.name }}</span>
-        </div>
-        <p class="more-files" *ngIf="selectedFiles.length > 5">
-          و {{ selectedFiles.length - 5 }} ملف آخر...
-        </p>
-      </div>
-    </div>
-
-    <div class="modal-footer">
-      <button type="button" class="btn btn-secondary" (click)="closeBulkDeleteModal()" [disabled]="bulkDeleting">
-        إلغاء
-      </button>
-      <button type="button" class="btn btn-danger" (click)="confirmBulkDelete()" [disabled]="bulkDeleting">
-        <i class="bi bi-trash" *ngIf="!bulkDeleting"></i>
-        <i class="bi bi-arrow-clockwise spin" *ngIf="bulkDeleting"></i>
-        {{ bulkDeleting ? 'جاري الحذف...' : 'حذف الكل' }}
       </button>
     </div>
   </div>

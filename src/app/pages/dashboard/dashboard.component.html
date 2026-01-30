@@ -26,16 +26,20 @@
           <i class="bi bi-folder-fill"></i>
         </div>
         <div class="stat-content">
-          <h3 class="stat-value" *ngIf="!loadingFiles">{{ totalFiles }}</h3>
           <div class="stat-loading" *ngIf="loadingFiles">
             <i class="bi bi-arrow-clockwise spin-animation"></i>
           </div>
+          <h3 class="stat-value" *ngIf="!loadingFiles && !filesError">{{ totalFiles }}</h3>
+          <div class="stat-error" *ngIf="!loadingFiles && filesError">
+            <i class="bi bi-exclamation-triangle"></i>
+          </div>
           <p class="stat-label">إجمالي الملفات</p>
+          <small class="stat-error-text" *ngIf="filesError">{{ filesError }}</small>
         </div>
       </div>
 
       <!-- Statistics Card -->
-      <div class="stat-card" [routerLink]="'/statistics'" [style.background]="'linear-gradient(135deg, #10b981 0%, #059669 100%)'">
+      <div class="stat-card" [routerLink]="'/analysis'" [style.background]="'linear-gradient(135deg, #10b981 0%, #059669 100%)'">
         <div class="stat-icon">
           <i class="bi bi-graph-up-arrow"></i>
         </div>

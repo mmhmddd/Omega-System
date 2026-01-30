@@ -38,34 +38,26 @@ export class FilesControlComponent implements OnInit, OnDestroy {
   files: FileTableData[] = [];
   filteredFiles: FileTableData[] = [];
   selectedFile: FileRecord | null = null;
-  selectedFiles: FileTableData[] = [];
 
   // File types and categories
   fileTypes: FileType[] = [];
   fileCategories: FileCategory[] = [];
   sortOptions: SortOption[] = [];
-  sortOrders: SortOption[] = [];
-  availableExtensions: string[] = [];
-  availableCreators: string[] = [];
 
   // Pagination
   currentPage: number = 1;
   totalPages: number = 1;
   totalFiles: number = 0;
-  pageSize: number = 20;
   itemsPerPage: number = 20;
 
   // Loading states
   loading: boolean = false;
   deletingFile: boolean = false;
-  bulkDeleting: boolean = false;
 
   // Filter & Search
   searchTerm: string = '';
   selectedType: string = '';
   selectedCategory: string = '';
-  selectedExtension: string = '';
-  selectedCreator: string = '';
   startDate: string = '';
   endDate: string = '';
   sortBy: string = 'createdAt';
@@ -73,7 +65,6 @@ export class FilesControlComponent implements OnInit, OnDestroy {
 
   // Modals
   showDeleteModal: boolean = false;
-  showBulkDeleteModal: boolean = false;
   showStatsModal: boolean = false;
   showFileDetailsModal: boolean = false;
 
@@ -87,9 +78,6 @@ export class FilesControlComponent implements OnInit, OnDestroy {
   // Toast notifications
   toasts: Toast[] = [];
   private toastTimeouts: Map<string, any> = new Map();
-
-  // Bulk selection
-  selectAll: boolean = false;
 
   constructor(
     public fileService: FileService,
@@ -162,7 +150,6 @@ export class FilesControlComponent implements OnInit, OnDestroy {
         this.fileTypes = response.data.types;
         this.fileCategories = response.data.categories;
         this.sortOptions = response.data.sortOptions;
-        this.sortOrders = response.data.sortOrders;
       },
       error: (error) => {
         console.error('Error loading file types:', error);
@@ -176,9 +163,7 @@ export class FilesControlComponent implements OnInit, OnDestroy {
     const filters: FileFilters = {
       type: this.selectedType || undefined,
       category: this.selectedCategory || undefined,
-      extension: this.selectedExtension || undefined,
       search: this.searchTerm || undefined,
-      createdBy: this.selectedCreator || undefined,
       startDate: this.startDate || undefined,
       endDate: this.endDate || undefined,
       sortBy: this.sortBy,
@@ -194,9 +179,6 @@ export class FilesControlComponent implements OnInit, OnDestroy {
         this.totalFiles = response.pagination.totalFiles;
         this.totalPages = response.pagination.totalPages;
         this.currentPage = response.pagination.currentPage;
-
-        // Extract unique extensions and creators
-        this.extractUniqueValues();
 
         this.loading = false;
       },
@@ -219,19 +201,6 @@ export class FilesControlComponent implements OnInit, OnDestroy {
     });
   }
 
-  extractUniqueValues(): void {
-    const extensions = new Set<string>();
-    const creators = new Set<string>();
-
-    this.files.forEach(file => {
-      if (file.extension) extensions.add(file.extension);
-      if (file.createdBy) creators.add(file.createdBy);
-    });
-
-    this.availableExtensions = Array.from(extensions).sort();
-    this.availableCreators = Array.from(creators).sort();
-  }
-
   // ============================================
   // FILTERING & SEARCH
   // ============================================
@@ -250,8 +219,6 @@ export class FilesControlComponent implements OnInit, OnDestroy {
     this.searchTerm = '';
     this.selectedType = '';
     this.selectedCategory = '';
-    this.selectedExtension = '';
-    this.selectedCreator = '';
     this.startDate = '';
     this.endDate = '';
     this.sortBy = 'createdAt';
@@ -283,32 +250,6 @@ export class FilesControlComponent implements OnInit, OnDestroy {
       this.currentPage = page;
       this.loadFiles();
     }
-  }
-
-  // ============================================
-  // BULK SELECTION
-  // ============================================
-
-  toggleSelectAll(): void {
-    this.selectAll = !this.selectAll;
-    this.files.forEach(file => file.selected = this.selectAll);
-    this.updateSelectedFiles();
-  }
-
-  toggleFileSelection(file: FileTableData): void {
-    file.selected = !file.selected;
-    this.updateSelectedFiles();
-    this.selectAll = this.files.every(f => f.selected);
-  }
-
-  updateSelectedFiles(): void {
-    this.selectedFiles = this.files.filter(f => f.selected);
-  }
-
-  clearSelection(): void {
-    this.selectAll = false;
-    this.files.forEach(file => file.selected = false);
-    this.selectedFiles = [];
   }
 
   // ============================================
@@ -438,48 +379,6 @@ export class FilesControlComponent implements OnInit, OnDestroy {
   }
 
   // ============================================
-  // BULK DELETE
-  // ============================================
-
-  openBulkDeleteModal(): void {
-    if (this.selectedFiles.length === 0) {
-      this.showToast('warning', 'يرجى تحديد الملفات المراد حذفها');
-      return;
-    }
-    this.showBulkDeleteModal = true;
-  }
-
-  closeBulkDeleteModal(): void {
-    this.showBulkDeleteModal = false;
-  }
-
-  confirmBulkDelete(): void {
-    const fileIds = this.selectedFiles.map(f => f.id);
-
-    this.bulkDeleting = true;
-
-    this.fileService.bulkDeleteFiles(fileIds).subscribe({
-      next: (response) => {
-        this.showToast('success', response.message);
-        this.bulkDeleting = false;
-        this.closeBulkDeleteModal();
-        this.clearSelection();
-        this.loadFiles();
-        this.loadStatistics();
-
-        if (response.data.errors > 0) {
-          this.showToast('warning', `فشل حذف ${response.data.errors} ملف`);
-        }
-      },
-      error: (error) => {
-        console.error('Error bulk deleting files:', error);
-        this.showToast('error', error.error?.message || 'حدث خطأ أثناء حذف الملفات');
-        this.bulkDeleting = false;
-      }
-    });
-  }
-
-  // ============================================
   // STATISTICS MODAL
   // ============================================
 
@@ -490,15 +389,6 @@ export class FilesControlComponent implements OnInit, OnDestroy {
 
   closeStatsModal(): void {
     this.showStatsModal = false;
-  }
-
-  // ============================================
-  // EXPORT
-  // ============================================
-
-  exportFileList(): void {
-    this.fileService.exportFileList();
-    this.showToast('success', 'جاري تصدير قائمة الملفات...');
   }
 
   // ============================================
@@ -550,5 +440,16 @@ export class FilesControlComponent implements OnInit, OnDestroy {
 
   canPreviewFile(file: FileRecord): boolean {
     return file.category === 'pdf' || file.category === 'image';
+  }
+
+  getUserDisplayName(file: FileRecord): string {
+    // If there's a real name available, use it, otherwise use createdBy
+    // You can customize this logic based on your data structure
+    return file.createdByName || file.createdBy || 'غير معروف';
+  }
+
+  getUserIdentifier(file: FileRecord): string {
+    // This shows the username/identifier (like USER-0010)
+    return file.createdByRole || '';
   }
 }

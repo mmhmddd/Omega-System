@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { UsersService } from '../../core/services/users.service';
 import { AuthService } from '../../core/services/auth.service';
+import { FileService } from '../../core/services/file.service';
 
 interface DashboardCard {
   title: string;
@@ -152,7 +153,8 @@ export class DashboardComponent implements OnInit {
 
   constructor(
     private usersService: UsersService,
-    private authService: AuthService
+    private authService: AuthService,
+    private fileService: FileService
   ) {}
 
   ngOnInit(): void {
@@ -210,11 +212,37 @@ export class DashboardComponent implements OnInit {
    */
   private loadFilesCount(): void {
     this.loadingFiles = true;
+    this.filesError = '';
 
-    setTimeout(() => {
-      this.totalFiles = 0;
+    const token = this.authService.getToken();
+    if (!token) {
+      console.error('No authentication token found');
       this.loadingFiles = false;
-    }, 500);
+      this.filesError = 'يرجى تسجيل الدخول أولاً';
+      return;
+    }
+
+    this.fileService.getAllFiles({ limit: 1 }).subscribe({
+      next: (response) => {
+        console.log('Files count response:', response);
+        this.totalFiles = response.pagination.totalFiles;
+        this.loadingFiles = false;
+      },
+      error: (error) => {
+        console.error('Error loading files count:', error);
+        this.loadingFiles = false;
+
+        if (error.status === 401) {
+          this.filesError = 'انتهت صلاحية الجلسة';
+        } else if (error.status === 403) {
+          this.filesError = 'ليس لديك صلاحية للوصول';
+        } else {
+          this.filesError = 'حدث خطأ في تحميل البيانات';
+        }
+
+        this.totalFiles = 0;
+      }
+    });
   }
 
   /**
