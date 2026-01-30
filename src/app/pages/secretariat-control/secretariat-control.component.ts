@@ -4,8 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { SecretariatService, SecretariatForm, CreateFormData, FormType } from '../../core/services/secretariat.service';
 import { AuthService } from '../../core/services/auth.service';
-import { HttpClient } from '@angular/common/http';
-import API_ENDPOINTS from '../../core/constants/api-endpoints';
+
 type ToastType = 'success' | 'error' | 'info' | 'warning';
 
 interface Toast {
@@ -18,7 +17,9 @@ interface Employee {
   id: string;
   name: string;
   username: string;
+  email: string;
   role: string;
+  active: boolean;
 }
 
 @Component({
@@ -100,8 +101,7 @@ export class SecretariatControlComponent implements OnInit, OnDestroy {
 
   constructor(
     private secretariatService: SecretariatService,
-    private authService: AuthService,
-    private http: HttpClient
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -232,19 +232,24 @@ export class SecretariatControlComponent implements OnInit, OnDestroy {
     });
   }
 
+  // ============================================
+  // FIXED: Load employees using secretariat service
+  // ============================================
   loadEmployees(): void {
     this.loadingEmployees = true;
-    // Load all users (employees)
-    this.http.get<{ success: boolean; data: Employee[] }>(API_ENDPOINTS.USERS.GET_ALL).subscribe({
+    // Use the new secretariat employees endpoint
+    this.secretariatService.getAllEmployees().subscribe({
       next: (response) => {
-        // Filter only employees and admins
-        this.employees = response.data.filter(user =>
-          user.role === 'employee' || user.role === 'admin'
-        );
+        this.employees = response.data;
         this.loadingEmployees = false;
+        console.log('Employees loaded:', this.employees.length);
       },
       error: (error) => {
         console.error('Error loading employees:', error);
+        const errorMsg = this.formLanguage === 'ar'
+          ? 'حدث خطأ في تحميل الموظفين'
+          : 'Error loading employees';
+        this.showToast('error', errorMsg);
         this.loadingEmployees = false;
       }
     });

@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import API_ENDPOINTS from '../constants/api-endpoints';
+
 // ============================================
 // INTERFACES
 // ============================================
@@ -20,6 +21,7 @@ export interface SecretariatForm {
   createdAt: string;
   updatedAt: string;
   pdfPath?: string;
+  source?: 'secretariat' | 'user'; // NEW: indicates where form was created
 }
 
 export interface CreateFormData {
@@ -65,7 +67,14 @@ export interface Employee {
   id: string;
   name: string;
   username: string;
+  email: string;
   role: string;
+  active: boolean;
+}
+
+export interface EmployeesResponse {
+  success: boolean;
+  data: Employee[];
 }
 
 // ============================================
@@ -84,7 +93,14 @@ export class SecretariatService {
   // ============================================
 
   /**
-   * Get all forms with filters and pagination
+   * NEW: Get all employees for selection
+   */
+  getAllEmployees(): Observable<EmployeesResponse> {
+    return this.http.get<EmployeesResponse>(API_ENDPOINTS.SECRETARIAT.GET_ALL_EMPLOYEES);
+  }
+
+  /**
+   * UPDATED: Get all forms (includes both secretariat and user forms)
    */
   getAllForms(filters?: {
     formType?: string;
@@ -123,7 +139,7 @@ export class SecretariatService {
   }
 
   /**
-   * Update form status
+   * Update form status (works for both secretariat and user forms)
    */
   updateFormStatus(id: string, status: 'pending' | 'approved' | 'rejected'): Observable<FormResponse> {
     return this.http.patch<FormResponse>(
@@ -287,6 +303,28 @@ export class SecretariatService {
       'account_statement': '#f59e0b'
     };
     return colors[formType] || '#64748b';
+  }
+
+  /**
+   * Get form source badge label
+   */
+  getFormSourceLabel(source: string): string {
+    const labels: { [key: string]: string } = {
+      'secretariat': 'سكرتارية',
+      'user': 'موظف'
+    };
+    return labels[source] || source;
+  }
+
+  /**
+   * Get form source badge color
+   */
+  getFormSourceColor(source: string): string {
+    const colors: { [key: string]: string } = {
+      'secretariat': '#7c3aed',
+      'user': '#0891b2'
+    };
+    return colors[source] || '#64748b';
   }
 
   /**

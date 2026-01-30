@@ -17,6 +17,14 @@ interface Toast {
   message: string;
 }
 
+// ✅ واجهة لتعريف الأدوار
+interface UserRole {
+  value: string;
+  label: string;
+  color: string;
+  displayName?: string; // للعرض في الجدول
+}
+
 @Component({
   selector: 'app-users-control',
   standalone: true,
@@ -70,12 +78,16 @@ export class UsersControlComponent implements OnInit, OnDestroy {
   toasts: Toast[] = [];
   private toastTimeouts: Map<string, any> = new Map();
 
-  // User roles
-  userRoles = [
-    { value: 'super_admin', label: 'مدير عام', color: '#dc2626' },
-    { value: 'admin', label: 'مدير', color: '#ea580c' },
-    { value: 'employee', label: 'موظف', color: '#0891b2' },
-    { value: 'secretariat', label: 'سكرتارية', color: '#7c3aed' }
+  // ✅ User roles - عرض الأسماء العربية لكن حفظ القيم الإنجليزية
+  userRoles: UserRole[] = [
+    { value: 'super_admin', label: 'IT', color: '#dc2626', displayName: 'IT' },
+    { value: 'admin', label: 'المدير', color: '#ea580c', displayName: 'المدير' },
+    { value: 'admin', label: 'المدير العام', color: '#ea580c', displayName: 'المدير العام' },
+    { value: 'admin', label: 'المهندس', color: '#ea580c', displayName: 'المهندس' },
+    { value: 'secretariat', label: 'سكرتيرة', color: '#7c3aed', displayName: 'سكرتيرة' },
+    { value: 'employee', label: 'المحاسبة', color: '#0891b2', displayName: 'المحاسبة' },
+    { value: 'employee', label: 'HR', color: '#0891b2', displayName: 'HR' },
+    { value: 'employee', label: 'مسؤول مستودع', color: '#0891b2', displayName: 'مسؤول مستودع' }
   ];
 
   // Status filters
@@ -130,24 +142,24 @@ export class UsersControlComponent implements OnInit, OnDestroy {
   showToast(type: ToastType, message: string, duration: number = 3000): void {
     const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const toast: Toast = { id, type, message };
-    
-    console.log('🎯 Showing toast:', toast); // ✅ للـ debugging
-    
+
+    console.log('🎯 Showing toast:', toast);
+
     this.toasts.push(toast);
-    
+
     if (duration > 0) {
       const timeout = setTimeout(() => {
         this.removeToast(id);
       }, duration);
       this.toastTimeouts.set(id, timeout);
     }
-    
+
     if (this.toasts.length > 5) {
       const oldestToast = this.toasts[0];
       this.removeToast(oldestToast.id);
     }
-    
-    console.log('📋 Current toasts:', this.toasts); // ✅ للـ debugging
+
+    console.log('📋 Current toasts:', this.toasts);
   }
 
   removeToast(id: string): void {
@@ -621,15 +633,53 @@ export class UsersControlComponent implements OnInit, OnDestroy {
   }
 
   // ============================================
-  // HELPER METHODS
+  // ✅ HELPER METHODS - UPDATED
   // ============================================
 
+  /**
+   * ✅ الحصول على التسمية العربية للدور بناءً على القيمة المحفوظة
+   * يدعم عرض جميع التسميات العربية المختلفة لنفس الدور
+   */
   getRoleLabel(role: string): string {
-    return this.usersService.getRoleLabel(role);
+    // البحث عن أول تسمية متطابقة
+    const foundRole = this.userRoles.find(r => r.value === role);
+
+    if (foundRole) {
+      return foundRole.label;
+    }
+
+    // قيم احتياطية في حالة عدم العثور
+    const roleMap: { [key: string]: string } = {
+      'super_admin': 'IT',
+      'admin': 'المدير',
+      'employee': 'موظف',
+      'secretariat': 'سكرتيرة'
+    };
+
+    return roleMap[role] || role;
   }
 
   getRoleColor(role: string): string {
     return this.usersService.getRoleColor(role);
+  }
+
+  /**
+   * ✅ الحصول على قائمة الأدوار الفريدة للفلتر
+   * تجمع الأدوار المكررة (admin له 3 تسميات مثلاً)
+   */
+  getUniqueRolesForFilter(): Array<{value: string, label: string}> {
+    const uniqueRoles = new Map<string, string>();
+
+    this.userRoles.forEach(role => {
+      if (!uniqueRoles.has(role.value)) {
+        uniqueRoles.set(role.value, role.label);
+      }
+    });
+
+    return Array.from(uniqueRoles.entries()).map(([value, label]) => ({
+      value,
+      label
+    }));
   }
 
   getFormError(formGroup: FormGroup, fieldName: string): string {

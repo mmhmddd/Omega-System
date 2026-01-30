@@ -4,31 +4,53 @@
   </button>
 
   <aside class="sidebar" [class.open]="isSidebarOpen">
-    <!-- Navigation Menu -->
+    <!-- User Profile Section -->
+    <div class="user-profile">
+      <div class="user-avatar">
+        @if (userInitials()) {
+          <span>{{ userInitials() }}</span>
+        } @else {
+          <i class="bi bi-person"></i>
+        }
+      </div>
+      <div class="user-info">
+        <p class="user-name">{{ userName() }}</p>
+        <p class="user-role">{{ userRole() }}</p>
+      </div>
+    </div>
+
+    <!-- Navigation Menu with Sections -->
     <nav class="sidebar-nav">
       <ul class="nav-list">
-        <li *ngFor="let item of menuItems" class="nav-item">
-          <a
-            [routerLink]="item.route"
-            routerLinkActive="active"
-            class="nav-link"
-            (click)="toggleSidebar()">
-            <div class="icon-wrapper">
-              <i class="bi {{ item.icon }}"></i>
-            </div>
-            <span>{{ item.title }}</span>
-          </a>
-        </li>
+        <ng-container *ngFor="let section of menuSections">
+          <!-- Section Title (if exists) -->
+          <li *ngIf="section.title" class="nav-section-title">
+            {{ section.title }}
+          </li>
+
+          <!-- Section Items -->
+          <li *ngFor="let item of section.items" class="nav-item">
+            <a
+              [routerLink]="item.route"
+              routerLinkActive="active"
+              class="nav-link"
+              (click)="toggleSidebar()">
+              <div class="icon-wrapper">
+                <i class="bi {{ item.icon }}"></i>
+              </div>
+              <span>{{ item.title }}</span>
+            </a>
+          </li>
+
+          <!-- Section Divider -->
+          <li *ngIf="section.title" class="nav-divider"></li>
+        </ng-container>
       </ul>
     </nav>
 
     <!-- Footer Section -->
     <div class="sidebar-footer">
-      <button class="settings-btn">
-        <i class="bi bi-gear"></i>
-        <span>الإعدادات</span>
-      </button>
-      <button class="logout-btn" (click)="logout()">
+      <button class="logout-btn" (click)="openLogoutModal()">
         <i class="bi bi-box-arrow-right"></i>
         <span>تسجيل الخروج</span>
       </button>
@@ -37,3 +59,31 @@
 
   <div class="sidebar-overlay" *ngIf="isSidebarOpen" (click)="toggleSidebar()"></div>
 </div>
+
+<!-- Logout Confirmation Modal -->
+@if (showLogoutModal()) {
+  <div class="logout-modal-overlay" (click)="closeLogoutModal()">
+    <div class="logout-modal" (click)="$event.stopPropagation()">
+      <div class="modal-icon">
+        <i class="bi bi-box-arrow-right"></i>
+      </div>
+
+      <h3 class="modal-title">تسجيل الخروج</h3>
+
+      <p class="modal-message">
+        هل أنت متأكد من تسجيل الخروج؟
+      </p>
+
+      <div class="modal-actions">
+        <button class="btn-cancel" (click)="closeLogoutModal()">
+          <i class="bi bi-x-circle"></i>
+          إلغاء
+        </button>
+        <button class="btn-confirm" (click)="confirmLogout()">
+          <i class="bi bi-check-circle"></i>
+          تأكيد
+        </button>
+      </div>
+    </div>
+  </div>
+}

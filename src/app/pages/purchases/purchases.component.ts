@@ -36,17 +36,17 @@ export class PurchasesComponent implements OnInit, OnDestroy {
   currentView: ViewMode = 'list';
   currentStep: FormStep = 'basic';
   formLanguage: FormLanguage = 'ar';
-  
+
   // Data
   pos: PurchaseOrder[] = [];
   selectedPO: PurchaseOrder | null = null;
-  
+
   // Pagination
   currentPage: number = 1;
   totalPages: number = 1;
   totalPOs: number = 0;
   limit: number = 10;
-  
+
   // Search
   searchTerm: string = '';
   showFilterModal: boolean = false;
@@ -56,18 +56,18 @@ export class PurchasesComponent implements OnInit, OnDestroy {
     endDate: '',
     supplier: ''
   };
-  
+
   private searchSubject = new Subject<string>();
-  
+
   // Loading states
   loading: boolean = false;
   savingPO: boolean = false;
   generatingPDF: boolean = false;
-  
+
   // Error handling
   formError: string = '';
   fieldErrors: { [key: string]: string } = {};
-  
+
   // Form data
   poForm: CreatePurchaseOrderData = {
     date: this.getTodayDate(),
@@ -83,32 +83,32 @@ export class PurchasesComponent implements OnInit, OnDestroy {
     items: [],
     notes: ''
   };
-  
+
   // PDF generation
   showPDFModal: boolean = false;
   pdfAttachment: File | null = null;
   pdfPOId: string = '';
   selectedPONumber: string = '';
   formPdfAttachment: File | null = null;
-  
+
   // User role
   userRole: string = '';
-  
+
   // INLINE TOAST STATE
   toasts: Toast[] = [];
   private toastTimeouts: Map<string, any> = new Map();
-  
+
   // INLINE CONFIRMATION STATE
   showConfirmationModal: boolean = false;
   confirmationTitle: string = '';
   confirmationMessage: string = '';
   private confirmationCallback: (() => void) | null = null;
-  
+
   // SUCCESS MODAL STATE
   showSuccessModal: boolean = false;
   successPOId: string = '';
   successPONumber: string = '';
-  
+
   // Translations
   private translations = {
   ar: {
@@ -179,10 +179,10 @@ export class PurchasesComponent implements OnInit, OnDestroy {
       }
     }
   };
-  
+
   constructor(
     private purchaseService: PurchaseService,
-    private supplierService: SupplierService,  
+    private supplierService: SupplierService,
     private authService: AuthService,
     private router: Router,
     private sanitizer: DomSanitizer
@@ -193,9 +193,9 @@ export class PurchasesComponent implements OnInit, OnDestroy {
     this.loadSuppliers();
     const user = this.authService.currentUserValue;
     this.userRole = user ? user.role : '';
-    
+
     this.updateDirection();
-    
+
     this.searchSubject.pipe(
       debounceTime(500),
       distinctUntilChanged()
@@ -216,20 +216,20 @@ export class PurchasesComponent implements OnInit, OnDestroy {
   // ========================================
   // INLINE TOAST METHODS
   // ========================================
-  
+
   showToast(type: ToastType, message: string, duration: number = 3000): void {
     const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const toast: Toast = { id, type, message };
-    
+
     this.toasts.push(toast);
-    
+
     if (duration > 0) {
       const timeout = setTimeout(() => {
         this.removeToast(id);
       }, duration);
       this.toastTimeouts.set(id, timeout);
     }
-    
+
     if (this.toasts.length > 5) {
       const oldestToast = this.toasts[0];
       this.removeToast(oldestToast.id);
@@ -251,7 +251,7 @@ export class PurchasesComponent implements OnInit, OnDestroy {
   // ========================================
   // SUCCESS MODAL METHODS
   // ========================================
-  
+
   openSuccessModal(poId: string, poNumber: string): void {
     this.successPOId = poId;
     this.successPONumber = poNumber;
@@ -264,6 +264,9 @@ export class PurchasesComponent implements OnInit, OnDestroy {
     this.successPONumber = '';
     this.backToList();
   }
+  navigateToSuppliers(): void {
+  this.router.navigate(['/suppliers']);
+}
 
   viewPDFFromSuccess(): void {
     if (this.successPOId) {
@@ -291,7 +294,7 @@ export class PurchasesComponent implements OnInit, OnDestroy {
   // ========================================
   // INLINE CONFIRMATION METHODS
   // ========================================
-  
+
   showConfirmation(title: string, message: string, callback: () => void): void {
     this.confirmationTitle = title;
     this.confirmationMessage = message;
@@ -347,8 +350,8 @@ export class PurchasesComponent implements OnInit, OnDestroy {
         console.error('Error loading suppliers:', error);
         this.suppliers = [];
         this.loadingSuppliers = false;
-        this.showToast('error', this.formLanguage === 'ar' 
-          ? 'فشل تحميل قائمة الموردين' 
+        this.showToast('error', this.formLanguage === 'ar'
+          ? 'فشل تحميل قائمة الموردين'
           : 'Failed to load suppliers list'
         );
       }
@@ -395,7 +398,7 @@ export class PurchasesComponent implements OnInit, OnDestroy {
       this.fieldErrors['receiver'] = this.t('errors.receiverRequired');
       isValid = false;
     }
-    
+
     if (!this.poForm.items || this.poForm.items.length === 0) {
       this.fieldErrors['items'] = this.t('errors.itemsRequired');
       isValid = false;
@@ -525,7 +528,7 @@ export class PurchasesComponent implements OnInit, OnDestroy {
 loadPOs(): void {
   this.loading = true;
   this.clearErrors();
-  
+
   // Build filter params - only include non-empty values
   const filterParams: any = {
     page: this.currentPage,
@@ -656,7 +659,7 @@ loadPOs(): void {
 
     this.savingPO = true;
     this.clearErrors();
-    
+
     const poData = {
       date: this.poForm.date,
       supplier: this.poForm.supplier,
@@ -794,7 +797,7 @@ loadPOs(): void {
 
   nextStep(): void {
     if (this.currentStep === 'basic') {
-      const itemsErrorKeys = Object.keys(this.fieldErrors).filter(key => 
+      const itemsErrorKeys = Object.keys(this.fieldErrors).filter(key =>
         key === 'items' || key.startsWith('item_')
       );
       itemsErrorKeys.forEach(key => delete this.fieldErrors[key]);

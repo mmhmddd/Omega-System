@@ -101,6 +101,24 @@
         padding: 0;
         margin: 0;
 
+        // Section Title
+        .nav-section-title {
+          padding: 0.75rem 1.5rem 0.5rem;
+          font-size: 0.75rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: #64748b;
+          margin-top: 0.5rem;
+        }
+
+        // Section Divider
+        .nav-divider {
+          height: 1px;
+          background: rgba(255, 255, 255, 0.08);
+          margin: 0.75rem 1.5rem;
+        }
+
         .nav-item {
           margin-bottom: 0.25rem;
 
@@ -115,16 +133,50 @@
             font-size: 0.9375rem;
             font-weight: 500;
             border-right: 3px solid transparent;
+            position: relative;
+
+            &::before {
+              content: '';
+              position: absolute;
+              right: 0;
+              top: 50%;
+              transform: translateY(-50%);
+              width: 0;
+              height: 70%;
+              background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.2));
+              transition: width 0.3s ease;
+            }
 
             &:hover {
               background-color: rgba(255, 255, 255, 0.05);
               color: white;
+
+              &::before {
+                width: 100%;
+              }
+
+              .icon-wrapper {
+                transform: scale(1.1);
+              }
             }
 
             &.active {
-              background-color: #3b82f6;
-              color: white;
-              border-right-color: #2563eb;
+              background-color: rgba(59, 130, 246, 0.15);
+              color: #60a5fa;
+              border-right-color: #3b82f6;
+
+              &::before {
+                width: 100%;
+                background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.1));
+              }
+
+              .icon-wrapper {
+                color: #3b82f6;
+
+                i {
+                  animation: iconPulse 2s ease-in-out infinite;
+                }
+              }
             }
 
             .icon-wrapper {
@@ -134,6 +186,7 @@
               align-items: center;
               justify-content: center;
               flex-shrink: 0;
+              transition: transform 0.2s ease;
 
               i {
                 font-size: 1.125rem;
@@ -187,6 +240,7 @@
           &:hover {
             background-color: rgba(255, 255, 255, 0.05);
             color: white;
+            transform: translateX(-2px);
           }
         }
 
@@ -197,6 +251,7 @@
           &:hover {
             background-color: rgba(248, 113, 113, 0.1);
             color: #ef4444;
+            transform: translateX(-2px);
           }
         }
       }
@@ -205,6 +260,16 @@
 
   .sidebar-overlay {
     display: none;
+  }
+}
+
+// Icon pulse animation for active items
+@keyframes iconPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
   }
 }
 
@@ -246,5 +311,166 @@
     .sidebar {
       transform: translateX(0) !important;
     }
+  }
+}
+
+// ============================================
+// LOGOUT MODAL
+// ============================================
+
+.logout-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1002;
+  padding: 1rem;
+  animation: fadeIn 0.2s ease;
+
+  .logout-modal {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    animation: slideUp 0.3s ease;
+
+    .modal-icon {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.5rem;
+
+      i {
+        font-size: 2rem;
+        color: #dc2626;
+      }
+    }
+
+    .modal-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1a2332;
+      margin: 0 0 1rem 0;
+    }
+
+    .modal-message {
+      font-size: 1rem;
+      color: #334155;
+      margin: 0 0 2rem 0;
+      line-height: 1.6;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+
+      button {
+        flex: 1;
+        padding: 0.875rem 1.5rem;
+        border-radius: 10px;
+        font-size: 0.9375rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
+
+        i {
+          font-size: 1.125rem;
+        }
+      }
+
+      .btn-cancel {
+        background: white;
+        color: #334155;
+        border: 2px solid #e2e8f0;
+
+        &:hover {
+          background: #f8fafc;
+          border-color: #cbd5e1;
+        }
+      }
+
+      .btn-confirm {
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        color: white;
+        border: none;
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+
+        &:hover {
+          background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(220, 38, 38, 0.4);
+        }
+      }
+    }
+
+    @media (max-width: 500px) {
+      padding: 1.5rem;
+
+      .modal-icon {
+        width: 56px;
+        height: 56px;
+        margin-bottom: 1.25rem;
+
+        i {
+          font-size: 1.75rem;
+        }
+      }
+
+      .modal-title {
+        font-size: 1.25rem;
+      }
+
+      .modal-message {
+        font-size: 0.9375rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .modal-actions {
+        flex-direction: column;
+
+        button {
+          padding: 0.75rem 1.25rem;
+          font-size: 0.875rem;
+        }
+      }
+    }
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

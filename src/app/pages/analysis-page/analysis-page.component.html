@@ -10,49 +10,34 @@
         <p class="page-subtitle">تحليل شامل لبيانات النظام والأداء</p>
       </div>
 
-      <div class="header-actions">
-        <button class="action-btn refresh-btn" (click)="refreshData()" [disabled]="isLoading">
-          <i class="bi bi-arrow-clockwise" [class.spinning]="isLoading"></i>
-          <span>تحديث</span>
-        </button>
-        <button class="action-btn export-btn" (click)="exportToExcel()">
-          <i class="bi bi-file-earmark-excel"></i>
-          <span>تصدير Excel</span>
-        </button>
-        <button class="action-btn export-btn" (click)="exportToPDF()">
-          <i class="bi bi-file-earmark-pdf"></i>
-          <span>تصدير PDF</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Period Filter -->
-    <div class="period-filter">
-      <div class="filter-tabs">
-        <button
-          class="filter-tab"
-          [class.active]="selectedPeriod === 'week'"
-          (click)="selectPeriod('week')">
-          هذا الأسبوع
-        </button>
-        <button
-          class="filter-tab"
-          [class.active]="selectedPeriod === 'month'"
-          (click)="selectPeriod('month')">
-          هذا الشهر
-        </button>
-        <button
-          class="filter-tab"
-          [class.active]="selectedPeriod === 'quarter'"
-          (click)="selectPeriod('quarter')">
-          هذا الربع
-        </button>
-        <button
-          class="filter-tab"
-          [class.active]="selectedPeriod === 'year'"
-          (click)="selectPeriod('year')">
-          هذا العام
-        </button>
+      <!-- Period Filter -->
+      <div class="period-filter">
+        <div class="filter-tabs">
+          <button
+            class="filter-tab"
+            [class.active]="selectedPeriod === 'week'"
+            (click)="selectPeriod('week')">
+            هذا الأسبوع
+          </button>
+          <button
+            class="filter-tab"
+            [class.active]="selectedPeriod === 'month'"
+            (click)="selectPeriod('month')">
+            هذا الشهر
+          </button>
+          <button
+            class="filter-tab"
+            [class.active]="selectedPeriod === 'quarter'"
+            (click)="selectPeriod('quarter')">
+            هذا الربع
+          </button>
+          <button
+            class="filter-tab"
+            [class.active]="selectedPeriod === 'year'"
+            (click)="selectPeriod('year')">
+            هذا العام
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -177,88 +162,78 @@
 
     <!-- Cutting Tab -->
     <div class="tab-content" *ngIf="activeTab === 'cutting'">
-      <div class="detail-grid">
-        <!-- Status Distribution -->
-        <div class="detail-card">
-          <div class="card-header">
-            <h3>توزيع أوامر القص حسب الحالة</h3>
+      <div class="charts-row">
+        <!-- Status Distribution Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3 class="chart-title">
+              <i class="bi bi-pie-chart-fill"></i>
+              توزيع أوامر القص حسب الحالة
+            </h3>
           </div>
-          <div class="card-body">
-            <div class="progress-list">
-              <div class="progress-item" *ngFor="let label of cuttingByStatus.labels; let i = index">
-                <div class="progress-header">
-                  <span class="progress-label">{{ label }}</span>
-                  <span class="progress-value">{{ cuttingByStatus.data[i] }}</span>
-                </div>
-                <div class="progress-bar-container">
-                  <div
-                    class="progress-bar-fill"
-                    [style.width.%]="getChartPercentage(cuttingByStatus.data, i)"
-                    [style.background-color]="cuttingByStatus.colors[i]">
-                  </div>
-                </div>
-                <span class="progress-percentage">
-                  {{ getChartPercentage(cuttingByStatus.data, i) }}%
-                </span>
-              </div>
-            </div>
+          <div class="chart-body">
+            <canvas id="cuttingStatusChart"></canvas>
           </div>
         </div>
 
-        <!-- Material Distribution -->
-        <div class="detail-card">
-          <div class="card-header">
-            <h3>توزيع أوامر القص حسب نوع المادة</h3>
+        <!-- Material Distribution Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3 class="chart-title">
+              <i class="bi bi-bar-chart-fill"></i>
+              توزيع أوامر القص حسب نوع المادة
+            </h3>
           </div>
-          <div class="card-body">
-            <div class="progress-list">
-              <div class="progress-item" *ngFor="let label of cuttingByMaterial.labels; let i = index">
-                <div class="progress-header">
-                  <span class="progress-label">{{ label }}</span>
-                  <span class="progress-value">{{ cuttingByMaterial.data[i] }}</span>
-                </div>
-                <div class="progress-bar-container">
-                  <div
-                    class="progress-bar-fill"
-                    [style.width.%]="getChartPercentage(cuttingByMaterial.data, i)"
-                    [style.background-color]="cuttingByMaterial.colors[i]">
-                  </div>
-                </div>
-                <span class="progress-percentage">
-                  {{ getChartPercentage(cuttingByMaterial.data, i) }}%
-                </span>
+          <div class="chart-body">
+            <canvas id="cuttingMaterialChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Overall Progress -->
+      <div class="progress-card" *ngIf="cuttingStats?.totalProgress">
+        <div class="progress-header">
+          <h3 class="progress-title">
+            <i class="bi bi-activity"></i>
+            التقدم الإجمالي للقص
+          </h3>
+        </div>
+        <div class="progress-body">
+          <div class="progress-stats-grid">
+            <div class="progress-stat-item">
+              <div class="stat-icon-wrapper" style="background: rgba(59, 130, 246, 0.1);">
+                <i class="bi bi-layers-fill" style="color: #3b82f6;"></i>
+              </div>
+              <div class="stat-content">
+                <span class="stat-label">الكمية الإجمالية</span>
+                <span class="stat-value">{{ formatNumber(cuttingStats.totalProgress.totalQuantity) }}</span>
+              </div>
+            </div>
+            <div class="progress-stat-item">
+              <div class="stat-icon-wrapper" style="background: rgba(16, 185, 129, 0.1);">
+                <i class="bi bi-check-circle-fill" style="color: #10b981;"></i>
+              </div>
+              <div class="stat-content">
+                <span class="stat-label">تم قصه</span>
+                <span class="stat-value">{{ formatNumber(cuttingStats.totalProgress.totalCut) }}</span>
+              </div>
+            </div>
+            <div class="progress-stat-item">
+              <div class="stat-icon-wrapper" style="background: rgba(139, 92, 246, 0.1);">
+                <i class="bi bi-percent" style="color: #8b5cf6;"></i>
+              </div>
+              <div class="stat-content">
+                <span class="stat-label">نسبة الإنجاز</span>
+                <span class="stat-value">{{ cuttingStats.totalProgress.percentageComplete }}%</span>
               </div>
             </div>
           </div>
-        </div>
-
-        <!-- Overall Progress -->
-        <div class="detail-card full-width" *ngIf="cuttingStats?.totalProgress">
-          <div class="card-header">
-            <h3>التقدم الإجمالي</h3>
-          </div>
-          <div class="card-body">
-            <div class="overall-progress">
-              <div class="progress-stats">
-                <div class="progress-stat">
-                  <span class="stat-label">الكمية الإجمالية</span>
-                  <span class="stat-value">{{ formatNumber(cuttingStats.totalProgress.totalQuantity) }}</span>
-                </div>
-                <div class="progress-stat">
-                  <span class="stat-label">تم قصه</span>
-                  <span class="stat-value">{{ formatNumber(cuttingStats.totalProgress.totalCut) }}</span>
-                </div>
-                <div class="progress-stat">
-                  <span class="stat-label">نسبة الإنجاز</span>
-                  <span class="stat-value">{{ cuttingStats.totalProgress.percentageComplete }}%</span>
-                </div>
-              </div>
-              <div class="large-progress-bar">
-                <div
-                  class="large-progress-fill"
-                  [style.width.%]="cuttingStats.totalProgress.percentageComplete">
-                  <span class="progress-text">{{ cuttingStats.totalProgress.percentageComplete }}%</span>
-                </div>
+          <div class="large-progress-container">
+            <div class="large-progress-bar">
+              <div
+                class="large-progress-fill"
+                [style.width.%]="cuttingStats.totalProgress.percentageComplete">
+                <span class="progress-text">{{ cuttingStats.totalProgress.percentageComplete }}%</span>
               </div>
             </div>
           </div>
@@ -269,240 +244,114 @@
     <!-- Procurement Tab -->
     <div class="tab-content" *ngIf="activeTab === 'procurement'">
       <div class="detail-grid">
-        <!-- RFQ Statistics -->
-        <div class="detail-card">
+        <!-- RFQ Time Stats - SIMPLIFIED -->
+        <div class="time-stats-card">
           <div class="card-header">
-            <h3>إحصائيات طلبات التسعير</h3>
+            <h3 class="card-title">
+              <i class="bi bi-clock-history"></i>
+              إحصائيات طلبات التسعير الزمنية
+            </h3>
           </div>
           <div class="card-body">
-            <div class="stat-list">
-              <div class="stat-row">
-                <span class="stat-label">إجمالي الطلبات</span>
-                <span class="stat-value">{{ formatNumber(rfqStats?.totalRFQs || 0) }}</span>
-              </div>
-              <div class="stat-row">
-                <span class="stat-label">قيد الانتظار</span>
-                <span class="stat-value">{{ formatNumber(rfqStats?.pending || 0) }}</span>
-              </div>
-              <div class="stat-row">
-                <span class="stat-label">معتمد</span>
-                <span class="stat-value">{{ formatNumber(rfqStats?.approved || 0) }}</span>
-              </div>
-              <div class="stat-row">
-                <span class="stat-label">مرفوض</span>
-                <span class="stat-value">{{ formatNumber(rfqStats?.rejected || 0) }}</span>
-              </div>
-              <div class="stat-row highlight">
-                <span class="stat-label">طلبات عاجلة</span>
-                <span class="stat-value urgent">{{ formatNumber(rfqStats?.urgent || 0) }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- RFQ Status Chart -->
-        <div class="detail-card">
-          <div class="card-header">
-            <h3>توزيع طلبات التسعير حسب الحالة</h3>
-          </div>
-          <div class="card-body">
-            <div class="progress-list">
-              <div class="progress-item" *ngFor="let label of rfqByStatus.labels; let i = index">
-                <div class="progress-header">
-                  <span class="progress-label">{{ label }}</span>
-                  <span class="progress-value">{{ rfqByStatus.data[i] }}</span>
-                </div>
-                <div class="progress-bar-container">
-                  <div
-                    class="progress-bar-fill"
-                    [style.width.%]="getChartPercentage(rfqByStatus.data, i)"
-                    [style.background-color]="rfqByStatus.colors[i]">
-                  </div>
-                </div>
-                <span class="progress-percentage">
-                  {{ getChartPercentage(rfqByStatus.data, i) }}%
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Time-based Stats -->
-        <div class="detail-card full-width" *ngIf="rfqStats">
-          <div class="card-header">
-            <h3>الإحصائيات الزمنية</h3>
-          </div>
-          <div class="card-body">
-            <div class="time-stats">
-              <div class="time-stat">
+            <div class="time-stats-grid">
+              <div class="time-stat-box">
                 <div class="time-icon">
-                  <i class="bi bi-calendar-day"></i>
+                  <i class="bi bi-calendar-day-fill"></i>
                 </div>
-                <div class="time-info">
-                  <span class="time-value">{{ formatNumber(rfqStats.today || 0) }}</span>
+                <div class="time-content">
+                  <span class="time-value">{{ formatNumber(rfqStats?.today || 0) }}</span>
                   <span class="time-label">اليوم</span>
                 </div>
               </div>
-              <div class="time-stat">
+              <div class="time-stat-box">
                 <div class="time-icon">
-                  <i class="bi bi-calendar-week"></i>
+                  <i class="bi bi-calendar-week-fill"></i>
                 </div>
-                <div class="time-info">
-                  <span class="time-value">{{ formatNumber(rfqStats.thisWeek || 0) }}</span>
+                <div class="time-content">
+                  <span class="time-value">{{ formatNumber(rfqStats?.thisWeek || 0) }}</span>
                   <span class="time-label">هذا الأسبوع</span>
                 </div>
               </div>
-              <div class="time-stat">
+              <div class="time-stat-box">
                 <div class="time-icon">
-                  <i class="bi bi-calendar-month"></i>
+                  <i class="bi bi-calendar-month-fill"></i>
                 </div>
-                <div class="time-info">
-                  <span class="time-value">{{ formatNumber(rfqStats.thisMonth || 0) }}</span>
+                <div class="time-content">
+                  <span class="time-value">{{ formatNumber(rfqStats?.thisMonth || 0) }}</span>
                   <span class="time-label">هذا الشهر</span>
                 </div>
               </div>
+              <div class="time-stat-box highlight">
+                <div class="time-icon">
+                  <i class="bi bi-graph-up-arrow"></i>
+                </div>
+                <div class="time-content">
+                  <span class="time-value">{{ formatNumber(rfqStats?.totalRFQs || 0) }}</span>
+                  <span class="time-label">إجمالي الطلبات</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Secretariat Tab -->
+    <!-- Secretariat Tab - ONLY TYPE CHART -->
     <div class="tab-content" *ngIf="activeTab === 'secretariat'">
-      <div class="detail-grid">
-        <!-- Forms by Type -->
-        <div class="detail-card">
-          <div class="card-header">
-            <h3>توزيع النماذج حسب النوع</h3>
+      <div class="charts-row single-chart">
+        <div class="chart-card large">
+          <div class="chart-header">
+            <h3 class="chart-title">
+              <i class="bi bi-pie-chart-fill"></i>
+              توزيع النماذج حسب النوع
+            </h3>
           </div>
-          <div class="card-body">
-            <div class="progress-list">
-              <div class="progress-item" *ngFor="let label of formsByType.labels; let i = index">
-                <div class="progress-header">
-                  <span class="progress-label">{{ label }}</span>
-                  <span class="progress-value">{{ formsByType.data[i] }}</span>
-                </div>
-                <div class="progress-bar-container">
-                  <div
-                    class="progress-bar-fill"
-                    [style.width.%]="getChartPercentage(formsByType.data, i)"
-                    [style.background-color]="formsByType.colors[i]">
-                  </div>
-                </div>
-                <span class="progress-percentage">
-                  {{ getChartPercentage(formsByType.data, i) }}%
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Forms by Status -->
-        <div class="detail-card">
-          <div class="card-header">
-            <h3>توزيع النماذج حسب الحالة</h3>
-          </div>
-          <div class="card-body">
-            <div class="progress-list">
-              <div class="progress-item" *ngFor="let label of formsByStatus.labels; let i = index">
-                <div class="progress-header">
-                  <span class="progress-label">{{ label }}</span>
-                  <span class="progress-value">{{ formsByStatus.data[i] }}</span>
-                </div>
-                <div class="progress-bar-container">
-                  <div
-                    class="progress-bar-fill"
-                    [style.width.%]="getChartPercentage(formsByStatus.data, i)"
-                    [style.background-color]="formsByStatus.colors[i]">
-                  </div>
-                </div>
-                <span class="progress-percentage">
-                  {{ getChartPercentage(formsByStatus.data, i) }}%
-                </span>
-              </div>
-            </div>
+          <div class="chart-body large-chart">
+            <canvas id="secretariatTypeChart"></canvas>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Suppliers Tab -->
+    <!-- Suppliers Tab - REMOVED RATING SECTION -->
     <div class="tab-content" *ngIf="activeTab === 'suppliers'">
-      <div class="detail-grid">
-        <!-- Suppliers by Status -->
-        <div class="detail-card">
-          <div class="card-header">
-            <h3>توزيع الموردين حسب الحالة</h3>
+      <div class="charts-row">
+        <!-- Status Distribution Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3 class="chart-title">
+              <i class="bi bi-pie-chart-fill"></i>
+              توزيع الموردين حسب الحالة
+            </h3>
           </div>
-          <div class="card-body">
-            <div class="progress-list">
-              <div class="progress-item" *ngFor="let label of suppliersByStatus.labels; let i = index">
-                <div class="progress-header">
-                  <span class="progress-label">{{ label }}</span>
-                  <span class="progress-value">{{ suppliersByStatus.data[i] }}</span>
-                </div>
-                <div class="progress-bar-container">
-                  <div
-                    class="progress-bar-fill"
-                    [style.width.%]="getChartPercentage(suppliersByStatus.data, i)"
-                    [style.background-color]="suppliersByStatus.colors[i]">
-                  </div>
-                </div>
-                <span class="progress-percentage">
-                  {{ getChartPercentage(suppliersByStatus.data, i) }}%
-                </span>
-              </div>
-            </div>
+          <div class="chart-body">
+            <canvas id="supplierStatusChart"></canvas>
           </div>
         </div>
 
-        <!-- Top Countries -->
-        <div class="detail-card">
-          <div class="card-header">
-            <h3>أعلى 5 دول</h3>
+        <!-- Top Countries Stats -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3 class="chart-title">
+              <i class="bi bi-geo-alt-fill"></i>
+              أعلى 5 دول
+            </h3>
           </div>
-          <div class="card-body">
-            <div class="progress-list">
-              <div class="progress-item" *ngFor="let label of suppliersByCountry.labels; let i = index">
-                <div class="progress-header">
-                  <span class="progress-label">{{ label }}</span>
-                  <span class="progress-value">{{ suppliersByCountry.data[i] }}</span>
+          <div class="chart-body">
+            <div class="country-list">
+              <div class="country-item" *ngFor="let label of suppliersByCountry.labels; let i = index">
+                <div class="country-info">
+                  <span class="country-flag">🌍</span>
+                  <span class="country-name">{{ label }}</span>
                 </div>
-                <div class="progress-bar-container">
-                  <div
-                    class="progress-bar-fill"
-                    [style.width.%]="getChartPercentage(suppliersByCountry.data, i)"
-                    [style.background-color]="suppliersByCountry.colors[i]">
-                  </div>
-                </div>
-                <span class="progress-percentage">
-                  {{ getChartPercentage(suppliersByCountry.data, i) }}%
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Supplier Rating -->
-        <div class="detail-card full-width" *ngIf="supplierStats">
-          <div class="card-header">
-            <h3>تقييمات الموردين</h3>
-          </div>
-          <div class="card-body">
-            <div class="rating-overview">
-              <div class="rating-main">
-                <div class="rating-value">{{ supplierStats.averageRating?.toFixed(1) || 0 }}</div>
-                <div class="rating-stars">
-                  <i class="bi bi-star-fill" *ngFor="let star of [1,2,3,4,5]"></i>
-                </div>
-                <div class="rating-label">متوسط التقييم</div>
-              </div>
-              <div class="top-rated" *ngIf="supplierStats.topRated && supplierStats.topRated.length > 0">
-                <h4>أفضل الموردين تقييماً</h4>
-                <div class="supplier-list">
-                  <div class="supplier-item" *ngFor="let supplier of supplierStats.topRated">
-                    <span class="supplier-name">{{ supplier.name }}</span>
-                    <span class="supplier-rating">{{ supplier.rating }} ⭐</span>
+                <div class="country-stats">
+                  <span class="country-count">{{ suppliersByCountry.data[i] }}</span>
+                  <div class="country-bar-mini">
+                    <div
+                      class="country-bar-fill"
+                      [style.width.%]="getChartPercentage(suppliersByCountry.data, i)"
+                      [style.background-color]="suppliersByCountry.colors[i]">
+                    </div>
                   </div>
                 </div>
               </div>

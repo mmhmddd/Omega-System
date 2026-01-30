@@ -1,8 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+import { Chart, ChartConfiguration, registerables } from 'chart.js';
+
+// Register Chart.js components
+Chart.register(...registerables);
 
 // Import all services
 import { CuttingService, CuttingStatisticsResponse } from '../../core/services/cutting.service';
@@ -24,7 +28,6 @@ interface StatCard {
   value: number | string;
   icon: string;
   color: string;
-  trend?: number;
   subtitle?: string;
 }
 
@@ -60,7 +63,7 @@ interface CategoryAnalysis {
   templateUrl: './analysis-page.component.html',
   styleUrl: './analysis-page.component.scss'
 })
-export class AnalysisPageComponent implements OnInit {
+export class AnalysisPageComponent implements OnInit, OnDestroy {
   // Loading states
   isLoading = true;
   loadingMessage = 'جاري تحميل البيانات...';
@@ -69,22 +72,8 @@ export class AnalysisPageComponent implements OnInit {
   hasError = false;
   errorMessage = '';
 
-  // Service status tracking
-  serviceStatus = {
-    users: true,
-    cutting: true,
-    priceQuotes: true,
-    purchases: true,
-    receipts: true,
-    rfqs: true,
-    secretariat: true,
-    suppliers: true
-  };
-
   // Date filters
   selectedPeriod: 'week' | 'month' | 'quarter' | 'year' = 'month';
-  customStartDate: string = '';
-  customEndDate: string = '';
 
   // System Overview
   systemOverview: SystemOverview = {
@@ -109,22 +98,23 @@ export class AnalysisPageComponent implements OnInit {
   cuttingByStatus: ChartData = { labels: [], data: [], colors: [] };
   cuttingByMaterial: ChartData = { labels: [], data: [], colors: [] };
 
-  // RFQ Analysis
+  // RFQ Analysis - SIMPLIFIED (removed status breakdown)
   rfqStats: any = null;
-  rfqByStatus: ChartData = { labels: [], data: [], colors: [] };
 
   // Supplier Analysis
   supplierStats: any = null;
   suppliersByStatus: ChartData = { labels: [], data: [], colors: [] };
   suppliersByCountry: ChartData = { labels: [], data: [], colors: [] };
 
-  // Secretariat Analysis
+  // Secretariat Analysis - SIMPLIFIED (removed status, only type)
   secretariatStats: any = null;
   formsByType: ChartData = { labels: [], data: [], colors: [] };
-  formsByStatus: ChartData = { labels: [], data: [], colors: [] };
 
   // Active tab
   activeTab: 'overview' | 'cutting' | 'procurement' | 'secretariat' | 'suppliers' = 'overview';
+
+  // Chart instances
+  private charts: { [key: string]: Chart } = {};
 
   constructor(
     private cuttingService: CuttingService,
@@ -142,6 +132,15 @@ export class AnalysisPageComponent implements OnInit {
     this.loadAllAnalytics();
   }
 
+  ngOnDestroy(): void {
+    // Destroy all charts
+    Object.values(this.charts).forEach(chart => {
+      if (chart) {
+        chart.destroy();
+      }
+    });
+  }
+
   // ============================================
   // DATA LOADING
   // ============================================
@@ -154,14 +153,12 @@ export class AnalysisPageComponent implements OnInit {
       users: this.usersService.getAllUsers({ limit: 1 }).pipe(
         catchError(error => {
           console.warn('Users service error:', error);
-          this.serviceStatus.users = false;
           return of({ pagination: { totalUsers: 0 } });
         })
       ),
       cutting: this.cuttingService.getStatistics().pipe(
         catchError(error => {
           console.warn('Cutting service error:', error);
-          this.serviceStatus.cutting = false;
           return of({
             data: {
               total: 0,
@@ -175,47 +172,43 @@ export class AnalysisPageComponent implements OnInit {
       priceQuotes: this.priceQuoteService.getAllPriceQuotes({ limit: 1 }).pipe(
         catchError(error => {
           console.warn('Price quotes service error:', error);
-          this.serviceStatus.priceQuotes = false;
           return of({ pagination: { totalQuotes: 0 } });
         })
       ),
       purchases: this.purchaseService.getAllPOs({ limit: 1 }).pipe(
         catchError(error => {
           console.warn('Purchases service error:', error);
-          this.serviceStatus.purchases = false;
           return of({ pagination: { totalPOs: 0 } });
         })
       ),
       receipts: this.receiptService.getAllReceipts({ limit: 1 }).pipe(
         catchError(error => {
           console.warn('Receipts service error:', error);
-          this.serviceStatus.receipts = false;
           return of({ pagination: { totalReceipts: 0 } });
         })
       ),
       rfqs: this.rfqService.getRFQStats().pipe(
         catchError(error => {
           console.warn('RFQ service error:', error);
-          this.serviceStatus.rfqs = false;
           return of({
             data: {
-              totalRFQs: 0, pending: 0, approved: 0, rejected: 0,
-              urgent: 0, thisMonth: 0, thisWeek: 0, today: 0
+              totalRFQs: 0,
+              thisMonth: 0,
+              thisWeek: 0,
+              today: 0
             }
           });
         })
       ),
-      secretariat: this.secretariatService.getAllForms({ limit: 1 }).pipe(
+      secretariat: this.secretariatService.getAllForms({ limit: 1000 }).pipe(
         catchError(error => {
           console.warn('Secretariat service error:', error);
-          this.serviceStatus.secretariat = false;
           return of({ pagination: { totalForms: 0 }, data: [] });
         })
       ),
       suppliers: this.supplierService.getStatistics().pipe(
         catchError(error => {
           console.warn('Suppliers service error:', error);
-          this.serviceStatus.suppliers = false;
           return of({
             data: {
               total: 0, active: 0, inactive: 0, pending: 0,
@@ -229,6 +222,8 @@ export class AnalysisPageComponent implements OnInit {
       next: (results) => {
         this.processAnalyticsData(results);
         this.isLoading = false;
+        // Create charts after data is loaded
+        setTimeout(() => this.createAllCharts(), 100);
       },
       error: (error) => {
         console.error('Error loading analytics:', error);
@@ -258,13 +253,13 @@ export class AnalysisPageComponent implements OnInit {
     // Process Cutting Statistics
     this.processCuttingStats(results.cutting);
 
-    // Process RFQ Statistics
+    // Process RFQ Statistics (simplified)
     this.processRFQStats(results.rfqs);
 
     // Process Supplier Statistics
     this.processSupplierStats(results.suppliers);
 
-    // Process Secretariat Statistics
+    // Process Secretariat Statistics (only by type)
     this.processSecretariatStats(results.secretariat);
 
     // Build category analysis
@@ -353,21 +348,17 @@ export class AnalysisPageComponent implements OnInit {
     this.cuttingByMaterial = {
       labels: Object.keys(materialData),
       data: Object.values(materialData),
-      colors: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6']
+      colors: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899']
     };
   }
 
   processRFQStats(rfqData: RFQStatsResponse): void {
-    this.rfqStats = rfqData.data;
-
-    this.rfqByStatus = {
-      labels: ['قيد الانتظار', 'معتمد', 'مرفوض'],
-      data: [
-        rfqData.data.pending || 0,
-        rfqData.data.approved || 0,
-        rfqData.data.rejected || 0
-      ],
-      colors: ['#f59e0b', '#10b981', '#ef4444']
+    // Only store time-based stats, no status breakdown
+    this.rfqStats = {
+      totalRFQs: rfqData.data.totalRFQs || 0,
+      today: rfqData.data.today || 0,
+      thisWeek: rfqData.data.thisWeek || 0,
+      thisMonth: rfqData.data.thisMonth || 0
     };
   }
 
@@ -376,14 +367,13 @@ export class AnalysisPageComponent implements OnInit {
 
     // By Status
     this.suppliersByStatus = {
-      labels: ['نشط', 'غير نشط', 'قيد الانتظار', 'معلق'],
+      labels: ['نشط', 'غير نشط', 'قيد الانتظار'],
       data: [
         supplierData.data.active || 0,
         supplierData.data.inactive || 0,
-        supplierData.data.pending || 0,
-        0 // suspended not in response
+        supplierData.data.pending || 0
       ],
-      colors: ['#10b981', '#ef4444', '#f59e0b', '#6b7280']
+      colors: ['#10b981', '#ef4444', '#f59e0b']
     };
 
     // By Country
@@ -396,10 +386,9 @@ export class AnalysisPageComponent implements OnInit {
   }
 
   processSecretariatStats(secretariatData: FormsResponse): void {
-    // This is a simplified version - you might need to fetch more detailed stats
     const forms = secretariatData.data || [];
 
-    // Count by type
+    // Count ONLY by type (no status)
     const typeCount = {
       departure: 0,
       vacation: 0,
@@ -407,18 +396,9 @@ export class AnalysisPageComponent implements OnInit {
       account_statement: 0
     };
 
-    const statusCount = {
-      pending: 0,
-      approved: 0,
-      rejected: 0
-    };
-
     forms.forEach(form => {
       if (form.formType in typeCount) {
         typeCount[form.formType as keyof typeof typeCount]++;
-      }
-      if (form.status in statusCount) {
-        statusCount[form.status as keyof typeof statusCount]++;
       }
     });
 
@@ -431,12 +411,6 @@ export class AnalysisPageComponent implements OnInit {
         typeCount.account_statement
       ],
       colors: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b']
-    };
-
-    this.formsByStatus = {
-      labels: ['قيد الانتظار', 'معتمد', 'مرفوض'],
-      data: [statusCount.pending, statusCount.approved, statusCount.rejected],
-      colors: ['#f59e0b', '#10b981', '#ef4444']
     };
   }
 
@@ -463,8 +437,7 @@ export class AnalysisPageComponent implements OnInit {
           { label: 'عروض الأسعار', value: this.systemOverview.totalPriceQuotes },
           { label: 'أوامر الشراء', value: this.systemOverview.totalPurchaseOrders },
           { label: 'إشعارات الاستلام', value: this.systemOverview.totalReceipts },
-          { label: 'طلبات التسعير', value: this.systemOverview.totalRFQs },
-          { label: 'طلبات عاجلة', value: this.rfqStats?.urgent || 0 }
+          { label: 'طلبات التسعير', value: this.systemOverview.totalRFQs }
         ]
       },
       {
@@ -473,9 +446,9 @@ export class AnalysisPageComponent implements OnInit {
         color: '#6b7280',
         stats: [
           { label: 'إجمالي النماذج', value: this.systemOverview.totalSecretariatForms },
-          { label: 'قيد الانتظار', value: this.formsByStatus.data[0] || 0 },
-          { label: 'معتمد', value: this.formsByStatus.data[1] || 0 },
-          { label: 'مرفوض', value: this.formsByStatus.data[2] || 0 }
+          { label: 'نماذج المغادرة', value: this.formsByType.data[0] || 0 },
+          { label: 'نماذج الإجازة', value: this.formsByType.data[1] || 0 },
+          { label: 'نماذج السلفة', value: this.formsByType.data[2] || 0 }
         ],
         chartData: this.formsByType
       },
@@ -495,38 +468,230 @@ export class AnalysisPageComponent implements OnInit {
   }
 
   // ============================================
+  // CHART CREATION
+  // ============================================
+
+  createAllCharts(): void {
+    this.createCuttingStatusChart();
+    this.createCuttingMaterialChart();
+    this.createSecretariatTypeChart();
+    this.createSupplierStatusChart();
+  }
+
+  createCuttingStatusChart(): void {
+    const canvas = document.getElementById('cuttingStatusChart') as HTMLCanvasElement;
+    if (!canvas) return;
+
+    if (this.charts['cuttingStatus']) {
+      this.charts['cuttingStatus'].destroy();
+    }
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    this.charts['cuttingStatus'] = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: this.cuttingByStatus.labels,
+        datasets: [{
+          data: this.cuttingByStatus.data,
+          backgroundColor: this.cuttingByStatus.colors,
+          borderWidth: 0,
+          hoverOffset: 15
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              font: { family: 'Cairo, sans-serif', size: 13 },
+              padding: 20,
+              usePointStyle: true,
+              pointStyle: 'circle'
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            padding: 15,
+            titleFont: { family: 'Cairo, sans-serif', size: 15 },
+            bodyFont: { family: 'Cairo, sans-serif', size: 14 },
+            callbacks: {
+              label: (context) => {
+                const label = context.label || '';
+                const value = context.parsed || 0;
+                const total = (context.dataset.data as number[]).reduce((a, b) => a + b, 0);
+                const percentage = ((value / total) * 100).toFixed(1);
+                return `${label}: ${value} (${percentage}%)`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  createCuttingMaterialChart(): void {
+    const canvas = document.getElementById('cuttingMaterialChart') as HTMLCanvasElement;
+    if (!canvas) return;
+
+    if (this.charts['cuttingMaterial']) {
+      this.charts['cuttingMaterial'].destroy();
+    }
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    this.charts['cuttingMaterial'] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: this.cuttingByMaterial.labels,
+        datasets: [{
+          label: 'عدد المهام',
+          data: this.cuttingByMaterial.data,
+          backgroundColor: this.cuttingByMaterial.colors,
+          borderRadius: 8,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            padding: 15,
+            titleFont: { family: 'Cairo, sans-serif', size: 15 },
+            bodyFont: { family: 'Cairo, sans-serif', size: 14 }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { font: { family: 'Cairo, sans-serif', size: 12 } },
+            grid: { color: 'rgba(0, 0, 0, 0.05)' }
+          },
+          x: {
+            ticks: { font: { family: 'Cairo, sans-serif', size: 12 } },
+            grid: { display: false }
+          }
+        }
+      }
+    });
+  }
+
+  createSecretariatTypeChart(): void {
+    const canvas = document.getElementById('secretariatTypeChart') as HTMLCanvasElement;
+    if (!canvas) return;
+
+    if (this.charts['secretariatType']) {
+      this.charts['secretariatType'].destroy();
+    }
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    this.charts['secretariatType'] = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: this.formsByType.labels,
+        datasets: [{
+          data: this.formsByType.data,
+          backgroundColor: this.formsByType.colors,
+          borderWidth: 0,
+          hoverOffset: 15
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              font: { family: 'Cairo, sans-serif', size: 13 },
+              padding: 20,
+              usePointStyle: true,
+              pointStyle: 'circle'
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            padding: 15,
+            titleFont: { family: 'Cairo, sans-serif', size: 15 },
+            bodyFont: { family: 'Cairo, sans-serif', size: 14 }
+          }
+        }
+      }
+    });
+  }
+
+  createSupplierStatusChart(): void {
+    const canvas = document.getElementById('supplierStatusChart') as HTMLCanvasElement;
+    if (!canvas) return;
+
+    if (this.charts['supplierStatus']) {
+      this.charts['supplierStatus'].destroy();
+    }
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    this.charts['supplierStatus'] = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: this.suppliersByStatus.labels,
+        datasets: [{
+          data: this.suppliersByStatus.data,
+          backgroundColor: this.suppliersByStatus.colors,
+          borderWidth: 0,
+          hoverOffset: 15
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              font: { family: 'Cairo, sans-serif', size: 13 },
+              padding: 20,
+              usePointStyle: true,
+              pointStyle: 'circle'
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            padding: 15,
+            titleFont: { family: 'Cairo, sans-serif', size: 15 },
+            bodyFont: { family: 'Cairo, sans-serif', size: 14 }
+          }
+        }
+      }
+    });
+  }
+
+  // ============================================
   // UI METHODS
   // ============================================
 
   switchTab(tab: 'overview' | 'cutting' | 'procurement' | 'secretariat' | 'suppliers'): void {
     this.activeTab = tab;
+    // Recreate charts when switching tabs
+    setTimeout(() => this.createAllCharts(), 100);
   }
 
   selectPeriod(period: 'week' | 'month' | 'quarter' | 'year'): void {
     this.selectedPeriod = period;
-    // Reload data based on period
     this.loadAllAnalytics();
-  }
-
-  applyCustomDateRange(): void {
-    if (this.customStartDate && this.customEndDate) {
-      // Reload data with custom date range
-      this.loadAllAnalytics();
-    }
   }
 
   refreshData(): void {
     this.loadAllAnalytics();
-  }
-
-  exportToExcel(): void {
-    // TODO: Implement Excel export
-    console.log('Exporting to Excel...');
-  }
-
-  exportToPDF(): void {
-    // TODO: Implement PDF export
-    console.log('Exporting to PDF...');
   }
 
   // ============================================

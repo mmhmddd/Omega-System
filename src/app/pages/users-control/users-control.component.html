@@ -3,16 +3,16 @@
   <!-- TOAST NOTIFICATIONS CONTAINER -->
   <!-- ============================================ -->
   <div class="toast-container">
-    <div 
-      *ngFor="let toast of toasts" 
+    <div
+      *ngFor="let toast of toasts"
       class="toast"
       [class.toast-success]="toast.type === 'success'"
       [class.toast-error]="toast.type === 'error'"
       [class.toast-info]="toast.type === 'info'"
       [class.toast-warning]="toast.type === 'warning'">
-      
+
       <div class="toast-icon">
-        <i class="bi" 
+        <i class="bi"
            [ngClass]="{
              'bi-check-circle-fill': toast.type === 'success',
              'bi-x-circle-fill': toast.type === 'error',
@@ -20,11 +20,11 @@
              'bi-exclamation-triangle-fill': toast.type === 'warning'
            }"></i>
       </div>
-      
+
       <div class="toast-content">
         <p class="toast-message">{{ toast.message }}</p>
       </div>
-      
+
       <button class="toast-close" (click)="removeToast(toast.id)">
         <i class="bi bi-x"></i>
       </button>
@@ -75,7 +75,7 @@
         />
       </div>
 
-      <!-- Role Filter -->
+      <!-- ✅ Role Filter - Updated with unique roles -->
       <div class="filter-group">
         <label class="filter-label">
           <i class="bi bi-person-badge"></i>
@@ -86,7 +86,7 @@
           [(ngModel)]="selectedRole"
           (change)="onRoleFilterChange()">
           <option value="">جميع الأدوار</option>
-          <option *ngFor="let role of userRoles" [value]="role.value">
+          <option *ngFor="let role of getUniqueRolesForFilter()" [value]="role.value">
             {{ role.label }}
           </option>
         </select>
@@ -177,7 +177,7 @@
           <!-- User Info -->
           <td>
             <div class="user-cell">
-              <div class="user-avatar" 
+              <div class="user-avatar"
                    [style.background-color]="getRoleColor(user.role)"
                    [class.inactive-avatar]="!user.active">
                 {{ user.name.charAt(0).toUpperCase() }}
@@ -198,7 +198,7 @@
             <span class="username-badge" [class.inactive-badge]="!user.active">{{ user.username }}</span>
           </td>
 
-          <!-- Role -->
+          <!-- ✅ Role - Updated to show Arabic label -->
           <td>
             <span class="role-badge" [style.background-color]="getRoleColor(user.role)">
               {{ getRoleLabel(user.role) }}
@@ -207,8 +207,8 @@
 
           <!-- Status -->
           <td>
-            <span class="status-badge" 
-                  [class.status-active]="user.active" 
+            <span class="status-badge"
+                  [class.status-active]="user.active"
                   [class.status-inactive]="!user.active"
                   [class.pulsing-badge]="!user.active">
               <i class="bi" [class.bi-check-circle]="user.active" [class.bi-x-circle]="!user.active"></i>
@@ -398,16 +398,29 @@
           </small>
         </div>
 
-        <!-- Role -->
+        <!-- ✅ Role - Updated dropdown with all role options -->
         <div class="form-group">
           <label class="form-label">
             <i class="bi bi-person-badge"></i>
             الدور الوظيفي
           </label>
           <select class="form-select" formControlName="role">
-            <option *ngFor="let role of userRoles" [value]="role.value">
-              {{ role.label }}
-            </option>
+            <optgroup label="الإدارة العليا">
+              <option value="super_admin">IT</option>
+            </optgroup>
+            <optgroup label="الإدارة">
+              <option value="admin">المدير</option>
+              <option value="admin">المدير العام</option>
+              <option value="admin">المهندس</option>
+            </optgroup>
+            <optgroup label="الموظفين">
+              <option value="employee">المحاسبة</option>
+              <option value="employee">HR</option>
+              <option value="employee">مسؤول مستودع</option>
+            </optgroup>
+            <optgroup label="أخرى">
+              <option value="secretariat">سكرتيرة</option>
+            </optgroup>
           </select>
         </div>
 
@@ -525,16 +538,29 @@
           />
         </div>
 
-        <!-- Role -->
+        <!-- ✅ Role - Updated dropdown with all role options -->
         <div class="form-group">
           <label class="form-label">
             <i class="bi bi-person-badge"></i>
             الدور الوظيفي
           </label>
           <select class="form-select" formControlName="role">
-            <option *ngFor="let role of userRoles" [value]="role.value">
-              {{ role.label }}
-            </option>
+            <optgroup label="الإدارة العليا">
+              <option value="super_admin">IT</option>
+            </optgroup>
+            <optgroup label="الإدارة">
+              <option value="admin">المدير</option>
+              <option value="admin">المدير العام</option>
+              <option value="admin">المهندس</option>
+            </optgroup>
+            <optgroup label="الموظفين">
+              <option value="employee">المحاسبة</option>
+              <option value="employee">HR</option>
+              <option value="employee">مسؤول مستودع</option>
+            </optgroup>
+            <optgroup label="أخرى">
+              <option value="secretariat">سكرتيرة</option>
+            </optgroup>
           </select>
         </div>
 

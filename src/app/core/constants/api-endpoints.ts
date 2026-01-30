@@ -159,7 +159,8 @@ export const API_ENDPOINTS = {
     UPDATE_FORM_STATUS: (id: string) => `${environment.apiUrl}/secretariat/forms/${id}/status`,
     DELETE_FORM: (id: string) => `${environment.apiUrl}/secretariat/forms/${id}`,
     DOWNLOAD_PDF: (id: string) => `${environment.apiUrl}/secretariat/forms/${id}/pdf`,
-    GET_FORM_TYPES: `${environment.apiUrl}/secretariat/form-types`
+    GET_FORM_TYPES: `${environment.apiUrl}/secretariat/form-types`,
+    GET_ALL_EMPLOYEES: `${environment.apiUrl}/secretariat/employees`
   },
 
   // ============================================

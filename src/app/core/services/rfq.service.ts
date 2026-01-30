@@ -12,7 +12,7 @@ export interface RFQItem {
   description: string;
   unit: string;
   quantity: number | string;
-  taskNo?: string | null;        
+  taskNo?: string | null;
   jobNo?: string | null;
   estimatedUnitPrice?: number | string | null;
   totalPrice?: number | string | null;
@@ -151,6 +151,7 @@ export interface ResetCounterResponse {
   providedIn: 'root'
 })
 export class RfqService {
+  getStatistics: any;
   constructor(private http: HttpClient) {}
 
   getAllRFQs(filters?: {
