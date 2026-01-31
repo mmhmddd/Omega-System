@@ -1177,15 +1177,12 @@
   </div>
 </div>
 
-<!-- ============================================ -->
-<!-- USER HISTORY MODAL -->
-<!-- ============================================ -->
 <div class="modal-overlay" *ngIf="showUserHistoryModal" (click)="closeUserHistoryModal()">
   <div class="modal-container modal-large" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h2 class="modal-title">
         <i class="bi bi-clock-history"></i>
-        {{ formLanguage === 'ar' ? 'سجل المستخدمين' : 'User History' }}
+        {{ formLanguage === 'ar' ? 'سجل التحديثات التفصيلي' : 'Detailed Update History' }}
       </h2>
       <button class="modal-close" (click)="closeUserHistoryModal()">
         <i class="bi bi-x-lg"></i>
@@ -1205,105 +1202,243 @@
         </p>
       </div>
 
-      <!-- User Activities Timeline -->
+      <!-- Update History Timeline -->
       <div class="timeline-container">
         <div class="timeline-header">
-          <i class="bi bi-people-fill"></i>
+          <i class="bi bi-journal-text"></i>
           <h3>
             {{ formLanguage === 'ar'
-              ? 'المستخدمون الذين شاركوا في هذه المهمة'
-              : 'Users Who Worked on This Job'
+              ? 'سجل التحديثات الكامل'
+              : 'Complete Update Log'
             }}
           </h3>
+          <span class="timeline-count">
+            {{ selectedJob.updateHistory?.length || 0 }}
+            {{ formLanguage === 'ar' ? 'تحديث' : 'updates' }}
+          </span>
         </div>
 
         <!-- No activities message -->
-        <div class="no-activities" *ngIf="userActivities.length === 0">
+        <div class="no-activities" *ngIf="!selectedJob.updateHistory || selectedJob.updateHistory.length === 0">
           <i class="bi bi-info-circle"></i>
           <p>
             {{ formLanguage === 'ar'
-              ? 'لا توجد أنشطة مسجلة'
-              : 'No activities recorded'
+              ? 'لا توجد تحديثات مسجلة'
+              : 'No updates recorded'
             }}
           </p>
         </div>
 
-        <!-- Activities List -->
-        <div class="timeline" *ngIf="userActivities.length > 0">
+        <!-- Enhanced Timeline with Detailed Information -->
+        <div class="enhanced-timeline" *ngIf="selectedJob.updateHistory && selectedJob.updateHistory.length > 0">
           <div
-            class="timeline-item"
-            *ngFor="let activity of userActivities; let i = index"
+            class="enhanced-timeline-item"
+            *ngFor="let update of selectedJob.updateHistory; let i = index"
             [class.timeline-item-first]="i === 0">
 
-            <!-- Timeline Dot -->
-            <div class="timeline-dot" [style.background]="getActionColor(activity.action)">
-              <i class="bi" [ngClass]="{
-                'bi-plus-circle': activity.action === 'created',
-                'bi-pencil': activity.action === 'updated',
-                'bi-flag': activity.action === 'status_changed'
-              }"></i>
+            <!-- Timeline Connector Line -->
+            <div class="timeline-line" *ngIf="i < selectedJob.updateHistory.length - 1"></div>
+
+            <!-- Timeline Dot with Icon -->
+            <div class="enhanced-timeline-dot" [style.background]="getActionTypeColor(update.changes.actionType)">
+              <i class="bi" [ngClass]="getActionTypeIcon(update.changes.actionType)"></i>
             </div>
 
-            <!-- Timeline Content -->
-            <div class="timeline-content">
-              <div class="timeline-content-header">
-                <div class="user-info">
-                  <i class="bi bi-person-circle"></i>
-                  <span class="user-name">{{ activity.userName }}</span>
-                  <span
-                    class="action-badge"
-                    [style.background]="getActionColor(activity.action)">
-                    {{ getActionLabel(activity.action) }}
-                  </span>
+            <!-- Timeline Content Card -->
+            <div class="enhanced-timeline-card">
+              <!-- Card Header -->
+              <div class="card-header">
+                <div class="user-section">
+                  <div class="user-avatar">
+                    <i class="bi bi-person-circle"></i>
+                  </div>
+                  <div class="user-details">
+                    <span class="user-name">
+                      {{ update.updatedByInfo ? (update.updatedByInfo.name || update.updatedByInfo.username) : update.updatedBy }}
+                    </span>
+                    <span class="action-type-badge" [style.background]="getActionTypeColor(update.changes.actionType)">
+                      {{ getActionTypeLabel(update.changes.actionType) }}
+                    </span>
+                  </div>
                 </div>
-                <div class="time-info">
-                  <span class="time-ago">{{ getTimeAgo(activity.timestamp) }}</span>
+
+                <div class="timestamp-section">
+                  <span class="time-ago">{{ getTimeAgo(update.timestamp) }}</span>
+                  <span class="exact-time">
+                    <i class="bi bi-calendar3"></i>
+                    {{ formatDateTime(update.timestamp) }}
+                  </span>
                 </div>
               </div>
 
-              <div class="timeline-content-body">
-                <p class="activity-details">{{ activity.details }}</p>
-                <small class="activity-timestamp">
-                  <i class="bi bi-calendar-event"></i>
-                  {{ formatDateTime(activity.timestamp) }}
-                </small>
+              <!-- Card Body - Update Summary -->
+              <div class="card-body">
+                <div class="update-summary" *ngIf="hasValidSummary(update.changes.summary)">
+                  <i class="bi bi-info-circle"></i>
+                  <span>{{ formLanguage === 'ar' ? update.changes.summary?.ar : update.changes.summary?.en }}</span>
+                </div>
+
+                <!-- Detailed Changes List -->
+                <div class="detailed-changes" *ngIf="update.changes.detailedDescriptions && update.changes.detailedDescriptions.length > 0">
+                  <div class="changes-header">
+                    <i class="bi bi-list-ul"></i>
+                    <span>{{ formLanguage === 'ar' ? 'التغييرات التفصيلية:' : 'Detailed Changes:' }}</span>
+                  </div>
+
+                  <div class="changes-list">
+                    <div class="change-loop" *ngFor="let change of update.changes.detailedDescriptions">
+                      <div
+                        class="change-item"
+                        *ngIf="shouldShowChange(change)"
+                        [class.change-progress]="change.field === 'currentlyCut'"
+                        [class.change-status]="change.field === 'fileStatus'"
+                        [class.change-with-notes]="change.notes">
+
+
+
+                      <!-- Change Icon -->
+                      <div class="change-icon">
+                        <i class="bi" [ngClass]="getChangeFieldIcon(change.field)"></i>
+                      </div>
+
+                      <!-- Change Details -->
+                      <div class="change-details">
+                        <div class="change-description">
+                          {{ formLanguage === 'ar' ? change.descriptionAr : change.description }}
+                        </div>
+
+                        <!-- Progress-specific visualization -->
+                        <div class="progress-visualization" *ngIf="change.field === 'currentlyCut' && change.progressPercentage !== undefined">
+                          <div class="progress-info-row">
+                            <div class="mini-progress-bar">
+                              <div class="mini-progress-fill"
+                                   [style.width.%]="change.progressPercentage"
+                                   [style.background]="getProgressColor(change.progressPercentage)">
+                              </div>
+                            </div>
+                            <span class="progress-text">
+                              {{ change.progress }}
+                              <span class="difference-badge"
+                                    *ngIf="change.difference !== undefined"
+                                    [class.positive]="change.difference > 0"
+                                    [class.negative]="change.difference < 0">
+                                {{ change.difference > 0 ? '+' : '' }}{{ change.difference }}
+                              </span>
+                            </span>
+                          </div>
+                        </div>
+
+                        <!-- Status change visualization -->
+                        <div class="status-change-visualization" *ngIf="change.field === 'fileStatus'">
+                          <div class="status-flow">
+                            <span class="status-badge old-status" [ngClass]="getStatusColor(change.oldValue)">
+                              {{ getStatusLabel(change.oldValue) }}
+                            </span>
+                            <i class="bi bi-arrow-right"></i>
+                            <span class="status-badge new-status" [ngClass]="getStatusColor(change.newValue)">
+                              {{ getStatusLabel(change.newValue) }}
+                            </span>
+                          </div>
+                          <span class="reason-text" *ngIf="change.reason">
+                            <i class="bi bi-info-circle"></i>
+                            {{ change.reason }}
+                          </span>
+                        </div>
+
+                        <!-- Generic value change -->
+                        <div class="value-change" *ngIf="change.field !== 'currentlyCut' && change.field !== 'fileStatus'">
+                          <span class="old-value">{{ change.oldValue || '-' }}</span>
+                          <i class="bi bi-arrow-right"></i>
+                          <span class="new-value">{{ change.newValue }}</span>
+                        </div>
+
+                        <!-- ✅ SHOW NOTES ASSOCIATED WITH THIS SPECIFIC CHANGE -->
+                        <div class="change-notes" *ngIf="change.notes">
+                          <div class="notes-icon">
+                            <i class="bi bi-sticky"></i>
+                          </div>
+                          <div class="notes-box">
+                            <span class="notes-label-small">{{ formLanguage === 'ar' ? 'ملاحظة:' : 'Note:' }}</span>
+                            <p class="notes-text-small">{{ change.notes }}</p>
+                          </div>
+                        </div>
+                      </div>
+                  </div>
+                </div>
+
+                <!-- Creation Details (for initial job creation) -->
+                <div class="creation-details" *ngIf="update.changes.actionType === 'job_created' && update.changes.details">
+                  <div class="details-grid-compact">
+                    <div class="detail-compact">
+                      <i class="bi bi-folder"></i>
+                      <span>{{ update.changes.details.projectName }}</span>
+                    </div>
+                    <div class="detail-compact" *ngIf="update.changes.details.pieceName">
+                      <i class="bi bi-puzzle"></i>
+                      <span>{{ update.changes.details.pieceName }}</span>
+                    </div>
+                    <div class="detail-compact">
+                      <i class="bi bi-hash"></i>
+                      <span>{{ formLanguage === 'ar' ? 'الكمية:' : 'Qty:' }} {{ update.changes.details.quantity }}</span>
+                    </div>
+                    <div class="detail-compact">
+                      <i class="bi bi-layers"></i>
+                      <span>{{ getMaterialTypeLabel(update.changes.details.materialType) }}</span>
+                    </div>
+                    <div class="detail-compact">
+                      <i class="bi bi-rulers"></i>
+                      <span>{{ update.changes.details.thickness }}mm</span>
+                    </div>
+                    <div class="detail-compact" *ngIf="update.changes.details.fileName">
+                      <i class="bi bi-file-earmark"></i>
+                      <span>{{ update.changes.details.fileName }}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Summary Section -->
-      <div class="history-summary">
-        <div class="summary-item">
-          <i class="bi bi-people"></i>
-          <div class="summary-content">
-            <span class="summary-label">
-              {{ formLanguage === 'ar' ? 'إجمالي المستخدمين' : 'Total Users' }}
-            </span>
-            <span class="summary-value">{{ userActivities.length }}</span>
-          </div>
+      <!-- Summary Statistics -->
+      <div class="history-summary-stats">
+        <div class="summary-stats-header">
+          <i class="bi bi-graph-up"></i>
+          <h4>{{ formLanguage === 'ar' ? 'إحصائيات التحديثات' : 'Update Statistics' }}</h4>
         </div>
 
-        <div class="summary-item">
-          <i class="bi bi-person-plus"></i>
-          <div class="summary-content">
-            <span class="summary-label">
-              {{ formLanguage === 'ar' ? 'تم الإنشاء بواسطة' : 'Created By' }}
-            </span>
-            <span class="summary-value">
-              {{ selectedJob.uploadedByInfo ? (selectedJob.uploadedByInfo.name || selectedJob.uploadedByInfo.username) : selectedJob.uploadedBy }}
-            </span>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <i class="bi bi-journal-text"></i>
+            <div class="stat-content">
+              <span class="stat-label">{{ formLanguage === 'ar' ? 'إجمالي التحديثات' : 'Total Updates' }}</span>
+              <span class="stat-value">{{ selectedJob.updateHistory ? selectedJob.updateHistory.length : 0 }}</span>
+            </div>
           </div>
-        </div>
 
-        <div class="summary-item">
-          <i class="bi bi-clock"></i>
-          <div class="summary-content">
-            <span class="summary-label">
-              {{ formLanguage === 'ar' ? 'آخر تحديث' : 'Last Updated' }}
-            </span>
-            <span class="summary-value">{{ formatDateTime(selectedJob.updatedAt) }}</span>
+          <div class="stat-card">
+            <i class="bi bi-people"></i>
+            <div class="stat-content">
+              <span class="stat-label">{{ formLanguage === 'ar' ? 'المستخدمون' : 'Users' }}</span>
+              <span class="stat-value">{{ getUniqueUsersCount() }}</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <i class="bi bi-clipboard-check"></i>
+            <div class="stat-content">
+              <span class="stat-label">{{ formLanguage === 'ar' ? 'تحديثات التقدم' : 'Progress Updates' }}</span>
+              <span class="stat-value">{{ getProgressUpdatesCount() }}</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <i class="bi bi-flag"></i>
+            <div class="stat-content">
+              <span class="stat-label">{{ formLanguage === 'ar' ? 'تغييرات الحالة' : 'Status Changes' }}</span>
+              <span class="stat-value">{{ getStatusChangesCount() }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -1314,6 +1449,7 @@
         <i class="bi bi-x-circle"></i>
         {{ formLanguage === 'ar' ? 'إغلاق' : 'Close' }}
       </button>
+
     </div>
   </div>
 </div>

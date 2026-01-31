@@ -469,21 +469,34 @@ export class CuttingComponent implements OnInit, OnDestroy {
             ? 'قام بإنشاء مهمة القص'
             : 'Created cutting job';
         } else if (historyEntry.changes.modifications && historyEntry.changes.modifications.length > 0) {
-          const mods = historyEntry.changes.modifications;
+          // Filter out meaningless modifications where both oldValue and newValue are undefined/null
+          const modsRaw = historyEntry.changes.modifications;
+          const mods = (modsRaw || []).filter(m => {
+            const oldUndef = m.oldValue === undefined || m.oldValue === null;
+            const newUndef = m.newValue === undefined || m.newValue === null;
+            return !(oldUndef && newUndef);
+          });
 
-          // Check if status was changed
-          const statusChange = mods.find(m => m.field === 'fileStatus');
-          if (statusChange) {
-            actionType = 'status_changed';
+          // If nothing meaningful remains, treat as a generic update
+          if (mods.length === 0) {
             details = this.formLanguage === 'ar'
-              ? `قام بتغيير الحالة من "${statusChange.oldValue}" إلى "${statusChange.newValue}"`
-              : `Changed status from "${statusChange.oldValue}" to "${statusChange.newValue}"`;
+              ? 'قام بتحديث مهمة القص'
+              : 'Updated cutting job';
           } else {
-            // General update
-            const changedFields = mods.map(m => m.field).join(', ');
-            details = this.formLanguage === 'ar'
-              ? `قام بتحديث: ${changedFields}`
-              : `Updated: ${changedFields}`;
+            // Check if status was changed
+            const statusChange = mods.find(m => m.field === 'fileStatus');
+            if (statusChange) {
+              actionType = 'status_changed';
+              details = this.formLanguage === 'ar'
+                ? `قام بتغيير الحالة من "${statusChange.oldValue}" إلى "${statusChange.newValue}"`
+                : `Changed status from "${statusChange.oldValue}" to "${statusChange.newValue}"`;
+            } else {
+              // General update
+              const changedFields = mods.map(m => m.field).join(', ');
+              details = this.formLanguage === 'ar'
+                ? `قام بتحديث: ${changedFields}`
+                : `Updated: ${changedFields}`;
+            }
           }
         } else {
           details = this.formLanguage === 'ar'
@@ -607,6 +620,25 @@ export class CuttingComponent implements OnInit, OnDestroy {
     return this.formLanguage === 'ar'
       ? `منذ ${diffInMonths} شهر`
       : `${diffInMonths} months ago`;
+  }
+
+  // Hide summaries that contain 'undefined' or are empty
+  hasValidSummary(summary: any): boolean {
+    if (!summary) return false;
+    const text = this.formLanguage === 'ar' ? summary.ar : summary.en;
+    if (!text || typeof text !== 'string') return false;
+    if (text.includes('undefined')) return false;
+    return text.trim().length > 0;
+  }
+
+  // Don't show a change if both old and new values are undefined/null
+  shouldShowChange(change: any): boolean {
+    if (!change) return false;
+    const oldUndef = change.oldValue === undefined || change.oldValue === null;
+    const newUndef = change.newValue === undefined || change.newValue === null;
+    // Always show status/progress changes
+    if (change.field === 'fileStatus' || change.field === 'currentlyCut') return true;
+    return !(oldUndef && newUndef);
   }
 
   // ============================================
@@ -1171,5 +1203,125 @@ export class CuttingComponent implements OnInit, OnDestroy {
     }
 
     return userId;
+  }
+
+  // ============================================
+  // USER HISTORY HELPERS
+  // ============================================
+
+  getActionTypeColor(actionType: string): string {
+    const map: { [key: string]: string } = {
+      job_created: '#10b981',
+      job_updated: '#3b82f6',
+      progress_updated: '#f59e0b',
+      status_changed: '#ef4444',
+      file_updated: '#6b7280'
+    };
+    return map[actionType] || '#64748b';
+  }
+
+  getActionTypeIcon(actionType: string): string {
+    const icons: { [key: string]: string } = {
+      job_created: 'bi-plus-circle',
+      job_updated: 'bi-pencil-square',
+      progress_updated: 'bi-graph-up',
+      status_changed: 'bi-flag',
+      file_updated: 'bi-file-earmark'
+    };
+    return icons[actionType] || 'bi-info-circle';
+  }
+
+  getActionTypeLabel(actionType: string): string {
+    const labels: { [key: string]: { en: string; ar: string } } = {
+      job_created: { en: 'Job Created', ar: 'تم الإنشاء' },
+      job_updated: { en: 'Job Updated', ar: 'تم التحديث' },
+      progress_updated: { en: 'Progress Updated', ar: 'تحديث التقدم' },
+      status_changed: { en: 'Status Changed', ar: 'تغيير الحالة' },
+      file_updated: { en: 'File Updated', ar: 'تم تحديث الملف' }
+    };
+    const label = labels[actionType];
+    if (!label) return actionType;
+    return this.formLanguage === 'ar' ? label.ar : label.en;
+  }
+
+  getChangeFieldIcon(field: string): string {
+    const map: { [key: string]: string } = {
+      currentlyCut: 'bi-graph-up',
+      fileStatus: 'bi-flag',
+      quantity: 'bi-hash',
+      materialType: 'bi-layers',
+      thickness: 'bi-rulers',
+      fileName: 'bi-file-earmark',
+      notes: 'bi-chat-text',
+      projectName: 'bi-folder',
+      pieceName: 'bi-puzzle'
+    };
+    return map[field] || 'bi-pencil';
+  }
+
+  getUniqueUsersCount(): number {
+    if (!this.selectedJob || !this.selectedJob.updateHistory) return 0;
+    const set = new Set<string>();
+
+    (this.selectedJob.updateHistory || []).forEach(u => {
+      if (u.updatedBy) set.add(u.updatedBy);
+      if (u.updatedByInfo && (u.updatedByInfo.id as string)) set.add(u.updatedByInfo.id as string);
+    });
+
+    if (this.selectedJob.uploadedBy) set.add(this.selectedJob.uploadedBy);
+    if (this.selectedJob.cutBy && this.selectedJob.cutBy.length) {
+      this.selectedJob.cutBy.forEach(id => set.add(id));
+    }
+
+    return set.size;
+  }
+
+  getProgressUpdatesCount(): number {
+    if (!this.selectedJob || !this.selectedJob.updateHistory) return 0;
+    return (this.selectedJob.updateHistory || []).filter(u => {
+      if (u.changes.actionType === 'progress_updated') return true;
+      const dd = (u.changes.detailedDescriptions || []) as any[];
+      return dd.some(d => d.field === 'currentlyCut');
+    }).length;
+  }
+
+  getStatusChangesCount(): number {
+    if (!this.selectedJob || !this.selectedJob.updateHistory) return 0;
+    return (this.selectedJob.updateHistory || []).filter(u => {
+      if (u.changes.actionType === 'status_changed') return true;
+      const dd = (u.changes.detailedDescriptions || []) as any[];
+      return dd.some(d => d.field === 'fileStatus');
+    }).length;
+  }
+
+  exportHistoryToCSV(): void {
+    if (!this.selectedJob || !this.selectedJob.updateHistory) return;
+
+    const rows: string[][] = [];
+    rows.push(['timestamp','updatedById','updatedByName','actionType','summary_en','summary_ar','detailed_changes']);
+
+    (this.selectedJob.updateHistory || []).forEach(entry => {
+      const name = entry.updatedByInfo ? (entry.updatedByInfo.name || entry.updatedByInfo.username) : entry.updatedBy;
+      const summaryEn = entry.changes.summary?.en || '';
+      const summaryAr = entry.changes.summary?.ar || '';
+      const dd = (entry.changes.detailedDescriptions || []).map((d: any) => {
+        return `${d.field}: ${d.description} | ${d.descriptionAr} | old=${d.oldValue} | new=${d.newValue}`;
+      }).join(' ; ');
+
+      rows.push([entry.timestamp, entry.updatedBy, name, (entry.changes.actionType as string) || '', summaryEn, summaryAr, dd]);
+    });
+
+    const csvContent = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${this.selectedJob.id}-update-history.csv`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    }, 100);
   }
 }

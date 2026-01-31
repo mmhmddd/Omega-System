@@ -35,6 +35,41 @@ export interface UpdateHistoryEntry {
   };
 }
 
+export interface DetailedChangeDescription {
+notes: any;
+  field: string;
+  description: string;
+  descriptionAr: string;
+  oldValue: any;
+  newValue: any;
+  difference?: number;
+  progress?: string;
+  progressPercentage?: number;
+  reason?: string;
+}
+
+export interface UpdateSummary {
+  en: string;
+  ar: string;
+}
+
+export interface EnhancedUpdateHistoryEntry {
+  updatedBy: string;
+  updatedByInfo?: UserInfo;
+  timestamp: string;
+  changes: {
+notes: any;
+    action: string;
+    actionType: 'job_created' | 'job_updated' | 'progress_updated' | 'status_changed' | 'file_updated';
+    description?: string;
+    descriptionAr?: string;
+    modifications?: UpdateHistoryChange[];
+    detailedDescriptions?: DetailedChangeDescription[];
+    summary?: UpdateSummary;
+    details?: any;
+  };
+}
+
 export interface CuttingJob {
   id: string;
   projectName: string;
@@ -59,7 +94,7 @@ export interface CuttingJob {
   cutByInfo?: UserInfo[];
   lastUpdatedBy?: string;
   lastUpdatedByInfo?: UserInfo;
-  updateHistory?: UpdateHistoryEntry[];
+  updateHistory?: EnhancedUpdateHistoryEntry[]; // Enhanced with detailed descriptions
 }
 
 export interface CreateCuttingJobData {
