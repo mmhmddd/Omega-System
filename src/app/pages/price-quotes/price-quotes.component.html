@@ -78,8 +78,8 @@
       </div>
     </div>
 
-<!-- Table -->
- <div class="table-container">
+    <!-- Table -->
+    <div class="table-container">
       <table class="quotes-table">
         <thead>
           <tr>
@@ -231,7 +231,7 @@
 
     <!-- Form Content -->
     <div class="form-content">
-      <!-- Sidebar Navigation -->
+      <!-- ✅ UPDATED: Sidebar Navigation -->
       <div class="form-sidebar">
         <button
           class="sidebar-step"
@@ -239,14 +239,18 @@
           (click)="currentStep = 'basic'">
           {{ formLanguage === 'ar' ? 'المعلومات الأساسية' : 'Basic Info' }}
         </button>
+
+        <!-- ✅ UPDATED: Removed has-error, added "Optional" label -->
         <button
           class="sidebar-step"
           [class.active]="currentStep === 'items'"
-          [class.has-error]="fieldErrors['items']"
           (click)="currentStep = 'items'">
-          {{ formLanguage === 'ar' ? 'العناصر' : 'Items' }}
-          <span class="item-count" [class.error-count]="fieldErrors['items']">{{ getItemsCount() }}</span>
+          <span>
+            {{ formLanguage === 'ar' ? 'العناصر (اختياري)' : 'Items (Optional)' }}
+          </span>
+          <span class="item-count">{{ getItemsCount() }}</span>
         </button>
+
         <button
           class="sidebar-step"
           [class.active]="currentStep === 'tax'"
@@ -442,17 +446,24 @@
           </div>
         </div>
 
-        <!-- STEP 2: Items -->
+        <!-- ✅ UPDATED: STEP 2 - Items (OPTIONAL) -->
         <div *ngIf="currentStep === 'items'" class="step-content">
           <h2 class="step-title">
-            {{ formLanguage === 'ar' ? 'عناصر العرض' : 'Quote Items' }}
-            <span class="required">*</span>
+            {{ formLanguage === 'ar' ? 'عناصر العرض (اختياري)' : 'Quote Items (Optional)' }}
+            <span class="optional-badge">{{ formLanguage === 'ar' ? 'اختياري' : 'Optional' }}</span>
           </h2>
 
-          <!-- Items Required Error -->
-          <div class="error-alert" *ngIf="fieldErrors['items']" style="margin-bottom: 1.5rem;">
-            <i class="bi bi-exclamation-circle"></i>
-            <span>{{ fieldErrors['items'] }}</span>
+          <!-- ✅ Info Message -->
+          <div class="info-alert">
+            <i class="bi bi-info-circle"></i>
+            <div style="flex: 1;">
+              <p>
+                {{ formLanguage === 'ar'
+                  ? 'إضافة العناصر اختيارية. إذا كنت قد أرفقت ملف PDF، يمكنك تخطي هذه الخطوة. لن يظهر جدول العناصر في حال عدم إضافة أي عنصر.'
+                  : 'Adding items is optional. If you have attached a PDF file, you can skip this step. The items table will not appear if no items are added.'
+                }}
+              </p>
+            </div>
           </div>
 
           <div class="items-section">
@@ -460,19 +471,15 @@
               <div class="header-cell">{{ formLanguage === 'ar' ? '#' : '#' }}</div>
               <div class="header-cell">
                 {{ formLanguage === 'ar' ? 'الوصف' : 'Description' }}
-                <span class="required">*</span>
               </div>
               <div class="header-cell">
                 {{ formLanguage === 'ar' ? 'الوحدة' : 'Unit' }}
-                <span class="required">*</span>
               </div>
               <div class="header-cell">
                 {{ formLanguage === 'ar' ? 'الكمية' : 'Quantity' }}
-                <span class="required">*</span>
               </div>
               <div class="header-cell">
                 {{ formLanguage === 'ar' ? 'سعر الوحدة' : 'Unit Price' }}
-                <span class="required">*</span>
               </div>
               <div class="header-cell">{{ formLanguage === 'ar' ? 'المجموع' : 'Total' }}</div>
               <div class="header-cell-action"></div>
@@ -560,10 +567,17 @@
               </ng-container>
             </div>
 
+            <!-- ✅ Updated empty state message -->
             <div class="items-empty" *ngIf="quoteForm.items.length === 0">
-              <i class="bi bi-inbox" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
-              <p style="margin: 0; color: #64748b;">
-                {{ formLanguage === 'ar' ? 'لم يتم إضافة عناصر. يجب إضافة عنصر واحد على الأقل.' : 'No items added. At least one item is required.' }}
+              <i class="bi bi-inbox"></i>
+              <p class="empty-title">
+                {{ formLanguage === 'ar' ? 'لم يتم إضافة عناصر' : 'No items added' }}
+              </p>
+              <p class="empty-subtitle">
+                {{ formLanguage === 'ar'
+                  ? 'يمكنك إضافة عناصر أو تخطي هذه الخطوة إذا كان لديك مرفق PDF'
+                  : 'You can add items or skip this step if you have a PDF attachment'
+                }}
               </p>
             </div>
 
@@ -585,62 +599,92 @@
           </div>
         </div>
 
-        <!-- STEP 3: Tax & Total -->
+        <!-- ✅ UPDATED: STEP 3 - Tax & Total (Conditional Display) -->
         <div *ngIf="currentStep === 'tax'" class="step-content">
           <h2 class="step-title">{{ formLanguage === 'ar' ? 'الضريبة والإجمالي' : 'Tax & Total' }}</h2>
 
-          <!-- Include Tax Toggle -->
-          <div class="form-group">
-            <label class="checkbox-label large">
+          <!-- ✅ Show message if no items added -->
+          <div *ngIf="quoteForm.items.length === 0" class="info-alert" style="margin-bottom: 1.5rem;">
+            <i class="bi bi-info-circle"></i>
+            <div style="flex: 1;">
+              <p>
+                {{ formLanguage === 'ar'
+                  ? 'لم يتم إضافة عناصر. لن يظهر جدول العناصر والإجماليات في ملف PDF. يمكنك المتابعة لحفظ عرض السعر مع المرفق فقط.'
+                  : 'No items added. The items table and totals will not appear in the PDF. You can proceed to save the quote with attachment only.'
+                }}
+              </p>
+            </div>
+          </div>
+
+          <!-- ✅ Only show tax settings and totals if items exist -->
+          <div *ngIf="quoteForm.items.length > 0">
+            <!-- Include Tax Toggle -->
+            <div class="form-group">
+              <label class="checkbox-label large">
+                <input
+                  type="checkbox"
+                  [(ngModel)]="quoteForm.includeTax"
+                  (ngModelChange)="toggleTax($event)"
+                />
+                <div class="checkbox-info">
+                  <span class="checkbox-title">{{ formLanguage === 'ar' ? 'تضمين الضريبة' : 'Include Tax' }}</span>
+                  <span class="checkbox-description">{{ formLanguage === 'ar' ? 'إضافة ضريبة على الإجمالي الفرعي' : 'Add tax to the subtotal' }}</span>
+                </div>
+              </label>
+            </div>
+
+            <!-- Tax Rate (if tax is included) -->
+            <div class="form-group" *ngIf="quoteForm.includeTax">
+              <label>
+                <i class="bi bi-percent"></i>
+                {{ formLanguage === 'ar' ? 'نسبة الضريبة' : 'Tax Rate' }}
+                <span class="required">*</span>
+              </label>
               <input
-                type="checkbox"
-                [(ngModel)]="quoteForm.includeTax"
-                (ngModelChange)="toggleTax($event)"
+                type="number"
+                [(ngModel)]="quoteForm.taxRate"
+                [placeholder]="formLanguage === 'ar' ? '16' : '16'"
+                class="form-control"
+                [class.error]="fieldErrors['taxRate']"
+                min="0"
+                max="100"
+                step="0.01"
               />
-              <div class="checkbox-info">
-                <span class="checkbox-title">{{ formLanguage === 'ar' ? 'تضمين الضريبة' : 'Include Tax' }}</span>
-                <span class="checkbox-description">{{ formLanguage === 'ar' ? 'إضافة ضريبة على الإجمالي الفرعي' : 'Add tax to the subtotal' }}</span>
+              <small class="error-message" *ngIf="fieldErrors['taxRate']">
+                <i class="bi bi-exclamation-circle"></i>
+                {{ fieldErrors['taxRate'] }}
+              </small>
+            </div>
+
+            <!-- Totals Summary -->
+            <div class="totals-summary">
+              <div class="total-row">
+                <span class="total-label">{{ formLanguage === 'ar' ? 'المجموع الفرعي:' : 'Subtotal:' }}</span>
+                <span class="total-value">{{ formatCurrency(calculatedTotals.subtotal) }}</span>
               </div>
-            </label>
+              <div class="total-row" *ngIf="quoteForm.includeTax">
+                <span class="total-label">{{ formLanguage === 'ar' ? 'الضريبة' : 'Tax' }} ({{ quoteForm.taxRate }}%):</span>
+                <span class="total-value">{{ formatCurrency(calculatedTotals.taxAmount) }}</span>
+              </div>
+              <div class="total-row final-total">
+                <span class="total-label">{{ formLanguage === 'ar' ? 'المجموع الإجمالي:' : 'Total:' }}</span>
+                <span class="total-value">{{ formatCurrency(calculatedTotals.total) }}</span>
+              </div>
+            </div>
           </div>
 
-          <!-- Tax Rate (if tax is included) -->
-          <div class="form-group" *ngIf="quoteForm.includeTax">
-            <label>
-              <i class="bi bi-percent"></i>
-              {{ formLanguage === 'ar' ? 'نسبة الضريبة' : 'Tax Rate' }}
-              <span class="required">*</span>
-            </label>
-            <input
-              type="number"
-              [(ngModel)]="quoteForm.taxRate"
-              [placeholder]="formLanguage === 'ar' ? '16' : '16'"
-              class="form-control"
-              [class.error]="fieldErrors['taxRate']"
-              min="0"
-              max="100"
-              step="0.01"
-            />
-            <small class="error-message" *ngIf="fieldErrors['taxRate']">
-              <i class="bi bi-exclamation-circle"></i>
-              {{ fieldErrors['taxRate'] }}
-            </small>
-          </div>
-
-          <!-- Totals Summary -->
-          <div class="totals-summary">
-            <div class="total-row">
-              <span class="total-label">{{ formLanguage === 'ar' ? 'المجموع الفرعي:' : 'Subtotal:' }}</span>
-              <span class="total-value">{{ formatCurrency(calculatedTotals.subtotal) }}</span>
-            </div>
-            <div class="total-row" *ngIf="quoteForm.includeTax">
-              <span class="total-label">{{ formLanguage === 'ar' ? 'الضريبة' : 'Tax' }} ({{ quoteForm.taxRate }}%):</span>
-              <span class="total-value">{{ formatCurrency(calculatedTotals.taxAmount) }}</span>
-            </div>
-            <div class="total-row final-total">
-              <span class="total-label">{{ formLanguage === 'ar' ? 'المجموع الإجمالي:' : 'Total:' }}</span>
-              <span class="total-value">{{ formatCurrency(calculatedTotals.total) }}</span>
-            </div>
+          <!-- ✅ No Items Message -->
+          <div *ngIf="quoteForm.items.length === 0" class="no-items-message">
+            <i class="bi bi-calculator"></i>
+            <p class="no-items-title">
+              {{ formLanguage === 'ar' ? 'لا توجد إجماليات للحساب' : 'No totals to calculate' }}
+            </p>
+            <p class="no-items-subtitle">
+              {{ formLanguage === 'ar'
+                ? 'لم يتم إضافة أي عناصر. يمكنك حفظ عرض السعر مع معلومات العميل والمرفق فقط.'
+                : 'No items added. You can save the quote with client information and attachment only.'
+              }}
+            </p>
           </div>
 
           <div class="form-navigation">
@@ -809,7 +853,7 @@
         <button type="button" class="btn-secondary" (click)="closeDuplicateModal()">
           {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
         </button>
-        <button type="button" class="btn-duplicate" style="  color: #d97706; border:none ; padding:12px" (click)="confirmDuplicate()">
+        <button type="button" class="btn-duplicate" (click)="confirmDuplicate()">
           <i class="bi bi-files"></i>
           {{ formLanguage === 'ar' ? 'نسخ' : 'Duplicate' }}
         </button>

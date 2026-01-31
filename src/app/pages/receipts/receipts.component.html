@@ -1,4 +1,4 @@
-<!-- receipts.component.html - WITH DUPLICATE FUNCTIONALITY -->
+<!-- receipts.component.html - WITH OPTIONAL ITEMS FEATURE -->
 
 <div class="receipts-container">
 
@@ -302,7 +302,7 @@
 
     <!-- Form Content -->
     <div class="form-content">
-      <!-- Sidebar Navigation -->
+      <!-- ✅ UPDATED: Sidebar Navigation -->
       <div class="form-sidebar">
         <button
           class="sidebar-step"
@@ -310,13 +310,16 @@
           (click)="currentStep = 'basic'">
           {{ formLanguage === 'ar' ? 'المعلومات الأساسية' : 'Basic Info' }}
         </button>
+
+        <!-- ✅ UPDATED: Items now optional, no error indicator -->
         <button
           class="sidebar-step"
           [class.active]="currentStep === 'items'"
-          [class.has-error]="fieldErrors['items']"
           (click)="currentStep = 'items'">
-          {{ formLanguage === 'ar' ? 'العناصر' : 'Items' }}
-          <span class="item-count" [class.error-count]="fieldErrors['items']">{{ getItemsCount() }}</span>
+          <span>
+            {{ formLanguage === 'ar' ? 'العناصر (اختياري)' : 'Items (Optional)' }}
+          </span>
+          <span class="item-count">{{ getItemsCount() }}</span>
         </button>
       </div>
 
@@ -555,31 +558,36 @@
           </div>
         </div>
 
-        <!-- STEP 2: Items -->
+        <!-- ✅ UPDATED: STEP 2 - Items (OPTIONAL) -->
         <div *ngIf="currentStep === 'items'" class="step-content">
           <h2 class="step-title">
-            {{ formLanguage === 'ar' ? 'العناصر' : 'Items' }}
-            <span class="required">*</span>
+            {{ formLanguage === 'ar' ? 'عناصر الإشعار (اختياري)' : 'Receipt Items (Optional)' }}
+            <span class="optional-badge">{{ formLanguage === 'ar' ? 'اختياري' : 'Optional' }}</span>
           </h2>
 
-          <div class="error-alert" *ngIf="fieldErrors['items']" style="margin-bottom: 1.5rem;">
-            <i class="bi bi-exclamation-circle"></i>
-            <span>{{ fieldErrors['items'] }}</span>
+          <!-- ✅ Info Alert -->
+          <div class="info-alert">
+            <i class="bi bi-info-circle"></i>
+            <div style="flex: 1;">
+              <p>
+                {{ formLanguage === 'ar'
+                  ? 'إضافة العناصر اختيارية. إذا كنت قد أرفقت ملف PDF، يمكنك تخطي هذه الخطوة وحفظ الإشعار مباشرة.'
+                  : 'Adding items is optional. If you have attached a PDF file, you can skip this step and save the receipt directly.'
+                }}
+              </p>
+            </div>
           </div>
 
           <div class="items-section">
             <div class="items-header">
               <div class="header-cell">
                 {{ formLanguage === 'ar' ? 'الكمية' : 'Quantity' }}
-                <span class="required">*</span>
               </div>
               <div class="header-cell">
                 {{ formLanguage === 'ar' ? 'الوصف' : 'Description' }}
-                <span class="required">*</span>
               </div>
               <div class="header-cell">
                 {{ formLanguage === 'ar' ? 'العنصر' : 'Element' }}
-                <span class="required">*</span>
               </div>
               <div class="header-cell-action"></div>
             </div>
@@ -639,10 +647,17 @@
               </ng-container>
             </div>
 
+            <!-- ✅ Updated empty state -->
             <div class="items-empty" *ngIf="receiptForm.items.length === 0">
-              <i class="bi bi-inbox" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
-              <p style="margin: 0; color: #64748b;">
-                {{ formLanguage === 'ar' ? 'لم يتم إضافة عناصر. يجب إضافة عنصر واحد على الأقل.' : 'No items added. At least one item is required.' }}
+              <i class="bi bi-inbox"></i>
+              <p class="empty-title">
+                {{ formLanguage === 'ar' ? 'لم يتم إضافة عناصر' : 'No items added' }}
+              </p>
+              <p class="empty-subtitle">
+                {{ formLanguage === 'ar'
+                  ? 'يمكنك إضافة عناصر أو تخطي هذه الخطوة إذا كان لديك مرفق PDF'
+                  : 'You can add items or skip this step if you have a PDF attachment'
+                }}
               </p>
             </div>
 
@@ -657,6 +672,26 @@
               <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
               {{ formLanguage === 'ar' ? 'السابق' : 'Back' }}
             </button>
+          </div>
+
+          <!-- ✅ Save button at bottom of items step -->
+          <div class="save-section">
+            <button
+              class="btn-save-quote"
+              (click)="saveReceipt()"
+              [disabled]="savingReceipt">
+              <i class="bi" [ngClass]="savingReceipt ? 'bi-arrow-clockwise spin' : 'bi-file-earmark-pdf'"></i>
+              {{ savingReceipt
+                ? (formLanguage === 'ar' ? 'جاري إنشاء الإشعار...' : 'Creating Receipt...')
+                : (formLanguage === 'ar' ? 'حفظ وإنشاء الإشعار' : 'Save & Generate Receipt')
+              }}
+            </button>
+            <p class="save-hint">
+              {{ formLanguage === 'ar'
+                ? 'سيتم إنشاء ملف PDF تلقائياً بعد الحفظ'
+                : 'PDF will be automatically generated after saving'
+              }}
+            </p>
           </div>
         </div>
 

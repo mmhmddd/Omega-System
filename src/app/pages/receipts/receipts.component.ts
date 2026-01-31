@@ -407,105 +407,109 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     }
     return value || key;
   }
+private validateForm(): boolean {
+  this.fieldErrors = {};
+  this.formError = '';
+  let isValid = true;
 
-  private validateForm(): boolean {
-    this.fieldErrors = {};
-    this.formError = '';
-    let isValid = true;
-
-    if (!this.receiptForm.to || this.receiptForm.to.trim() === '') {
-      this.fieldErrors['to'] = this.t('errors.toRequired');
-      isValid = false;
-    }
-    if (!this.receiptForm.date) {
-      this.fieldErrors['date'] = this.t('errors.dateRequired');
-      isValid = false;
-    }
-    if (!this.receiptForm.address || this.receiptForm.address.trim() === '') {
-      this.fieldErrors['address'] = this.t('errors.addressRequired');
-      isValid = false;
-    }
-    if (!this.receiptForm.attention || this.receiptForm.attention.trim() === '') {
-      this.fieldErrors['attention'] = this.t('errors.attentionRequired');
-      isValid = false;
-    }
-    if (!this.receiptForm.projectCode || this.receiptForm.projectCode.trim() === '') {
-      this.fieldErrors['projectCode'] = this.t('errors.projectCodeRequired');
-      isValid = false;
-    }
-    if (!this.receiptForm.workLocation || this.receiptForm.workLocation.trim() === '') {
-      this.fieldErrors['workLocation'] = this.t('errors.workLocationRequired');
-      isValid = false;
-    }
-    if (!this.receiptForm.vehicleNumber || this.receiptForm.vehicleNumber.trim() === '') {
-      this.fieldErrors['vehicleNumber'] = this.t('errors.vehicleNumberRequired');
-      isValid = false;
-    }
-    if (!this.receiptForm.notes || this.receiptForm.notes.trim() === '') {
-      this.fieldErrors['notes'] = this.t('errors.notesRequired');
-      isValid = false;
-    }
-    if (!this.receiptForm.items || this.receiptForm.items.length === 0) {
-      this.fieldErrors['items'] = this.t('errors.itemsRequired');
-      isValid = false;
-    } else {
-      this.receiptForm.items.forEach((item, index) => {
-        if (!item.quantity || item.quantity.toString().trim() === '') {
-          this.fieldErrors[`item_${index}_quantity`] = this.t('errors.itemQuantityRequired');
-          isValid = false;
-        }
-        if (!item.description || item.description.trim() === '') {
-          this.fieldErrors[`item_${index}_description`] = this.t('errors.itemDescriptionRequired');
-          isValid = false;
-        }
-        if (!item.element || item.element.trim() === '') {
-          this.fieldErrors[`item_${index}_element`] = this.t('errors.itemElementRequired');
-          isValid = false;
-        }
-      });
-    }
-    return isValid;
+  // Validate basic fields
+  if (!this.receiptForm.to || this.receiptForm.to.trim() === '') {
+    this.fieldErrors['to'] = this.t('errors.toRequired');
+    isValid = false;
+  }
+  if (!this.receiptForm.date) {
+    this.fieldErrors['date'] = this.t('errors.dateRequired');
+    isValid = false;
+  }
+  if (!this.receiptForm.address || this.receiptForm.address.trim() === '') {
+    this.fieldErrors['address'] = this.t('errors.addressRequired');
+    isValid = false;
+  }
+  if (!this.receiptForm.attention || this.receiptForm.attention.trim() === '') {
+    this.fieldErrors['attention'] = this.t('errors.attentionRequired');
+    isValid = false;
+  }
+  if (!this.receiptForm.projectCode || this.receiptForm.projectCode.trim() === '') {
+    this.fieldErrors['projectCode'] = this.t('errors.projectCodeRequired');
+    isValid = false;
+  }
+  if (!this.receiptForm.workLocation || this.receiptForm.workLocation.trim() === '') {
+    this.fieldErrors['workLocation'] = this.t('errors.workLocationRequired');
+    isValid = false;
+  }
+  if (!this.receiptForm.vehicleNumber || this.receiptForm.vehicleNumber.trim() === '') {
+    this.fieldErrors['vehicleNumber'] = this.t('errors.vehicleNumberRequired');
+    isValid = false;
+  }
+  if (!this.receiptForm.notes || this.receiptForm.notes.trim() === '') {
+    this.fieldErrors['notes'] = this.t('errors.notesRequired');
+    isValid = false;
   }
 
-  private validateBasicFields(): boolean {
-    this.fieldErrors = {};
-    this.formError = '';
-    let isValid = true;
-
-    if (!this.receiptForm.to || this.receiptForm.to.trim() === '') {
-      this.fieldErrors['to'] = this.t('errors.toRequired');
-      isValid = false;
-    }
-    if (!this.receiptForm.date) {
-      this.fieldErrors['date'] = this.t('errors.dateRequired');
-      isValid = false;
-    }
-    if (!this.receiptForm.address || this.receiptForm.address.trim() === '') {
-      this.fieldErrors['address'] = this.t('errors.addressRequired');
-      isValid = false;
-    }
-    if (!this.receiptForm.attention || this.receiptForm.attention.trim() === '') {
-      this.fieldErrors['attention'] = this.t('errors.attentionRequired');
-      isValid = false;
-    }
-    if (!this.receiptForm.projectCode || this.receiptForm.projectCode.trim() === '') {
-      this.fieldErrors['projectCode'] = this.t('errors.projectCodeRequired');
-      isValid = false;
-    }
-    if (!this.receiptForm.workLocation || this.receiptForm.workLocation.trim() === '') {
-      this.fieldErrors['workLocation'] = this.t('errors.workLocationRequired');
-      isValid = false;
-    }
-    if (!this.receiptForm.vehicleNumber || this.receiptForm.vehicleNumber.trim() === '') {
-      this.fieldErrors['vehicleNumber'] = this.t('errors.vehicleNumberRequired');
-      isValid = false;
-    }
-    if (!this.receiptForm.notes || this.receiptForm.notes.trim() === '') {
-      this.fieldErrors['notes'] = this.t('errors.notesRequired');
-      isValid = false;
-    }
-    return isValid;
+  // ✅ UPDATED: Items validation - now OPTIONAL
+  // Only validate items if they exist
+  if (this.receiptForm.items && this.receiptForm.items.length > 0) {
+    this.receiptForm.items.forEach((item, index) => {
+      if (!item.quantity || item.quantity.toString().trim() === '') {
+        this.fieldErrors[`item_${index}_quantity`] = this.t('errors.itemQuantityRequired');
+        isValid = false;
+      }
+      if (!item.description || item.description.trim() === '') {
+        this.fieldErrors[`item_${index}_description`] = this.t('errors.itemDescriptionRequired');
+        isValid = false;
+      }
+      if (!item.element || item.element.trim() === '') {
+        this.fieldErrors[`item_${index}_element`] = this.t('errors.itemElementRequired');
+        isValid = false;
+      }
+    });
   }
+  // ✅ NO ERROR if items array is empty - items are optional
+
+  return isValid;
+}
+
+private validateBasicFields(): boolean {
+  this.fieldErrors = {};
+  this.formError = '';
+  let isValid = true;
+
+  if (!this.receiptForm.to || this.receiptForm.to.trim() === '') {
+    this.fieldErrors['to'] = this.t('errors.toRequired');
+    isValid = false;
+  }
+  if (!this.receiptForm.date) {
+    this.fieldErrors['date'] = this.t('errors.dateRequired');
+    isValid = false;
+  }
+  if (!this.receiptForm.address || this.receiptForm.address.trim() === '') {
+    this.fieldErrors['address'] = this.t('errors.addressRequired');
+    isValid = false;
+  }
+  if (!this.receiptForm.attention || this.receiptForm.attention.trim() === '') {
+    this.fieldErrors['attention'] = this.t('errors.attentionRequired');
+    isValid = false;
+  }
+  if (!this.receiptForm.projectCode || this.receiptForm.projectCode.trim() === '') {
+    this.fieldErrors['projectCode'] = this.t('errors.projectCodeRequired');
+    isValid = false;
+  }
+  if (!this.receiptForm.workLocation || this.receiptForm.workLocation.trim() === '') {
+    this.fieldErrors['workLocation'] = this.t('errors.workLocationRequired');
+    isValid = false;
+  }
+  if (!this.receiptForm.vehicleNumber || this.receiptForm.vehicleNumber.trim() === '') {
+    this.fieldErrors['vehicleNumber'] = this.t('errors.vehicleNumberRequired');
+    isValid = false;
+  }
+  if (!this.receiptForm.notes || this.receiptForm.notes.trim() === '') {
+    this.fieldErrors['notes'] = this.t('errors.notesRequired');
+    isValid = false;
+  }
+
+  return isValid;
+}
+
 
   private clearErrors(): void {
     this.formError = '';
@@ -694,85 +698,88 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     });
   }
 
-  saveReceipt(): void {
-    if (!this.validateForm()) {
-      if (this.fieldErrors['items'] || Object.keys(this.fieldErrors).some(key => key.startsWith('item_'))) {
-        this.currentStep = 'items';
-      } else {
-        this.currentStep = 'basic';
-      }
-      return;
+saveReceipt(): void {
+  if (!this.validateForm()) {
+    // If there are item-related errors, switch to items step
+    if (Object.keys(this.fieldErrors).some(key => key.startsWith('item_'))) {
+      this.currentStep = 'items';
+    } else {
+      // Otherwise, switch to basic step
+      this.currentStep = 'basic';
     }
-
-    this.savingReceipt = true;
-    this.clearErrors();
-
-    const receiptData = {
-      to: this.receiptForm.to,
-      date: this.receiptForm.date,
-      address: this.receiptForm.address,
-      addressTitle: this.receiptForm.addressTitle,
-      attention: this.receiptForm.attention,
-      projectCode: this.receiptForm.projectCode,
-      workLocation: this.receiptForm.workLocation,
-      companyNumber: this.receiptForm.vehicleNumber,
-      additionalText: this.receiptForm.additionalText,
-      items: this.receiptForm.items,
-      notes: this.receiptForm.notes
-    };
-
-    if (this.currentView === 'create') {
-      this.receiptService.createReceipt(receiptData).subscribe({
-        next: (response: any) => {
-          const createdReceipt = response.data;
-          this.receiptService.generatePDF(createdReceipt.id, this.formPdfAttachment || undefined).subscribe({
-            next: () => {
-              this.savingReceipt = false;
-              this.showToast('success', this.t('messages.createdWithPdf'));
-              setTimeout(() => {
-                this.openSuccessModal(createdReceipt.id, createdReceipt.receiptNumber);
-              }, 500);
-            },
-            error: () => {
-              this.savingReceipt = false;
-              this.showToast('warning', this.t('errors.pdfGenerationWarning'));
-              this.backToList();
-              this.loadReceipts();
-            }
-          });
-        },
-        error: (error: any) => {
-          this.savingReceipt = false;
-          this.handleBackendError(error);
-        }
-      });
-    } else if (this.currentView === 'edit' && this.selectedReceipt) {
-      this.receiptService.updateReceipt(this.selectedReceipt.id, receiptData).subscribe({
-        next: (response: any) => {
-          const updatedReceipt = response.data;
-          this.receiptService.generatePDF(updatedReceipt.id, this.formPdfAttachment || undefined).subscribe({
-            next: () => {
-              this.savingReceipt = false;
-              this.showToast('success', this.t('messages.createdWithPdf'));
-                setTimeout(() => {
-                  this.openSuccessModal(updatedReceipt.id, updatedReceipt.receiptNumber);
-                }, 500);
-            },
-            error: () => {
-              this.savingReceipt = false;
-              this.showToast('warning', this.t('errors.pdfUpdateWarning'));
-              this.backToList();
-              this.loadReceipts();
-            }
-          });
-        },
-        error: (error: any) => {
-          this.savingReceipt = false;
-          this.handleBackendError(error);
-        }
-      });
-    }
+    return;
   }
+
+  this.savingReceipt = true;
+  this.clearErrors();
+
+  const receiptData = {
+    to: this.receiptForm.to,
+    date: this.receiptForm.date,
+    address: this.receiptForm.address,
+    addressTitle: this.receiptForm.addressTitle,
+    attention: this.receiptForm.attention,
+    projectCode: this.receiptForm.projectCode,
+    workLocation: this.receiptForm.workLocation,
+    companyNumber: this.receiptForm.vehicleNumber,
+    additionalText: this.receiptForm.additionalText,
+    items: this.receiptForm.items || [], // ✅ Can be empty array
+    notes: this.receiptForm.notes
+  };
+
+  // Continue with create or update logic...
+  if (this.currentView === 'create') {
+    this.receiptService.createReceipt(receiptData).subscribe({
+      next: (response: any) => {
+        const createdReceipt = response.data;
+        this.receiptService.generatePDF(createdReceipt.id, this.formPdfAttachment || undefined).subscribe({
+          next: () => {
+            this.savingReceipt = false;
+            this.showToast('success', this.t('messages.createdWithPdf'));
+            setTimeout(() => {
+              this.openSuccessModal(createdReceipt.id, createdReceipt.receiptNumber);
+            }, 500);
+          },
+          error: () => {
+            this.savingReceipt = false;
+            this.showToast('warning', this.t('errors.pdfGenerationWarning'));
+            this.backToList();
+            this.loadReceipts();
+          }
+        });
+      },
+      error: (error: any) => {
+        this.savingReceipt = false;
+        this.handleBackendError(error);
+      }
+    });
+  } else if (this.currentView === 'edit' && this.selectedReceipt) {
+    this.receiptService.updateReceipt(this.selectedReceipt.id, receiptData).subscribe({
+      next: (response: any) => {
+        const updatedReceipt = response.data;
+        this.receiptService.generatePDF(updatedReceipt.id, this.formPdfAttachment || undefined).subscribe({
+          next: () => {
+            this.savingReceipt = false;
+            this.showToast('success', this.t('messages.createdWithPdf'));
+              setTimeout(() => {
+                this.openSuccessModal(updatedReceipt.id, updatedReceipt.receiptNumber);
+              }, 500);
+          },
+          error: () => {
+            this.savingReceipt = false;
+            this.showToast('warning', this.t('errors.pdfUpdateWarning'));
+            this.backToList();
+            this.loadReceipts();
+          }
+        });
+      },
+      error: (error: any) => {
+        this.savingReceipt = false;
+        this.handleBackendError(error);
+      }
+    });
+  }
+}
 
   // ========================================
   // PDF OPERATIONS
@@ -841,17 +848,19 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
   // FORM NAVIGATION
   // ========================================
 
-  nextStep(): void {
-    if (this.currentStep === 'basic') {
-      const itemsErrorKeys = Object.keys(this.fieldErrors).filter(key =>
-        key === 'items' || key.startsWith('item_')
-      );
-      itemsErrorKeys.forEach(key => delete this.fieldErrors[key]);
-      if (this.validateBasicFields()) {
-        this.currentStep = 'items';
-      }
+nextStep(): void {
+  if (this.currentStep === 'basic') {
+    // Clear any previous items errors before validating basic fields
+    const itemsErrorKeys = Object.keys(this.fieldErrors).filter(key =>
+      key === 'items' || key.startsWith('item_')
+    );
+    itemsErrorKeys.forEach(key => delete this.fieldErrors[key]);
+
+    if (this.validateBasicFields()) {
+      this.currentStep = 'items';
     }
   }
+}
 
   previousStep(): void {
     if (this.currentStep === 'items') {
@@ -867,15 +876,16 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     });
   }
 
-  removeItem(index: number): void {
-    this.receiptForm.items.splice(index, 1);
-    delete this.fieldErrors[`item_${index}_quantity`];
-    delete this.fieldErrors[`item_${index}_description`];
-    delete this.fieldErrors[`item_${index}_element`];
-    if (this.receiptForm.items.length === 0) {
-      this.fieldErrors['items'] = this.t('errors.itemsRequired');
-    }
-  }
+removeItem(index: number): void {
+  this.receiptForm.items.splice(index, 1);
+
+  // Clear errors for this item
+  delete this.fieldErrors[`item_${index}_quantity`];
+  delete this.fieldErrors[`item_${index}_description`];
+  delete this.fieldErrors[`item_${index}_element`];
+
+  // ✅ NO ERROR if items array becomes empty - items are optional
+}
 
   backToList(): void {
     this.currentView = 'list';

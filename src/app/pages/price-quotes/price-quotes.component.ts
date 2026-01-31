@@ -557,50 +557,46 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
   // VALIDATION
   // ============================================
 
-  validateBasicInfo(): boolean {
-    this.fieldErrors = {};
-    let isValid = true;
+validateBasicInfo(): boolean {
+  this.fieldErrors = {};
+  let isValid = true;
 
-    if (!this.quoteForm.clientName || this.quoteForm.clientName.trim() === '') {
-      this.fieldErrors['clientName'] = this.formLanguage === 'ar'
-        ? 'اسم العميل مطلوب'
-        : 'Client name is required';
-      isValid = false;
-    }
-
-    if (!this.quoteForm.clientPhone || this.quoteForm.clientPhone.trim() === '') {
-      this.fieldErrors['clientPhone'] = this.formLanguage === 'ar'
-        ? 'رقم هاتف العميل مطلوب'
-        : 'Phone number is required';
-      isValid = false;
-    } else if (!this.priceQuoteService.validatePhoneNumber(this.quoteForm.clientPhone)) {
-      this.fieldErrors['clientPhone'] = this.formLanguage === 'ar'
-        ? 'رقم الهاتف غير صالح'
-        : 'Invalid phone number';
-      isValid = false;
-    }
-
-    if (!this.quoteForm.date) {
-      this.fieldErrors['date'] = this.formLanguage === 'ar'
-        ? 'التاريخ مطلوب'
-        : 'Date is required';
-      isValid = false;
-    }
-
-    return isValid;
+  if (!this.quoteForm.clientName || this.quoteForm.clientName.trim() === '') {
+    this.fieldErrors['clientName'] = this.formLanguage === 'ar'
+      ? 'اسم العميل مطلوب'
+      : 'Client name is required';
+    isValid = false;
   }
 
-  validateItems(): boolean {
-    this.fieldErrors = {};
-    let isValid = true;
+  if (!this.quoteForm.clientPhone || this.quoteForm.clientPhone.trim() === '') {
+    this.fieldErrors['clientPhone'] = this.formLanguage === 'ar'
+      ? 'رقم هاتف العميل مطلوب'
+      : 'Phone number is required';
+    isValid = false;
+  } else if (!this.priceQuoteService.validatePhoneNumber(this.quoteForm.clientPhone)) {
+    this.fieldErrors['clientPhone'] = this.formLanguage === 'ar'
+      ? 'رقم الهاتف غير صالح'
+      : 'Invalid phone number';
+    isValid = false;
+  }
 
-    if (this.quoteForm.items.length === 0) {
-      this.fieldErrors['items'] = this.formLanguage === 'ar'
-        ? 'يجب إضافة عنصر واحد على الأقل'
-        : 'At least one item is required';
-      isValid = false;
-    }
+  if (!this.quoteForm.date) {
+    this.fieldErrors['date'] = this.formLanguage === 'ar'
+      ? 'التاريخ مطلوب'
+      : 'Date is required';
+    isValid = false;
+  }
 
+  return isValid;
+}
+
+validateItems(): boolean {
+  this.fieldErrors = {};
+  let isValid = true;
+
+  // ✅ Items are now optional - no error if empty
+  // Only validate if items exist
+  if (this.quoteForm.items.length > 0) {
     this.quoteForm.items.forEach((item, index) => {
       if (!item.description || item.description.trim() === '') {
         this.fieldErrors[`item_${index}_description`] = this.formLanguage === 'ar'
@@ -630,29 +626,30 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
         isValid = false;
       }
     });
-
-    return isValid;
   }
 
-  validateTaxInfo(): boolean {
-    this.fieldErrors = {};
-    let isValid = true;
+  return isValid;
+}
 
-    // Only validate tax rate if tax is actually included
-    if (this.quoteForm.includeTax === true) {
-      if (!this.quoteForm.taxRate || this.quoteForm.taxRate <= 0) {
-        this.fieldErrors['taxRate'] = this.formLanguage === 'ar'
-          ? 'نسبة الضريبة مطلوبة'
-          : 'Tax rate is required';
-        isValid = false;
-      }
-    } else {
-      // If tax is not included, ensure taxRate is 0
-      this.quoteForm.taxRate = 0;
+validateTaxInfo(): boolean {
+  this.fieldErrors = {};
+  let isValid = true;
+
+  // Only validate tax rate if tax is actually included
+  if (this.quoteForm.includeTax === true) {
+    if (!this.quoteForm.taxRate || this.quoteForm.taxRate <= 0) {
+      this.fieldErrors['taxRate'] = this.formLanguage === 'ar'
+        ? 'نسبة الضريبة مطلوبة'
+        : 'Tax rate is required';
+      isValid = false;
     }
-
-    return isValid;
+  } else {
+    // If tax is not included, ensure taxRate is 0
+    this.quoteForm.taxRate = 0;
   }
+
+  return isValid;
+}
 
   // ============================================
   // SAVE QUOTE
