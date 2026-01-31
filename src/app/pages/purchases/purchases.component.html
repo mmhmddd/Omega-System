@@ -185,39 +185,48 @@
               </span>
             </td>
 
-            <td class="actions-cell text-center">
-              <button
-                class="btn-icon btn-view"
-                (click)="viewPDF(po)"
-                [title]="formLanguage === 'ar' ? 'عرض PDF' : 'View PDF'">
-                <i class="bi bi-eye"></i>
-              </button>
-              <button
-                class="btn-icon btn-print"
-                (click)="printPOPDF(po)"
-                [title]="formLanguage === 'ar' ? 'طباعة' : 'Print'">
-                <i class="bi bi-printer"></i>
-              </button>
-              <button
-                class="btn-icon btn-download"
-                (click)="downloadPDF(po)"
-                [title]="formLanguage === 'ar' ? 'تحميل PDF' : 'Download PDF'">
-                <i class="bi bi-download"></i>
-              </button>
-              <button
-                class="btn-icon btn-edit"
-                (click)="editPO(po)"
-                [title]="formLanguage === 'ar' ? 'تعديل' : 'Edit'">
-                <i class="bi bi-pencil"></i>
-              </button>
-              <button
-                *ngIf="isSuperAdmin()"
-                class="btn-icon btn-delete"
-                (click)="showDeleteConfirmation(po)"
-                [title]="formLanguage === 'ar' ? 'حذف' : 'Delete'">
-                <i class="bi bi-trash"></i>
-              </button>
-            </td>
+<td class="actions-cell text-center">
+  <button
+    class="btn-icon btn-view"
+    (click)="viewPDF(po)"
+    [title]="formLanguage === 'ar' ? 'عرض PDF' : 'View PDF'">
+    <i class="bi bi-eye"></i>
+  </button>
+  <button
+    class="btn-icon btn-print"
+    (click)="printPOPDF(po)"
+    [title]="formLanguage === 'ar' ? 'طباعة' : 'Print'">
+    <i class="bi bi-printer"></i>
+  </button>
+  <button
+    class="btn-icon btn-download"
+    (click)="downloadPDF(po)"
+    [title]="formLanguage === 'ar' ? 'تحميل PDF' : 'Download PDF'">
+    <i class="bi bi-download"></i>
+  </button>
+  
+  <!-- ✅ NEW: DUPLICATE BUTTON -->
+  <button
+    class="btn-icon btn-duplicate"
+    (click)="openDuplicateModal(po)"
+    [title]="formLanguage === 'ar' ? 'نسخ وإعادة استخدام' : 'Duplicate & Reuse'">
+    <i class="bi bi-files"></i>
+  </button>
+  
+  <button
+    class="btn-icon btn-edit"
+    (click)="editPO(po)"
+    [title]="formLanguage === 'ar' ? 'تعديل' : 'Edit'">
+    <i class="bi bi-pencil"></i>
+  </button>
+  <button
+    *ngIf="isSuperAdmin()"
+    class="btn-icon btn-delete"
+    (click)="showDeleteConfirmation(po)"
+    [title]="formLanguage === 'ar' ? 'حذف' : 'Delete'">
+    <i class="bi bi-trash"></i>
+  </button>
+</td>
           </tr>
         </tbody>
         <tbody *ngIf="loading">
@@ -312,7 +321,7 @@
           [class.active]="currentStep === 'items'"
           [class.has-error]="fieldErrors['items']"
           (click)="currentStep = 'items'">
-          {{ formLanguage === 'ar' ? 'العناصر' : 'Items' }}
+            {{ formLanguage === 'ar' ? 'العناصر  (اختياري)' : ' Items (Optional)' }}
           <span class="item-count" [class.error-count]="fieldErrors['items']">{{ getItemsCount() }}</span>
         </button>
       </div>
@@ -322,14 +331,27 @@
 
         <!-- STEP 1: Basic Info -->
         <div *ngIf="currentStep === 'basic'" class="step-content">
-          <h2 class="step-title">{{ formLanguage === 'ar' ? 'المعلومات الأساسية' : 'Basic Info' }}</h2>
+          <h2 class="step-title">
+            {{ formLanguage === 'ar' ? 'المعلومات الأساسية (اختيارية)' : 'Basic Info (Optional)' }}
+          </h2>
 
+          <!-- ✅ Info Alert -->
+          <div class="info-alert">
+            <i class="bi bi-info-circle"></i>
+            <div style="flex: 1;">
+              <p>
+                {{ formLanguage === 'ar'
+                  ? 'جميع الحقول اختيارية. فقط الحقول المملوءة ستظهر في ملف PDF.'
+                  : 'All fields are optional. Only filled fields will appear in the PDF.'
+                }}
+              </p>
+            </div>
+          </div>
           <!-- Date Field -->
           <div class="form-group">
             <label>
               <i class="bi bi-calendar"></i>
               {{ formLanguage === 'ar' ? 'التاريخ' : 'Date' }}
-              <span class="required">*</span>
             </label>
             <input
               type="date"
@@ -353,7 +375,6 @@
             <label>
               <i class="bi bi-truck"></i>
               {{ formLanguage === 'ar' ? 'المورد' : 'Supplier' }}
-              <span class="required">*</span>
             </label>
             <select
               [(ngModel)]="poForm.supplier"
@@ -418,7 +439,6 @@
             <label>
               <i class="bi bi-person"></i>
               {{ formLanguage === 'ar' ? 'المستلم' : 'Receiver' }}
-              <span class="required">*</span>
             </label>
             <input
               type="text"
@@ -579,10 +599,10 @@
      ======================================== -->
 
 <div *ngIf="currentStep === 'items'" class="step-content">
-  <h2 class="step-title">
-    {{ formLanguage === 'ar' ? 'العناصر' : 'Items' }}
-    <span class="required">*</span>
-  </h2>
+          <h2 class="step-title">
+            {{ formLanguage === 'ar' ? 'العناصر  (اختياري)' : 'Items (Optional)' }}
+            <span class="optional-badge">{{ formLanguage === 'ar' ? 'اختياري' : 'Optional' }}</span>
+          </h2>
 
   <div class="error-alert" *ngIf="fieldErrors['items']" style="margin-bottom: 1.5rem;">
     <i class="bi bi-exclamation-circle"></i>
@@ -610,7 +630,6 @@
             <div class="item-field">
               <label class="field-label">
                 {{ formLanguage === 'ar' ? 'الوصف' : 'Description' }}
-                <span class="required">*</span>
               </label>
               <input
                 type="text"
@@ -632,7 +651,6 @@
               <div class="item-field">
                 <label class="field-label">
                   {{ formLanguage === 'ar' ? 'الوحدة' : 'Unit' }}
-                  <span class="required">*</span>
                 </label>
                 <input
                   type="text"
@@ -652,7 +670,6 @@
               <div class="item-field">
                 <label class="field-label">
                   {{ formLanguage === 'ar' ? 'الكمية' : 'Quantity' }}
-                  <span class="required">*</span>
                 </label>
                 <input
                   type="number"
@@ -677,7 +694,6 @@
               <div class="item-field">
                 <label class="field-label">
                   {{ formLanguage === 'ar' ? 'سعر الوحدة' : 'Unit Price' }}
-                  <span class="required">*</span>
                 </label>
                 <input
                   type="number"
@@ -885,5 +901,45 @@
       </div>
     </div>
   </div>
+
+<div *ngIf="showDuplicateModal" class="confirmation-overlay" (click)="closeDuplicateModal()">
+  <div class="confirmation-modal" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'" (click)="$event.stopPropagation()">
+    <div class="modal-header warning">
+      <div class="modal-icon">
+        <i class="bi bi-files"></i>
+      </div>
+      <h3 class="modal-title">{{ formLanguage === 'ar' ? 'نسخ طلب الشراء' : 'Duplicate Purchase Order' }}</h3>
+    </div>
+    
+    <div class="modal-body">
+      <p class="modal-message">
+        {{ formLanguage === 'ar'
+          ? 'هل تريد نسخ بيانات طلب الشراء'
+          : 'Do you want to duplicate Purchase Order'
+        }}
+        <strong>{{ poToDuplicate?.poNumber }}</strong>؟
+        <br><br>
+        <span style="color: #d97706; font-weight: 500;">
+          {{ formLanguage === 'ar'
+            ? 'سيتم إنشاء طلب شراء جديد بنفس البيانات مع إمكانية التعديل.'
+            : 'A new purchase order will be created with the same data that you can modify.'
+          }}
+        </span>
+      </p>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="closeDuplicateModal()">
+        <i class="bi bi-x-circle"></i>
+        {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
+      </button>
+      <button class="btn-confirm" (click)="confirmDuplicate()">
+        <i class="bi bi-files"></i>
+        {{ formLanguage === 'ar' ? 'نسخ' : 'Duplicate' }}
+      </button>
+    </div>
+  </div>
+</div>
+
 
 </div>

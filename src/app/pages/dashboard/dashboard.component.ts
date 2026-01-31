@@ -61,7 +61,7 @@ export class DashboardComponent implements OnInit {
       color: '#3b82f6'
     },
     {
-      title: 'تسعير خارجي',
+      title: 'طلب تسعير',
       subtitle: 'طلبات تسعير من الموردين',
       icon: 'bi-file-earmark-bar-graph',
       route: '/rfqs',

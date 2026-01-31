@@ -184,39 +184,46 @@
                 {{ getRoleText(rfq.createdByRole) }}
               </span>
             </td>
-            <td class="actions-cell text-center">
-              <button 
-                class="btn-icon btn-view" 
-                (click)="viewPDF(rfq)" 
-                [title]="formLanguage === 'ar' ? 'عرض PDF' : 'View PDF'">
-                <i class="bi bi-eye"></i>
-              </button>
-              <button 
-                class="btn-icon btn-print" 
-                (click)="printRFQPDF(rfq)" 
-                [title]="formLanguage === 'ar' ? 'طباعة' : 'Print'">
-                <i class="bi bi-printer"></i>
-              </button>
-              <button 
-                class="btn-icon btn-download" 
-                (click)="downloadPDF(rfq)" 
-                [title]="formLanguage === 'ar' ? 'تحميل PDF' : 'Download PDF'">
-                <i class="bi bi-download"></i>
-              </button>
-              <button 
-                class="btn-icon btn-edit" 
-                (click)="editRFQ(rfq)" 
-                [title]="formLanguage === 'ar' ? 'تعديل' : 'Edit'">
-                <i class="bi bi-pencil"></i>
-              </button>
-              <button 
-                *ngIf="isSuperAdmin()" 
-                class="btn-icon btn-delete" 
-                (click)="showDeleteConfirmation(rfq)" 
-                [title]="formLanguage === 'ar' ? 'حذف' : 'Delete'">
-                <i class="bi bi-trash"></i>
-              </button>
-            </td>
+<td class="actions-cell text-center">
+  <button 
+    class="btn-icon btn-view" 
+    (click)="viewPDF(rfq)" 
+    [title]="formLanguage === 'ar' ? 'عرض PDF' : 'View PDF'">
+    <i class="bi bi-eye"></i>
+  </button>
+  <button 
+    class="btn-icon btn-print" 
+    (click)="printRFQPDF(rfq)" 
+    [title]="formLanguage === 'ar' ? 'طباعة' : 'Print'">
+    <i class="bi bi-printer"></i>
+  </button>
+  <button 
+    class="btn-icon btn-download" 
+    (click)="downloadPDF(rfq)" 
+    [title]="formLanguage === 'ar' ? 'تحميل PDF' : 'Download PDF'">
+    <i class="bi bi-download"></i>
+  </button>
+  <!-- ✅ NEW: DUPLICATE BUTTON -->
+  <button 
+    class="btn-icon btn-duplicate" 
+    (click)="openDuplicateModal(rfq)" 
+    [title]="formLanguage === 'ar' ? 'نسخ وإعادة استخدام' : 'Duplicate & Reuse'">
+    <i class="bi bi-files"></i>
+  </button>
+  <button 
+    class="btn-icon btn-edit" 
+    (click)="editRFQ(rfq)" 
+    [title]="formLanguage === 'ar' ? 'تعديل' : 'Edit'">
+    <i class="bi bi-pencil"></i>
+  </button>
+  <button 
+    *ngIf="isSuperAdmin()" 
+    class="btn-icon btn-delete" 
+    (click)="showDeleteConfirmation(rfq)" 
+    [title]="formLanguage === 'ar' ? 'حذف' : 'Delete'">
+    <i class="bi bi-trash"></i>
+  </button>
+</td>
           </tr>
         </tbody>
         <tbody *ngIf="loading">
@@ -311,7 +318,9 @@
           [class.active]="currentStep === 'items'"
           [class.has-error]="fieldErrors['items']"
           (click)="currentStep = 'items'">
-          {{ formLanguage === 'ar' ? 'العناصر' : 'Items' }}
+          <span>
+            {{ formLanguage === 'ar' ? 'العناصر (اختياري)' : 'Items (Optional)' }}
+          </span>
           <span class="item-count" [class.error-count]="fieldErrors['items']">{{ getItemsCount() }}</span>
         </button>
       </div>
@@ -321,15 +330,26 @@
         
         <!-- STEP 1: Basic Info -->
       <div *ngIf="currentStep === 'basic'" class="step-content">
-          <h2 class="step-title">{{ formLanguage === 'ar' ? 'المعلومات الأساسية' : 'Basic Info' }}</h2>
-
+          <h2 class="step-title">
+            {{ formLanguage === 'ar' ? 'المعلومات الأساسية (اختيارية)' : 'Basic Info (Optional)' }}
+          </h2>
+                    <div class="info-alert">
+            <i class="bi bi-info-circle"></i>
+            <div style="flex: 1;">
+              <p>
+                {{ formLanguage === 'ar'
+                  ? 'جميع الحقول اختيارية. فقط الحقول المملوءة ستظهر في ملف PDF.'
+                  : 'All fields are optional. Only filled fields will appear in the PDF.'
+                }}
+              </p>
+            </div>
+          </div>
           <!-- Date and Time Row -->
           <div class="form-row">
             <div class="form-group">
               <label>
                 <i class="bi bi-calendar"></i>
                 {{ formLanguage === 'ar' ? 'التاريخ' : 'Date' }} 
-                <span class="required">*</span>
               </label>
               <input 
                 type="date" 
@@ -348,7 +368,6 @@
               <label>
                 <i class="bi bi-clock"></i>
                 {{ formLanguage === 'ar' ? 'الوقت' : 'Time' }}
-                <span class="required">*</span>
               </label>
               <input 
                 type="time" 
@@ -369,7 +388,6 @@
             <label>
               <i class="bi bi-person"></i>
               {{ formLanguage === 'ar' ? 'مقدم الطلب' : 'Requester' }} 
-              <span class="required">*</span>
             </label>
             <input 
               type="text" 
@@ -391,7 +409,6 @@
           <label>
             <i class="bi bi-building"></i>
             {{ formLanguage === 'ar' ? 'القسم' : 'Department' }}
-            <span class="required">*</span>
           </label>
           <select 
             [(ngModel)]="rfqForm.production"
@@ -418,7 +435,6 @@
             <label>
               <i class="bi bi-truck"></i>
               {{ formLanguage === 'ar' ? 'المورد' : 'Supplier' }}
-              <span class="required">*</span>
             </label>
             <select 
               [(ngModel)]="rfqForm.supplier"
@@ -449,7 +465,6 @@
             <label>
               <i class="bi bi-geo-alt"></i>
               {{ formLanguage === 'ar' ? 'عنوان المورد' : 'Supplier Address' }}
-              <span class="required">*</span>
             </label>
             <input 
               type="text" 
@@ -545,10 +560,22 @@
         <!-- STEP 2: Items - UPDATED WITH NEW FIELDS -->
         <div *ngIf="currentStep === 'items'" class="step-content">
           <h2 class="step-title">
-            {{ formLanguage === 'ar' ? 'العناصر' : 'Items' }}
-            <span class="required">*</span>
+            {{ formLanguage === 'ar' ? 'العناصر  (اختياري)' : ' Items (Optional)' }}
+            <span class="optional-badge">{{ formLanguage === 'ar' ? 'اختياري' : 'Optional' }}</span>
           </h2>
 
+        <!-- ✅ Info Alert -->
+          <div class="info-alert">
+            <i class="bi bi-info-circle"></i>
+            <div style="flex: 1;">
+              <p>
+                {{ formLanguage === 'ar'
+                  ? 'إضافة العناصر اختيارية. إذا لم تقم بإضافة أي عناصر، فلن يظهر الجدول في ملف PDF.'
+                  : 'Adding items is optional. If you don\'t add any items, the table won\'t appear in the PDF.'
+                }}
+              </p>
+            </div>
+          </div>
           <div class="error-alert" *ngIf="fieldErrors['items']" style="margin-bottom: 1.5rem;">
             <i class="bi bi-exclamation-circle"></i>
             <span>{{ fieldErrors['items'] }}</span>
@@ -571,7 +598,6 @@
                     <div class="item-field">
                       <label class="field-label">
                         {{ formLanguage === 'ar' ? 'الوصف' : 'Description' }}
-                        <span class="required">*</span>
                       </label>
                       <input 
                         type="text" 
@@ -612,7 +638,6 @@
                       <div class="item-field">
                         <label class="field-label">
                           {{ formLanguage === 'ar' ? 'الكمية' : 'Qty' }}
-                          <span class="required">*</span>
                         </label>
                         <input 
                           type="text" 
@@ -839,5 +864,45 @@
       </div>
     </div>
   </div>
+
+<div *ngIf="showDuplicateModal" class="confirmation-overlay" (click)="closeDuplicateModal()">
+  <div class="confirmation-modal" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'" (click)="$event.stopPropagation()">
+    <div class="modal-header warning">
+      <div class="modal-icon">
+        <i class="bi bi-files"></i>
+      </div>
+      <h3 class="modal-title">{{ formLanguage === 'ar' ? 'نسخ طلب التسعير' : 'Duplicate RFQ' }}</h3>
+    </div>
+    
+    <div class="modal-body">
+      <p class="modal-message">
+        {{ formLanguage === 'ar'
+          ? 'هل تريد نسخ بيانات طلب التسعير'
+          : 'Do you want to duplicate RFQ'
+        }}
+        <strong>{{ rfqToDuplicate?.rfqNumber }}</strong>؟
+        <br><br>
+        <span style="color: #d97706; font-weight: 500;">
+          {{ formLanguage === 'ar'
+            ? 'سيتم إنشاء طلب جديد بنفس البيانات مع إمكانية التعديل.'
+            : 'A new RFQ will be created with the same data that you can modify.'
+          }}
+        </span>
+      </p>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="closeDuplicateModal()">
+        <i class="bi bi-x-circle"></i>
+        {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
+      </button>
+      <button class="btn-confirm" (click)="confirmDuplicate()">
+        <i class="bi bi-files"></i>
+        {{ formLanguage === 'ar' ? 'نسخ' : 'Duplicate' }}
+      </button>
+    </div>
+  </div>
+</div>
+
 
 </div>

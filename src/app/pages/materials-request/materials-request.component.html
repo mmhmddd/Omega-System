@@ -210,6 +210,12 @@
                 <i class="bi bi-download"></i>
               </button>
               <button 
+                class="btn-icon btn-duplicate" 
+                (click)="openDuplicateModal(mr)" 
+                [title]="formLanguage === 'ar' ? 'نسخ وإعادة استخدام' : 'Duplicate & Reuse'">
+                <i class="bi bi-files"></i>
+              </button>
+              <button 
                 class="btn-icon btn-edit" 
                 (click)="editMR(mr)" 
                 [title]="formLanguage === 'ar' ? 'تعديل' : 'Edit'">
@@ -317,7 +323,9 @@
           [class.active]="currentStep === 'items'"
           [class.has-error]="fieldErrors['items']"
           (click)="currentStep = 'items'">
-          {{ formLanguage === 'ar' ? 'العناصر' : 'Items' }}
+          <span>
+            {{ formLanguage === 'ar' ? 'العناصر (اختياري)' : 'Items (Optional)' }}
+          </span>
           <span class="item-count" [class.error-count]="fieldErrors['items']">{{ getItemsCount() }}</span>
         </button>
       </div>
@@ -327,14 +335,27 @@
         
         <!-- STEP 1: Basic Info -->
         <div *ngIf="currentStep === 'basic'" class="step-content">
-          <h2 class="step-title">{{ formLanguage === 'ar' ? 'المعلومات الأساسية' : 'Basic Info' }}</h2>
+          <h2 class="step-title">
+            {{ formLanguage === 'ar' ? 'المعلومات الأساسية (اختيارية)' : 'Basic Info (Optional)' }}
+          </h2>
 
+          <!-- ✅ Info Alert -->
+          <div class="info-alert">
+            <i class="bi bi-info-circle"></i>
+            <div style="flex: 1;">
+              <p>
+                {{ formLanguage === 'ar'
+                  ? 'جميع الحقول اختيارية. فقط الحقول المملوءة ستظهر في ملف PDF.'
+                  : 'All fields are optional. Only filled fields will appear in the PDF.'
+                }}
+              </p>
+            </div>
+          </div>
           <!-- Date Field -->
           <div class="form-group">
             <label>
               <i class="bi bi-calendar"></i>
               {{ formLanguage === 'ar' ? 'التاريخ' : 'Date' }} 
-              <span class="required">*</span>
             </label>
             <input 
               type="date" 
@@ -359,7 +380,6 @@
           <label>
             <i class="bi bi-building"></i>
             {{ formLanguage === 'ar' ? 'القسم' : 'Department' }}
-            <span class="required">*</span>
           </label>
           <select 
             [(ngModel)]="mrForm.section"
@@ -385,7 +405,6 @@
             <label>
               <i class="bi bi-briefcase"></i>
               {{ formLanguage === 'ar' ? 'المشروع' : 'Project' }}
-              <span class="required">*</span>
             </label>
             <input 
               type="text" 
@@ -406,7 +425,6 @@
             <label>
               <i class="bi bi-flag"></i>
               {{ formLanguage === 'ar' ? 'أولوية الطلب' : 'Request Priority' }}
-              <span class="required">*</span>
             </label>
             <select 
               [(ngModel)]="mrForm.requestPriority"
@@ -432,7 +450,6 @@
             <label>
               <i class="bi bi-question-circle"></i>
               {{ formLanguage === 'ar' ? 'سبب الطلب' : 'Request Reason' }}
-              <span class="required">*</span>
             </label>
             <textarea 
               [(ngModel)]="mrForm.requestReason"
@@ -510,9 +527,21 @@
         <!-- STEP 2: Items -->
         <div *ngIf="currentStep === 'items'" class="step-content">
           <h2 class="step-title">
-            {{ formLanguage === 'ar' ? 'المواد المطلوبة' : 'Required Materials' }}
-            <span class="required">*</span>
+            {{ formLanguage === 'ar' ? 'المواد المطلوبة (اختياري)' : 'Required Materials (Optional)' }}
+            <span class="optional-badge">{{ formLanguage === 'ar' ? 'اختياري' : 'Optional' }}</span>
           </h2>
+                    <!-- ✅ Info Alert -->
+          <div class="info-alert">
+            <i class="bi bi-info-circle"></i>
+            <div style="flex: 1;">
+              <p>
+                {{ formLanguage === 'ar'
+                  ? 'إضافة العناصر اختيارية. إذا لم تقم بإضافة أي عناصر، فلن يظهر الجدول في ملف PDF.'
+                  : 'Adding items is optional. If you don\'t add any items, the table won\'t appear in the PDF.'
+                }}
+              </p>
+            </div>
+          </div>
 
           <div class="error-alert" *ngIf="fieldErrors['items']" style="margin-bottom: 1.5rem;">
             <i class="bi bi-exclamation-circle"></i>
@@ -540,7 +569,6 @@
                     <div class="item-field">
                       <label class="field-label">
                         {{ formLanguage === 'ar' ? 'الوصف' : 'Description' }}
-                        <span class="required">*</span>
                       </label>
                       <input 
                         type="text" 
@@ -562,7 +590,6 @@
                       <div class="item-field">
                         <label class="field-label">
                           {{ formLanguage === 'ar' ? 'الوحدة' : 'Unit' }}
-                          <span class="required">*</span>
                         </label>
                         <input 
                           type="text" 
@@ -582,7 +609,6 @@
                       <div class="item-field">
                         <label class="field-label">
                           {{ formLanguage === 'ar' ? 'الكمية' : 'Quantity' }}
-                          <span class="required">*</span>
                         </label>
                         <input 
                           type="number" 
@@ -786,5 +812,45 @@
       </div>
     </div>
   </div>
+
+<!-- DUPLICATE CONFIRMATION MODAL -->
+<div *ngIf="showDuplicateModal" class="confirmation-overlay" (click)="closeDuplicateModal()">
+  <div class="confirmation-modal" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'" (click)="$event.stopPropagation()">
+    <div class="modal-header warning">
+      <div class="modal-icon">
+        <i class="bi bi-files"></i>
+      </div>
+      <h3 class="modal-title">{{ formLanguage === 'ar' ? 'نسخ طلب المواد' : 'Duplicate Material Request' }}</h3>
+    </div>
+    
+    <div class="modal-body">
+      <p class="modal-message">
+        {{ formLanguage === 'ar'
+          ? 'هل تريد نسخ بيانات طلب المواد'
+          : 'Do you want to duplicate Material Request'
+        }}
+        <strong>{{ mrToDuplicate?.mrNumber }}</strong>؟
+        <br><br>
+        <span style="color: #d97706; font-weight: 500;">
+          {{ formLanguage === 'ar'
+            ? 'سيتم إنشاء طلب جديد بنفس البيانات مع إمكانية التعديل.'
+            : 'A new Material Request will be created with the same data that you can modify.'
+          }}
+        </span>
+      </p>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="closeDuplicateModal()">
+        <i class="bi bi-x-circle"></i>
+        {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
+      </button>
+      <button class="btn-confirm" (click)="confirmDuplicate()">
+        <i class="bi bi-files"></i>
+        {{ formLanguage === 'ar' ? 'نسخ' : 'Duplicate' }}
+      </button>
+    </div>
+  </div>
+</div>
 
 </div>

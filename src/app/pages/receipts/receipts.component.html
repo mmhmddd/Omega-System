@@ -1,4 +1,4 @@
-<!-- receipts.component.html - WITH OPTIONAL ITEMS FEATURE -->
+<!-- receipts.component.html - ALL FIELDS OPTIONAL -->
 
 <div class="receipts-container">
 
@@ -310,8 +310,9 @@
           (click)="currentStep = 'basic'">
           {{ formLanguage === 'ar' ? 'المعلومات الأساسية' : 'Basic Info' }}
         </button>
+        
 
-        <!-- ✅ UPDATED: Items now optional, no error indicator -->
+        <!-- ✅ Items are optional -->
         <button
           class="sidebar-step"
           [class.active]="currentStep === 'items'"
@@ -326,9 +327,24 @@
       <!-- Form Fields -->
       <div class="form-fields">
 
-        <!-- STEP 1: Basic Info -->
+        <!-- STEP 1: Basic Info - ALL OPTIONAL -->
         <div *ngIf="currentStep === 'basic'" class="step-content">
-          <h2 class="step-title">{{ formLanguage === 'ar' ? 'المعلومات الأساسية' : 'Basic Info' }}</h2>
+          <h2 class="step-title">
+            {{ formLanguage === 'ar' ? 'المعلومات الأساسية (اختيارية)' : 'Basic Info (Optional)' }}
+          </h2>
+
+          <!-- ✅ Info Alert -->
+          <div class="info-alert">
+            <i class="bi bi-info-circle"></i>
+            <div style="flex: 1;">
+              <p>
+                {{ formLanguage === 'ar'
+                  ? 'جميع الحقول اختيارية. فقط الحقول المملوءة ستظهر في ملف PDF.'
+                  : 'All fields are optional. Only filled fields will appear in the PDF.'
+                }}
+              </p>
+            </div>
+          </div>
 
           <!-- Date and Project Code Row -->
           <div class="form-row">
@@ -336,39 +352,25 @@
               <label>
                 <i class="bi bi-calendar"></i>
                 {{ formLanguage === 'ar' ? 'التاريخ' : 'Date' }}
-                <span class="required">*</span>
               </label>
               <input
                 type="date"
                 [(ngModel)]="receiptForm.date"
                 class="form-control"
-                [class.error]="fieldErrors['date']"
-                required
               />
-              <small class="error-message" *ngIf="fieldErrors['date']">
-                <i class="bi bi-exclamation-circle"></i>
-                {{ fieldErrors['date'] }}
-              </small>
             </div>
 
             <div class="form-group">
               <label>
                 <i class="bi bi-bookmark"></i>
                 {{ formLanguage === 'ar' ? 'رمز المشروع' : 'Project Code' }}
-                <span class="required">*</span>
               </label>
               <input
                 type="text"
                 [(ngModel)]="receiptForm.projectCode"
                 [placeholder]="formLanguage === 'ar' ? 'مثال: PRJ-2024-001' : 'e.g. PRJ-2024-001'"
                 class="form-control"
-                [class.error]="fieldErrors['projectCode']"
-                required
               />
-              <small class="error-message" *ngIf="fieldErrors['projectCode']">
-                <i class="bi bi-exclamation-circle"></i>
-                {{ fieldErrors['projectCode'] }}
-              </small>
             </div>
           </div>
 
@@ -377,20 +379,13 @@
             <label>
               <i class="bi bi-person"></i>
               {{ formLanguage === 'ar' ? 'إلى' : 'To' }}
-              <span class="required">*</span>
             </label>
             <input
               type="text"
               [(ngModel)]="receiptForm.to"
               [placeholder]="formLanguage === 'ar' ? 'اسم الشركة أو الشخص' : 'Company or Person Name'"
               class="form-control"
-              [class.error]="fieldErrors['to']"
-              required
             />
-            <small class="error-message" *ngIf="fieldErrors['to']">
-              <i class="bi bi-exclamation-circle"></i>
-              {{ fieldErrors['to'] }}
-            </small>
           </div>
 
           <!-- Address Field -->
@@ -398,20 +393,13 @@
             <label>
               <i class="bi bi-geo-alt"></i>
               {{ formLanguage === 'ar' ? 'العنوان' : 'Address' }}
-              <span class="required">*</span>
             </label>
             <textarea
               [(ngModel)]="receiptForm.address"
               [placeholder]="formLanguage === 'ar' ? 'أدخل العنوان الكامل' : 'Enter full address'"
               class="form-control"
-              [class.error]="fieldErrors['address']"
               rows="3"
-              required
             ></textarea>
-            <small class="error-message" *ngIf="fieldErrors['address']">
-              <i class="bi bi-exclamation-circle"></i>
-              {{ fieldErrors['address'] }}
-            </small>
           </div>
 
           <!-- Work Location and Attention Row -->
@@ -420,40 +408,26 @@
               <label>
                 <i class="bi bi-pin-map"></i>
                 {{ formLanguage === 'ar' ? 'موقع العمل' : 'Work Location' }}
-                <span class="required">*</span>
               </label>
               <input
                 type="text"
                 [(ngModel)]="receiptForm.workLocation"
                 [placeholder]="formLanguage === 'ar' ? 'موقع تنفيذ العمل' : 'Work execution location'"
                 class="form-control"
-                [class.error]="fieldErrors['workLocation']"
-                required
               />
-              <small class="error-message" *ngIf="fieldErrors['workLocation']">
-                <i class="bi bi-exclamation-circle"></i>
-                {{ fieldErrors['workLocation'] }}
-              </small>
             </div>
 
             <div class="form-group">
               <label>
                 <i class="bi bi-person-badge"></i>
                 {{ formLanguage === 'ar' ? 'عناية' : 'Attention' }}
-                <span class="required">*</span>
               </label>
               <input
                 type="text"
                 [(ngModel)]="receiptForm.attention"
                 [placeholder]="formLanguage === 'ar' ? 'اسم الشخص المعني' : 'Concerned person name'"
                 class="form-control"
-                [class.error]="fieldErrors['attention']"
-                required
               />
-              <small class="error-message" *ngIf="fieldErrors['attention']">
-                <i class="bi bi-exclamation-circle"></i>
-                {{ fieldErrors['attention'] }}
-              </small>
             </div>
           </div>
 
@@ -462,20 +436,13 @@
             <label>
               <i class="bi bi-truck"></i>
               {{ formLanguage === 'ar' ? 'رقم المركبة' : 'Vehicle Number' }}
-              <span class="required">*</span>
             </label>
             <input
               type="text"
               [(ngModel)]="receiptForm.vehicleNumber"
               [placeholder]="formLanguage === 'ar' ? 'مثال: ABC-1234' : 'e.g. ABC-1234'"
               class="form-control"
-              [class.error]="fieldErrors['vehicleNumber']"
-              required
             />
-            <small class="error-message" *ngIf="fieldErrors['vehicleNumber']">
-              <i class="bi bi-exclamation-circle"></i>
-              {{ fieldErrors['vehicleNumber'] }}
-            </small>
           </div>
 
           <!-- Additional Text Field -->
@@ -497,20 +464,13 @@
             <label>
               <i class="bi bi-chat-left-text"></i>
               {{ formLanguage === 'ar' ? 'ملاحظات' : 'Notes' }}
-              <span class="required">*</span>
             </label>
             <textarea
               [(ngModel)]="receiptForm.notes"
               [placeholder]="formLanguage === 'ar' ? 'ملاحظات إضافية' : 'Additional notes'"
               class="form-control"
-              [class.error]="fieldErrors['notes']"
               rows="3"
-              required
             ></textarea>
-            <small class="error-message" *ngIf="fieldErrors['notes']">
-              <i class="bi bi-exclamation-circle"></i>
-              {{ fieldErrors['notes'] }}
-            </small>
           </div>
 
           <!-- PDF Attachment Upload -->
@@ -558,7 +518,7 @@
           </div>
         </div>
 
-        <!-- ✅ UPDATED: STEP 2 - Items (OPTIONAL) -->
+        <!-- ✅ STEP 2 - Items (OPTIONAL) -->
         <div *ngIf="currentStep === 'items'" class="step-content">
           <h2 class="step-title">
             {{ formLanguage === 'ar' ? 'عناصر الإشعار (اختياري)' : 'Receipt Items (Optional)' }}
@@ -571,8 +531,8 @@
             <div style="flex: 1;">
               <p>
                 {{ formLanguage === 'ar'
-                  ? 'إضافة العناصر اختيارية. إذا كنت قد أرفقت ملف PDF، يمكنك تخطي هذه الخطوة وحفظ الإشعار مباشرة.'
-                  : 'Adding items is optional. If you have attached a PDF file, you can skip this step and save the receipt directly.'
+                  ? 'إضافة العناصر اختيارية. إذا لم تقم بإضافة أي عناصر، فلن يظهر الجدول في ملف PDF.'
+                  : 'Adding items is optional. If you don\'t add any items, the table won\'t appear in the PDF.'
                 }}
               </p>
             </div>
@@ -602,7 +562,6 @@
                       class="item-input small"
                       [class.error]="fieldErrors['item_' + i + '_quantity']"
                       [placeholder]="formLanguage === 'ar' ? 'العدد' : 'Qty'"
-                      required
                     />
                     <small class="error-message" *ngIf="fieldErrors['item_' + i + '_quantity']">
                       <i class="bi bi-exclamation-circle"></i>
@@ -617,7 +576,6 @@
                       class="item-input"
                       [class.error]="fieldErrors['item_' + i + '_description']"
                       [placeholder]="formLanguage === 'ar' ? 'الوصف' : 'Description'"
-                      required
                     />
                     <small class="error-message" *ngIf="fieldErrors['item_' + i + '_description']">
                       <i class="bi bi-exclamation-circle"></i>
@@ -632,7 +590,6 @@
                       class="item-input"
                       [class.error]="fieldErrors['item_' + i + '_element']"
                       [placeholder]="formLanguage === 'ar' ? 'العنصر' : 'Element'"
-                      required
                     />
                     <small class="error-message" *ngIf="fieldErrors['item_' + i + '_element']">
                       <i class="bi bi-exclamation-circle"></i>
@@ -655,8 +612,8 @@
               </p>
               <p class="empty-subtitle">
                 {{ formLanguage === 'ar'
-                  ? 'يمكنك إضافة عناصر أو تخطي هذه الخطوة إذا كان لديك مرفق PDF'
-                  : 'You can add items or skip this step if you have a PDF attachment'
+                  ? 'يمكنك إضافة عناصر أو تخطي هذه الخطوة'
+                  : 'You can add items or skip this step'
                 }}
               </p>
             </div>
@@ -674,25 +631,6 @@
             </button>
           </div>
 
-          <!-- ✅ Save button at bottom of items step -->
-          <div class="save-section">
-            <button
-              class="btn-save-quote"
-              (click)="saveReceipt()"
-              [disabled]="savingReceipt">
-              <i class="bi" [ngClass]="savingReceipt ? 'bi-arrow-clockwise spin' : 'bi-file-earmark-pdf'"></i>
-              {{ savingReceipt
-                ? (formLanguage === 'ar' ? 'جاري إنشاء الإشعار...' : 'Creating Receipt...')
-                : (formLanguage === 'ar' ? 'حفظ وإنشاء الإشعار' : 'Save & Generate Receipt')
-              }}
-            </button>
-            <p class="save-hint">
-              {{ formLanguage === 'ar'
-                ? 'سيتم إنشاء ملف PDF تلقائياً بعد الحفظ'
-                : 'PDF will be automatically generated after saving'
-              }}
-            </p>
-          </div>
         </div>
 
       </div>

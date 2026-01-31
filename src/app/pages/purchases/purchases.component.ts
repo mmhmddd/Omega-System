@@ -1,4 +1,4 @@
-// purchases.component.ts - WITH SUCCESS MODAL AFTER SAVE (PART 1)
+// purchases.component.ts - UPDATED WITH OPTIONAL FIELDS (NO VALIDATION)
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -109,6 +109,10 @@ export class PurchasesComponent implements OnInit, OnDestroy {
   successPOId: string = '';
   successPONumber: string = '';
 
+  // ✅ DUPLICATE MODAL STATE
+  showDuplicateModal: boolean = false;
+  poToDuplicate: PurchaseOrder | null = null;
+
   // Translations
   private translations = {
   ar: {
@@ -214,6 +218,60 @@ export class PurchasesComponent implements OnInit, OnDestroy {
   }
 
   // ========================================
+  // ✅ DUPLICATE FUNCTIONALITY
+  // ========================================
+  
+  openDuplicateModal(po: PurchaseOrder): void {
+    this.poToDuplicate = po;
+    this.showDuplicateModal = true;
+  }
+
+  closeDuplicateModal(): void {
+    this.showDuplicateModal = false;
+    this.poToDuplicate = null;
+  }
+
+  confirmDuplicate(): void {
+    if (!this.poToDuplicate) return;
+
+    const po = this.poToDuplicate;
+
+    // Reset form first
+    this.resetForm();
+
+    // Populate form with duplicated data
+    this.poForm = {
+      date: this.getTodayDate(), // Use today's date for new PO
+      supplier: po.supplier || '',
+      supplierAddress: po.supplierAddress || '',
+      supplierPhone: po.supplierPhone || '',
+      receiver: po.receiver || '',
+      receiverCity: po.receiverCity || '',
+      receiverAddress: po.receiverAddress || '',
+      receiverPhone: po.receiverPhone || '',
+      tableHeaderText: po.tableHeaderText || '',
+      taxRate: po.taxRate || 0,
+      items: JSON.parse(JSON.stringify(po.items || [])), // Deep clone items
+      notes: po.notes || ''
+    };
+
+    // Set view to CREATE (not edit)
+    this.currentView = 'create';
+    this.currentStep = 'basic';
+    this.fieldErrors = {};
+    this.formError = '';
+
+    // Close modal
+    this.closeDuplicateModal();
+
+    // Show success message
+    const successMsg = this.formLanguage === 'ar'
+      ? `تم نسخ بيانات طلب الشراء ${po.poNumber}. يمكنك التعديل وحفظ طلب جديد.`
+      : `Purchase Order ${po.poNumber} data copied. You can modify and save as a new PO.`;
+    this.showToast('info', successMsg, 5000);
+  }
+
+  // ========================================
   // INLINE TOAST METHODS
   // ========================================
 
@@ -264,9 +322,10 @@ export class PurchasesComponent implements OnInit, OnDestroy {
     this.successPONumber = '';
     this.backToList();
   }
+
   navigateToSuppliers(): void {
-  this.router.navigate(['/suppliers']);
-}
+    this.router.navigate(['/suppliers']);
+  }
 
   viewPDFFromSuccess(): void {
     if (this.successPOId) {
@@ -331,9 +390,10 @@ export class PurchasesComponent implements OnInit, OnDestroy {
       this.validateForm();
     }
   }
+
   // ========================================
-// ✅ NEW: SUPPLIERS METHODS
-// ========================================
+  // SUPPLIERS METHODS
+  // ========================================
 
   loadSuppliers(): void {
     this.loadingSuppliers = true;
@@ -358,12 +418,12 @@ export class PurchasesComponent implements OnInit, OnDestroy {
     });
   }
 
-    onSupplierChange(): void {
-      const selectedSupplier = this.suppliers.find(s => s.name === this.poForm.supplier);
-      if (selectedSupplier && selectedSupplier.address) {
-        this.poForm.supplierAddress = selectedSupplier.address;
-      }
+  onSupplierChange(): void {
+    const selectedSupplier = this.suppliers.find(s => s.name === this.poForm.supplier);
+    if (selectedSupplier && selectedSupplier.address) {
+      this.poForm.supplierAddress = selectedSupplier.address;
     }
+  }
 
   private updateDirection(): void {
     const direction = this.formLanguage === 'ar' ? 'rtl' : 'ltr';
@@ -379,70 +439,19 @@ export class PurchasesComponent implements OnInit, OnDestroy {
     }
     return value || key;
   }
-  // ... (continuing from Part 1)
 
+  // ✅ UPDATED: No validation - all fields are optional
   private validateForm(): boolean {
     this.fieldErrors = {};
     this.formError = '';
-    let isValid = true;
-
-    if (!this.poForm.supplier || this.poForm.supplier.trim() === '') {
-      this.fieldErrors['supplier'] = this.t('errors.supplierRequired');
-      isValid = false;
-    }
-    if (!this.poForm.date) {
-      this.fieldErrors['date'] = this.t('errors.dateRequired');
-      isValid = false;
-    }
-    if (!this.poForm.receiver || this.poForm.receiver.trim() === '') {
-      this.fieldErrors['receiver'] = this.t('errors.receiverRequired');
-      isValid = false;
-    }
-
-    if (!this.poForm.items || this.poForm.items.length === 0) {
-      this.fieldErrors['items'] = this.t('errors.itemsRequired');
-      isValid = false;
-    } else {
-      this.poForm.items.forEach((item, index) => {
-        if (!item.description || item.description.trim() === '') {
-          this.fieldErrors[`item_${index}_description`] = this.t('errors.itemDescriptionRequired');
-          isValid = false;
-        }
-        if (!item.unit || item.unit.trim() === '') {
-          this.fieldErrors[`item_${index}_unit`] = this.t('errors.itemUnitRequired');
-          isValid = false;
-        }
-        if (!item.quantity || item.quantity.toString().trim() === '') {
-          this.fieldErrors[`item_${index}_quantity`] = this.t('errors.itemQuantityRequired');
-          isValid = false;
-        }
-        if (!item.unitPrice || item.unitPrice.toString().trim() === '') {
-          this.fieldErrors[`item_${index}_unitPrice`] = this.t('errors.itemPriceRequired');
-          isValid = false;
-        }
-      });
-    }
-    return isValid;
+    return true;
   }
 
+  // ✅ UPDATED: No validation - all fields are optional
   private validateBasicFields(): boolean {
     this.fieldErrors = {};
     this.formError = '';
-    let isValid = true;
-
-    if (!this.poForm.supplier || this.poForm.supplier.trim() === '') {
-      this.fieldErrors['supplier'] = this.t('errors.supplierRequired');
-      isValid = false;
-    }
-    if (!this.poForm.date) {
-      this.fieldErrors['date'] = this.t('errors.dateRequired');
-      isValid = false;
-    }
-    if (!this.poForm.receiver || this.poForm.receiver.trim() === '') {
-      this.fieldErrors['receiver'] = this.t('errors.receiverRequired');
-      isValid = false;
-    }
-    return isValid;
+    return true;
   }
 
   private clearErrors(): void {
@@ -525,52 +534,49 @@ export class PurchasesComponent implements OnInit, OnDestroy {
   // DATA OPERATIONS
   // ========================================
 
-loadPOs(): void {
-  this.loading = true;
-  this.clearErrors();
+  loadPOs(): void {
+    this.loading = true;
+    this.clearErrors();
 
-  // Build filter params - only include non-empty values
-  const filterParams: any = {
-    page: this.currentPage,
-    limit: this.limit
-  };
+    const filterParams: any = {
+      page: this.currentPage,
+      limit: this.limit
+    };
 
-  // Only add search term if it exists and is not empty
-  if (this.searchTerm && this.searchTerm.trim() !== '') {
-    filterParams.search = this.searchTerm.trim();
-  }
-
-  // Only add filter values if they exist and are not empty
-  if (this.filters.poNumber && this.filters.poNumber.trim() !== '') {
-    filterParams.poNumber = this.filters.poNumber.trim();
-  }
-  if (this.filters.startDate && this.filters.startDate.trim() !== '') {
-    filterParams.startDate = this.filters.startDate.trim();
-  }
-  if (this.filters.endDate && this.filters.endDate.trim() !== '') {
-    filterParams.endDate = this.filters.endDate.trim();
-  }
-  if (this.filters.supplier && this.filters.supplier.trim() !== '') {
-    filterParams.supplier = this.filters.supplier.trim();
-  }
-
-  this.purchaseService.getAllPOs(filterParams).subscribe({
-    next: (response: any) => {
-      this.pos = response.data;
-      this.currentPage = response.pagination.currentPage;
-      this.totalPages = response.pagination.totalPages;
-      this.totalPOs = response.pagination.totalPOs;
-      this.userRole = response.userRole || this.userRole;
-      this.loading = false;
-    },
-    error: (error: any) => {
-      console.error('Error loading purchase orders:', error);
-      this.loading = false;
-      this.formError = this.t('errors.loadFailed');
-      this.showToast('error', this.t('errors.loadFailed'));
+    if (this.searchTerm && this.searchTerm.trim() !== '') {
+      filterParams.search = this.searchTerm.trim();
     }
-  });
-}
+
+    if (this.filters.poNumber && this.filters.poNumber.trim() !== '') {
+      filterParams.poNumber = this.filters.poNumber.trim();
+    }
+    if (this.filters.startDate && this.filters.startDate.trim() !== '') {
+      filterParams.startDate = this.filters.startDate.trim();
+    }
+    if (this.filters.endDate && this.filters.endDate.trim() !== '') {
+      filterParams.endDate = this.filters.endDate.trim();
+    }
+    if (this.filters.supplier && this.filters.supplier.trim() !== '') {
+      filterParams.supplier = this.filters.supplier.trim();
+    }
+
+    this.purchaseService.getAllPOs(filterParams).subscribe({
+      next: (response: any) => {
+        this.pos = response.data;
+        this.currentPage = response.pagination.currentPage;
+        this.totalPages = response.pagination.totalPages;
+        this.totalPOs = response.pagination.totalPOs;
+        this.userRole = response.userRole || this.userRole;
+        this.loading = false;
+      },
+      error: (error: any) => {
+        console.error('Error loading purchase orders:', error);
+        this.loading = false;
+        this.formError = this.t('errors.loadFailed');
+        this.showToast('error', this.t('errors.loadFailed'));
+      }
+    });
+  }
 
   onSearch(): void {
     this.currentPage = 1;
@@ -648,15 +654,7 @@ loadPOs(): void {
   }
 
   savePO(): void {
-    if (!this.validateForm()) {
-      if (this.fieldErrors['items'] || Object.keys(this.fieldErrors).some(key => key.startsWith('item_'))) {
-        this.currentStep = 'items';
-      } else {
-        this.currentStep = 'basic';
-      }
-      return;
-    }
-
+    // ✅ NO VALIDATION - Save directly
     this.savingPO = true;
     this.clearErrors();
 
@@ -797,13 +795,8 @@ loadPOs(): void {
 
   nextStep(): void {
     if (this.currentStep === 'basic') {
-      const itemsErrorKeys = Object.keys(this.fieldErrors).filter(key =>
-        key === 'items' || key.startsWith('item_')
-      );
-      itemsErrorKeys.forEach(key => delete this.fieldErrors[key]);
-      if (this.validateBasicFields()) {
-        this.currentStep = 'items';
-      }
+      // ✅ NO VALIDATION - Just move to next step
+      this.currentStep = 'items';
     }
   }
 
@@ -828,9 +821,6 @@ loadPOs(): void {
     delete this.fieldErrors[`item_${index}_unit`];
     delete this.fieldErrors[`item_${index}_quantity`];
     delete this.fieldErrors[`item_${index}_unitPrice`];
-    if (this.poForm.items.length === 0) {
-      this.fieldErrors['items'] = this.t('errors.itemsRequired');
-    }
   }
 
   backToList(): void {

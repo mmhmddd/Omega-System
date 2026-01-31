@@ -1,4 +1,4 @@
-// src/app/pages/rfqs/rfqs.component.ts - UPDATED WITH SELECTS
+// src/app/pages/rfqs/rfqs.component.ts - UPDATED WITH OPTIONAL FIELDS
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -128,6 +128,10 @@ export class RFQsComponent implements OnInit, OnDestroy {
   successRFQId: string = '';
   successRFQNumber: string = '';
   
+  // ✅ DUPLICATE MODAL STATE
+  showDuplicateModal: boolean = false;
+  rfqToDuplicate: RFQ | null = null;
+  
   // Translations
   private translations = {
     ar: {
@@ -214,7 +218,7 @@ export class RFQsComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadRFQs();
-    this.loadSuppliers(); // ✅ Load suppliers on init
+    this.loadSuppliers();
     const user = this.authService.currentUserValue;
     this.userRole = user ? user.role : '';
     
@@ -238,7 +242,58 @@ export class RFQsComponent implements OnInit, OnDestroy {
   }
 
   // ========================================
-  // ✅ NEW: SUPPLIERS METHODS
+  // ✅ DUPLICATE FUNCTIONALITY
+  // ========================================
+  
+  openDuplicateModal(rfq: RFQ): void {
+    this.rfqToDuplicate = rfq;
+    this.showDuplicateModal = true;
+  }
+
+  closeDuplicateModal(): void {
+    this.showDuplicateModal = false;
+    this.rfqToDuplicate = null;
+  }
+
+  confirmDuplicate(): void {
+    if (!this.rfqToDuplicate) return;
+
+    const rfq = this.rfqToDuplicate;
+
+    // Reset form first
+    this.resetForm();
+
+    // Populate form with duplicated data
+    this.rfqForm = {
+      date: this.getTodayDate(), // Use today's date for new RFQ
+      time: this.getCurrentTime(), // Use current time for new RFQ
+      requester: rfq.requester || '',
+      production: rfq.production || '',
+      supplier: rfq.supplier || '',
+      supplierAddress: rfq.supplierAddress || '',
+      urgent: rfq.urgent || false,
+      items: JSON.parse(JSON.stringify(rfq.items || [])), // Deep clone items
+      notes: rfq.notes || ''
+    };
+
+    // Set view to CREATE (not edit)
+    this.currentView = 'create';
+    this.currentStep = 'basic';
+    this.fieldErrors = {};
+    this.formError = '';
+
+    // Close modal
+    this.closeDuplicateModal();
+
+    // Show success message
+    const successMsg = this.formLanguage === 'ar'
+      ? `تم نسخ بيانات طلب التسعير ${rfq.rfqNumber}. يمكنك التعديل وحفظ طلب جديد.`
+      : `RFQ ${rfq.rfqNumber} data copied. You can modify and save as a new RFQ.`;
+    this.showToast('info', successMsg, 5000);
+  }
+
+  // ========================================
+  // SUPPLIERS METHODS
   // ========================================
   
   loadSuppliers(): void {
@@ -267,9 +322,9 @@ export class RFQsComponent implements OnInit, OnDestroy {
     }
   }
 
-    getDepartmentLabel(dept: Department): string {
-      return this.formLanguage === 'ar' ? dept.labelAr : dept.labelEn;
-    }
+  getDepartmentLabel(dept: Department): string {
+    return this.formLanguage === 'ar' ? dept.labelAr : dept.labelEn;
+  }
 
   // ========================================
   // CALCULATION METHODS
@@ -417,87 +472,18 @@ export class RFQsComponent implements OnInit, OnDestroy {
     return value || key;
   }
 
+  // ✅ UPDATED: No validation - all fields are optional
   private validateForm(): boolean {
     this.fieldErrors = {};
     this.formError = '';
-    let isValid = true;
-
-    if (!this.rfqForm.date) {
-      this.fieldErrors['date'] = this.t('errors.dateRequired');
-      isValid = false;
-    }
-    if (!this.rfqForm.time || this.rfqForm.time.trim() === '') {
-      this.fieldErrors['time'] = this.t('errors.timeRequired');
-      isValid = false;
-    }
-    if (!this.rfqForm.requester || this.rfqForm.requester.trim() === '') {
-      this.fieldErrors['requester'] = this.t('errors.requesterRequired');
-      isValid = false;
-    }
-    if (!this.rfqForm.production || this.rfqForm.production.trim() === '') {
-      this.fieldErrors['production'] = this.t('errors.productionRequired');
-      isValid = false;
-    }
-    if (!this.rfqForm.supplier || this.rfqForm.supplier.trim() === '') {
-      this.fieldErrors['supplier'] = this.t('errors.supplierRequired');
-      isValid = false;
-    }
-    if (!this.rfqForm.supplierAddress || this.rfqForm.supplierAddress.trim() === '') {
-      this.fieldErrors['supplierAddress'] = this.t('errors.supplierAddressRequired');
-      isValid = false;
-    }
-    if (!this.rfqForm.items || this.rfqForm.items.length === 0) {
-      this.fieldErrors['items'] = this.t('errors.itemsRequired');
-      isValid = false;
-    } else {
-      this.rfqForm.items.forEach((item, index) => {
-        if (!item.description || item.description.trim() === '') {
-          this.fieldErrors[`item_${index}_description`] = this.t('errors.itemDescriptionRequired');
-          isValid = false;
-        }
-        if (!item.unit || item.unit.trim() === '') {
-          this.fieldErrors[`item_${index}_unit`] = this.t('errors.itemUnitRequired');
-          isValid = false;
-        }
-        if (!item.quantity || item.quantity.toString().trim() === '') {
-          this.fieldErrors[`item_${index}_quantity`] = this.t('errors.itemQuantityRequired');
-          isValid = false;
-        }
-      });
-    }
-    return isValid;
+    return true;
   }
 
+  // ✅ UPDATED: No validation - all fields are optional
   private validateBasicFields(): boolean {
     this.fieldErrors = {};
     this.formError = '';
-    let isValid = true;
-
-    if (!this.rfqForm.date) {
-      this.fieldErrors['date'] = this.t('errors.dateRequired');
-      isValid = false;
-    }
-    if (!this.rfqForm.time || this.rfqForm.time.trim() === '') {
-      this.fieldErrors['time'] = this.t('errors.timeRequired');
-      isValid = false;
-    }
-    if (!this.rfqForm.requester || this.rfqForm.requester.trim() === '') {
-      this.fieldErrors['requester'] = this.t('errors.requesterRequired');
-      isValid = false;
-    }
-    if (!this.rfqForm.production || this.rfqForm.production.trim() === '') {
-      this.fieldErrors['production'] = this.t('errors.productionRequired');
-      isValid = false;
-    }
-    if (!this.rfqForm.supplier || this.rfqForm.supplier.trim() === '') {
-      this.fieldErrors['supplier'] = this.t('errors.supplierRequired');
-      isValid = false;
-    }
-    if (!this.rfqForm.supplierAddress || this.rfqForm.supplierAddress.trim() === '') {
-      this.fieldErrors['supplierAddress'] = this.t('errors.supplierAddressRequired');
-      isValid = false;
-    }
-    return isValid;
+    return true;
   }
 
   private clearErrors(): void {
@@ -688,15 +674,7 @@ export class RFQsComponent implements OnInit, OnDestroy {
   }
 
   saveRFQ(): void {
-    if (!this.validateForm()) {
-      if (this.fieldErrors['items'] || Object.keys(this.fieldErrors).some(key => key.startsWith('item_'))) {
-        this.currentStep = 'items';
-      } else {
-        this.currentStep = 'basic';
-      }
-      return;
-    }
-
+    // ✅ NO VALIDATION - Save directly
     this.savingRFQ = true;
     this.clearErrors();
     
@@ -838,13 +816,8 @@ export class RFQsComponent implements OnInit, OnDestroy {
 
   nextStep(): void {
     if (this.currentStep === 'basic') {
-      const itemsErrorKeys = Object.keys(this.fieldErrors).filter(key => 
-        key === 'items' || key.startsWith('item_')
-      );
-      itemsErrorKeys.forEach(key => delete this.fieldErrors[key]);
-      if (this.validateBasicFields()) {
-        this.currentStep = 'items';
-      }
+      // ✅ NO VALIDATION - Just move to next step
+      this.currentStep = 'items';
     }
   }
 
@@ -871,9 +844,6 @@ export class RFQsComponent implements OnInit, OnDestroy {
     delete this.fieldErrors[`item_${index}_description`];
     delete this.fieldErrors[`item_${index}_unit`];
     delete this.fieldErrors[`item_${index}_quantity`];
-    if (this.rfqForm.items.length === 0) {
-      this.fieldErrors['items'] = this.t('errors.itemsRequired');
-    }
   }
 
   backToList(): void {

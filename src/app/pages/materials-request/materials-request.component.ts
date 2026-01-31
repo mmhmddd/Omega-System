@@ -1,5 +1,5 @@
 // ============================================================
-// MATERIAL REQUEST COMPONENT - WITH DYNAMIC PDF LANGUAGE
+// MATERIAL REQUEST COMPONENT - UPDATED WITH OPTIONAL FIELDS (NO VALIDATION)
 // materials-request.component.ts (COMPLETE)
 // ============================================================
 
@@ -126,6 +126,10 @@ export class MaterialsRequestComponent implements OnInit, OnDestroy {
   successMRId: string = '';
   successMRNumber: string = '';
   
+  // ✅ DUPLICATE MODAL STATE
+  showDuplicateModal: boolean = false;
+  mrToDuplicate: MaterialRequest | null = null;
+  
   // Priority options
   priorityOptions = [
     { value: 'urgent', labelAr: 'عاجل', labelEn: 'Urgent' },
@@ -167,7 +171,9 @@ export class MaterialsRequestComponent implements OnInit, OnDestroy {
         deleted: 'تم حذف طلب المواد بنجاح',
         pdfGenerated: 'تم إنشاء ملف PDF بنجاح',
         createdWithPdf: 'تم إنشاء طلب المواد وملف PDF بنجاح',
-        updatedWithPdf: 'تم تحديث طلب المواد وملف PDF بنجاح'
+        updatedWithPdf: 'تم تحديث طلب المواد وملف PDF بنجاح',
+        duplicateSuccess: 'تم نسخ بيانات طلب المواد',
+        duplicateInfo: 'يمكنك التعديل وحفظ طلب جديد'
       }
     },
     en: {
@@ -201,7 +207,9 @@ export class MaterialsRequestComponent implements OnInit, OnDestroy {
         deleted: 'Material Request deleted successfully',
         pdfGenerated: 'PDF generated successfully',
         createdWithPdf: 'Material Request and PDF created successfully',
-        updatedWithPdf: 'Material Request and PDF updated successfully'
+        updatedWithPdf: 'Material Request and PDF updated successfully',
+        duplicateSuccess: 'Material Request data copied',
+        duplicateInfo: 'You can modify and save as a new request'
       }
     }
   };
@@ -233,6 +241,7 @@ export class MaterialsRequestComponent implements OnInit, OnDestroy {
     this.searchSubject.complete();
     this.toastTimeouts.forEach(timeout => clearTimeout(timeout));
     this.toastTimeouts.clear();
+    this.closeDuplicateModal();
     document.documentElement.setAttribute('dir', 'rtl');
     document.body.setAttribute('dir', 'rtl');
   }
@@ -342,6 +351,78 @@ export class MaterialsRequestComponent implements OnInit, OnDestroy {
   }
 
   // ========================================
+  // ✅ DUPLICATE FUNCTIONALITY
+  // ========================================
+  
+  openDuplicateModal(mr: MaterialRequest): void {
+    this.mrToDuplicate = mr;
+    this.showDuplicateModal = true;
+  }
+
+  closeDuplicateModal(): void {
+    this.showDuplicateModal = false;
+    this.mrToDuplicate = null;
+  }
+
+  confirmDuplicate(): void {
+    if (!this.mrToDuplicate) return;
+
+    const mr = this.mrToDuplicate;
+
+    // Fetch the full MR data to ensure we have all items and details
+    this.materialService.getMaterialRequestById(mr.id).subscribe({
+      next: (response: any) => {
+        const sourceMR = response.data;
+
+        // Reset form first
+        this.resetForm();
+
+        // Deep clone items to avoid reference issues
+        const clonedItems = sourceMR.items ? sourceMR.items.map((item: any) => ({
+          description: item.description || '',
+          unit: item.unit || '',
+          quantity: item.quantity || '',
+          requiredDate: item.requiredDate || '',
+          priority: item.priority || ''
+        })) : [];
+
+        // Populate form with duplicated data
+        this.mrForm = {
+          date: this.getTodayDate(), // Use today's date for new MR
+          section: sourceMR.section || '',
+          project: sourceMR.project || '',
+          requestPriority: sourceMR.requestPriority || '',
+          requestReason: sourceMR.requestReason || '',
+          items: clonedItems, // Use deep cloned items
+          additionalNotes: sourceMR.additionalNotes || ''
+        };
+
+        // Set view to CREATE (not edit) - this ensures a new MR is created
+        this.currentView = 'create';
+        this.currentStep = 'basic';
+        this.selectedMR = null; // Important: null so it creates new instead of updating
+        this.fieldErrors = {};
+        this.formError = '';
+        this.formPdfAttachment = null; // Clear any PDF attachment
+
+        // Close modal
+        this.closeDuplicateModal();
+
+        // Show success message
+        const successMsg = this.formLanguage === 'ar'
+          ? `تم نسخ بيانات طلب المواد ${mr.mrNumber}. يمكنك التعديل وحفظ طلب جديد.`
+          : `Material Request ${mr.mrNumber} data copied. You can modify and save as a new request.`;
+        this.showToast('info', successMsg, 5000);
+      },
+      error: (error: any) => {
+        console.error('Error fetching material request for duplication:', error);
+        this.closeDuplicateModal();
+        this.showToast('error', this.t('errors.loadFailed'));
+      }
+    });
+  }
+
+  // ========================================
   // HELPER METHODS
   // ========================================
 
@@ -375,83 +456,19 @@ export class MaterialsRequestComponent implements OnInit, OnDestroy {
   }
 
   // ========================================
-  // VALIDATION METHODS
+  // VALIDATION METHODS - ✅ UPDATED: NO VALIDATION
   // ========================================
 
   private validateForm(): boolean {
     this.fieldErrors = {};
     this.formError = '';
-    let isValid = true;
-
-    if (!this.mrForm.date) {
-      this.fieldErrors['date'] = this.t('errors.dateRequired');
-      isValid = false;
-    }
-    if (!this.mrForm.section || this.mrForm.section.trim() === '') {
-      this.fieldErrors['section'] = this.t('errors.sectionRequired');
-      isValid = false;
-    }
-    if (!this.mrForm.project || this.mrForm.project.trim() === '') {
-      this.fieldErrors['project'] = this.t('errors.projectRequired');
-      isValid = false;
-    }
-    if (!this.mrForm.requestPriority || this.mrForm.requestPriority.trim() === '') {
-      this.fieldErrors['requestPriority'] = this.t('errors.priorityRequired');
-      isValid = false;
-    }
-    if (!this.mrForm.requestReason || this.mrForm.requestReason.trim() === '') {
-      this.fieldErrors['requestReason'] = this.t('errors.reasonRequired');
-      isValid = false;
-    }
-    
-    if (!this.mrForm.items || this.mrForm.items.length === 0) {
-      this.fieldErrors['items'] = this.t('errors.itemsRequired');
-      isValid = false;
-    } else {
-      this.mrForm.items.forEach((item, index) => {
-        if (!item.description || item.description.trim() === '') {
-          this.fieldErrors[`item_${index}_description`] = this.t('errors.itemDescriptionRequired');
-          isValid = false;
-        }
-        if (!item.unit || item.unit.trim() === '') {
-          this.fieldErrors[`item_${index}_unit`] = this.t('errors.itemUnitRequired');
-          isValid = false;
-        }
-        if (!item.quantity || item.quantity.toString().trim() === '') {
-          this.fieldErrors[`item_${index}_quantity`] = this.t('errors.itemQuantityRequired');
-          isValid = false;
-        }
-      });
-    }
-    return isValid;
+    return true;
   }
 
   private validateBasicFields(): boolean {
     this.fieldErrors = {};
     this.formError = '';
-    let isValid = true;
-
-    if (!this.mrForm.date) {
-      this.fieldErrors['date'] = this.t('errors.dateRequired');
-      isValid = false;
-    }
-    if (!this.mrForm.section || this.mrForm.section.trim() === '') {
-      this.fieldErrors['section'] = this.t('errors.sectionRequired');
-      isValid = false;
-    }
-    if (!this.mrForm.project || this.mrForm.project.trim() === '') {
-      this.fieldErrors['project'] = this.t('errors.projectRequired');
-      isValid = false;
-    }
-    if (!this.mrForm.requestPriority || this.mrForm.requestPriority.trim() === '') {
-      this.fieldErrors['requestPriority'] = this.t('errors.priorityRequired');
-      isValid = false;
-    }
-    if (!this.mrForm.requestReason || this.mrForm.requestReason.trim() === '') {
-      this.fieldErrors['requestReason'] = this.t('errors.reasonRequired');
-      isValid = false;
-    }
-    return isValid;
+    return true;
   }
 
   private clearErrors(): void {
@@ -667,15 +684,7 @@ export class MaterialsRequestComponent implements OnInit, OnDestroy {
   }
 
   saveMR(): void {
-    if (!this.validateForm()) {
-      if (this.fieldErrors['items'] || Object.keys(this.fieldErrors).some(key => key.startsWith('item_'))) {
-        this.currentStep = 'items';
-      } else {
-        this.currentStep = 'basic';
-      }
-      return;
-    }
-
+    // ✅ NO VALIDATION - Save directly
     this.savingMR = true;
     this.clearErrors();
     
@@ -687,7 +696,6 @@ export class MaterialsRequestComponent implements OnInit, OnDestroy {
       priority: item.priority || ''
     }));
     
-    // ✅ NO forceLanguage - let the backend detect language automatically
     const mrData = {
       date: this.mrForm.date,
       section: this.mrForm.section,
@@ -820,13 +828,8 @@ export class MaterialsRequestComponent implements OnInit, OnDestroy {
 
   nextStep(): void {
     if (this.currentStep === 'basic') {
-      const itemsErrorKeys = Object.keys(this.fieldErrors).filter(key => 
-        key === 'items' || key.startsWith('item_')
-      );
-      itemsErrorKeys.forEach(key => delete this.fieldErrors[key]);
-      if (this.validateBasicFields()) {
-        this.currentStep = 'items';
-      }
+      // ✅ NO VALIDATION - Just move to next step
+      this.currentStep = 'items';
     }
   }
 
@@ -851,9 +854,6 @@ export class MaterialsRequestComponent implements OnInit, OnDestroy {
     delete this.fieldErrors[`item_${index}_description`];
     delete this.fieldErrors[`item_${index}_unit`];
     delete this.fieldErrors[`item_${index}_quantity`];
-    if (this.mrForm.items.length === 0) {
-      this.fieldErrors['items'] = this.t('errors.itemsRequired');
-    }
   }
 
   backToList(): void {

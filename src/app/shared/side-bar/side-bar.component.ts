@@ -85,15 +85,15 @@ export class SideBarComponent implements OnInit {
       items: [
         { title: 'إدارة الموردين', route: '/suppliers', icon: 'bi-truck' },
         { title: 'إدارة الأصناف', route: '/items-control', icon: 'bi-tag' },
-        { title: 'إدارة الأعضاء', route: '/users', icon: 'bi-people-fill' }
+        { title: 'إدارة الأعضاء', route: '/users', icon: 'bi-people-fill' },
+        { title: 'إدارة الملفات', route: '/files-control', icon: 'bi-folder' },
       ]
     },
     {
       title: 'العمليات',
       items: [
-        { title: 'إدارة الملفات', route: '/files-control', icon: 'bi-folder' },
         { title: 'إشعار استلام', route: '/receipts', icon: 'bi-clipboard-check' },
-        { title: 'طلب تسعير خارجي', route: '/rfqs', icon: 'bi-file-earmark-text' },
+        { title: 'طلب تسعير ', route: '/rfqs', icon: 'bi-file-earmark-text' },
         { title: 'طلب شراء', route: '/purchases', icon: 'bi-cart' },
         { title: 'طلب مواد', route: '/material-requests', icon: 'bi-box' },
         { title: 'عرض سعر', route: '/price-quotes', icon: 'bi-receipt' }
