@@ -70,7 +70,7 @@
         <i class="bi bi-search"></i>
         <input
           type="text"
-          [placeholder]="formLanguage === 'ar' ? 'بحث برقم العرض، اسم العميل...' : 'Search by quote number, client name...'"
+          [placeholder]="formLanguage === 'ar' ? 'بحث برقم العرض، اسم العميل، اسم المشروع...' : 'Search by quote number, client name, project name...'"
           [(ngModel)]="searchTerm"
           (ngModelChange)="onSearchChange()"
           (keyup.enter)="onSearch()"
@@ -127,7 +127,7 @@
                 [title]="formLanguage === 'ar' ? 'تحميل PDF' : 'Download PDF'">
                 <i class="bi bi-download"></i>
               </button>
-              
+
               <button
                 class="btn-icon btn-duplicate"
                 (click)="openDuplicateModal(quote)"
@@ -232,7 +232,7 @@
 
     <!-- Form Content -->
     <div class="form-content">
-      <!-- ✅ UPDATED: Sidebar Navigation -->
+      <!-- Sidebar Navigation -->
       <div class="form-sidebar">
         <button
           class="sidebar-step"
@@ -241,7 +241,6 @@
           {{ formLanguage === 'ar' ? 'المعلومات الأساسية' : 'Basic Info' }}
         </button>
 
-        <!-- ✅ UPDATED: Removed has-error, added "Optional" label -->
         <button
           class="sidebar-step"
           [class.active]="currentStep === 'items'"
@@ -344,20 +343,24 @@
             />
           </div>
 
+          <!-- ✅ PROJECT NAME FIELD - NEW -->
+          <div class="form-group">
+            <label>
+              <i class="bi bi-folder"></i>
+              {{ formLanguage === 'ar' ? 'اسم المشروع' : 'Project Name' }}
+              <span class="optional-label">({{ formLanguage === 'ar' ? 'اختياري' : 'Optional' }})</span>
+            </label>
+            <input
+              type="text"
+              [(ngModel)]="quoteForm.projectName"
+              [placeholder]="formLanguage === 'ar' ? 'أدخل اسم المشروع)' : 'Enter project name '"
+              class="form-control"
+            />
+
+          </div>
+
           <!-- City and Rev Number Row -->
           <div class="form-row">
-            <div class="form-group">
-              <label>
-                <i class="bi bi-building"></i>
-                {{ formLanguage === 'ar' ? 'المدينة' : 'City' }}
-              </label>
-              <input
-                type="text"
-                [(ngModel)]="quoteForm.clientCity"
-                [placeholder]="formLanguage === 'ar' ? 'أدخل المدينة (اختياري)' : 'Enter city (optional)'"
-                class="form-control"
-              />
-            </div>
 
             <div class="form-group">
               <label>
@@ -447,14 +450,14 @@
           </div>
         </div>
 
-        <!-- ✅ UPDATED: STEP 2 - Items (OPTIONAL) -->
+        <!-- STEP 2 - Items (OPTIONAL) -->
         <div *ngIf="currentStep === 'items'" class="step-content">
           <h2 class="step-title">
             {{ formLanguage === 'ar' ? 'عناصر العرض (اختياري)' : 'Quote Items (Optional)' }}
             <span class="optional-badge">{{ formLanguage === 'ar' ? 'اختياري' : 'Optional' }}</span>
           </h2>
 
-          <!-- ✅ Info Message -->
+          <!-- Info Message -->
           <div class="info-alert">
             <i class="bi bi-info-circle"></i>
             <div style="flex: 1;">
@@ -568,7 +571,6 @@
               </ng-container>
             </div>
 
-            <!-- ✅ Updated empty state message -->
             <div class="items-empty" *ngIf="quoteForm.items.length === 0">
               <i class="bi bi-inbox"></i>
               <p class="empty-title">
@@ -600,11 +602,11 @@
           </div>
         </div>
 
-        <!-- ✅ UPDATED: STEP 3 - Tax & Total (Conditional Display) -->
+        <!-- STEP 3 - Tax & Total (Conditional Display) -->
         <div *ngIf="currentStep === 'tax'" class="step-content">
           <h2 class="step-title">{{ formLanguage === 'ar' ? 'الضريبة والإجمالي' : 'Tax & Total' }}</h2>
 
-          <!-- ✅ Show message if no items added -->
+          <!-- Show message if no items added -->
           <div *ngIf="quoteForm.items.length === 0" class="info-alert" style="margin-bottom: 1.5rem;">
             <i class="bi bi-info-circle"></i>
             <div style="flex: 1;">
@@ -617,7 +619,7 @@
             </div>
           </div>
 
-          <!-- ✅ Only show tax settings and totals if items exist -->
+          <!-- Only show tax settings and totals if items exist -->
           <div *ngIf="quoteForm.items.length > 0">
             <!-- Include Tax Toggle -->
             <div class="form-group">
@@ -674,7 +676,7 @@
             </div>
           </div>
 
-          <!-- ✅ No Items Message -->
+          <!-- No Items Message -->
           <div *ngIf="quoteForm.items.length === 0" class="no-items-message">
             <i class="bi bi-calculator"></i>
             <p class="no-items-title">

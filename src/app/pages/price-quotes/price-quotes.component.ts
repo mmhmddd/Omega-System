@@ -74,6 +74,7 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
     clientPhone: '',
     clientAddress: '',
     clientCity: '',
+    projectName: '',
     date: '',
     revNumber: '00',
     validForDays: 30,
@@ -359,40 +360,37 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
 
     const quote = this.quoteToDuplicate;
 
-    // Reset form first
     this.resetForm();
 
-    // Populate form with quote data
     this.quoteForm = {
       clientName: quote.clientName,
       clientPhone: quote.clientPhone,
       clientAddress: quote.clientAddress || '',
       clientCity: quote.clientCity || '',
-      date: this.getTodayDate(), // Use today's date for new quote
-      revNumber: '00', // Reset revision number
+      projectName: quote.projectName || '',
+      date: this.getTodayDate(),
+      revNumber: '00',
       validForDays: quote.validForDays || 30,
       language: quote.language,
       includeTax: quote.includeTax,
       taxRate: quote.taxRate,
-      items: [...quote.items.map(item => ({ ...item }))], // Deep copy items
+      items: [...quote.items.map(item => ({ ...item }))],
       customNotes: quote.customNotes || ''
     };
 
-    // Set view to CREATE (not edit) - this is crucial
     this.currentView = 'create';
     this.currentStep = 'basic';
     this.formError = '';
     this.fieldErrors = {};
 
-    // Close modal
     this.closeDuplicateModal();
 
-    // Show success message
     const successMsg = this.formLanguage === 'ar'
       ? `تم نسخ بيانات عرض السعر ${quote.quoteNumber}. يمكنك التعديل وحفظ عرض سعر جديد.`
       : `Quote ${quote.quoteNumber} data copied. You can modify and save as a new quote.`;
     this.showToast('info', successMsg, 5000);
   }
+
 
   // ============================================
   // FORM MANAGEMENT
@@ -404,6 +402,7 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
       clientPhone: '',
       clientAddress: '',
       clientCity: '',
+      projectName: '',
       date: this.getTodayDate(),
       revNumber: '00',
       validForDays: 30,
@@ -424,6 +423,7 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
       clientPhone: quote.clientPhone,
       clientAddress: quote.clientAddress || '',
       clientCity: quote.clientCity || '',
+      projectName: quote.projectName || '',
       date: quote.date,
       revNumber: quote.revNumber,
       validForDays: quote.validForDays || 30,

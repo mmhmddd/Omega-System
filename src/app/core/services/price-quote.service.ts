@@ -7,7 +7,6 @@ import { API_ENDPOINTS } from '../constants/api-endpoints';
 // INTERFACES
 // ============================================
 
-// ✅ NEW: User information interface
 export interface UserInfo {
   id: string;
   name: string;
@@ -30,6 +29,7 @@ export interface PriceQuote {
   clientPhone: string;
   clientAddress?: string | null;
   clientCity?: string | null;
+  projectName?: string | null; // ✅ NEW FIELD
   date: string;
   revNumber: string;
   validForDays?: number | null;
@@ -45,7 +45,7 @@ export interface PriceQuote {
   attachmentPath?: string | null;
   createdBy: string;
   createdByName?: string;
-  createdByInfo?: UserInfo;  // ✅ NEW: Full user information
+  createdByInfo?: UserInfo;
   createdAt: string;
   updatedAt: string;
 }
@@ -55,6 +55,7 @@ export interface CreatePriceQuoteData {
   clientPhone: string;
   clientAddress?: string;
   clientCity?: string;
+  projectName?: string; // ✅ NEW FIELD
   date: string;
   revNumber?: string;
   validForDays?: number;
@@ -71,6 +72,7 @@ export interface UpdatePriceQuoteData {
   clientPhone?: string;
   clientAddress?: string;
   clientCity?: string;
+  projectName?: string; // ✅ NEW FIELD
   date?: string;
   revNumber?: string;
   validForDays?: number;
@@ -122,9 +124,6 @@ export class PriceQuoteService {
   // PRIVATE: GET AUTH HEADERS
   // ============================================
 
-  /**
-   * Get authorization headers with token
-   */
   private getAuthHeaders(): HttpHeaders {
     const token = localStorage.getItem('token');
     return new HttpHeaders({
@@ -132,70 +131,53 @@ export class PriceQuoteService {
     });
   }
 
-  /**
-   * Get authorization headers for multipart/form-data
-   */
   private getMultipartHeaders(): HttpHeaders {
     const token = localStorage.getItem('token');
-    // Don't set Content-Type for FormData - browser will set it with boundary
     return new HttpHeaders({
       'Authorization': `Bearer ${token}`
     });
   }
 
-/**
- * Get creator's display name from quote
- */
-getCreatorName(quote: PriceQuote): string {
-  // Priority 1: Use createdByName from backend
-  if (quote.createdByName && quote.createdByName.trim() !== '' && quote.createdByName !== 'Unknown User') {
-    return quote.createdByName;
-  }
-  
-  // Priority 2: Use createdByInfo if available
-  if (quote.createdByInfo) {
-    return quote.createdByInfo.name || quote.createdByInfo.username;
-  }
-  
-  // Priority 3: Fallback to createdBy ID
-  return quote.createdBy || '-';
-}
+  getCreatorName(quote: PriceQuote): string {
+    if (quote.createdByName && quote.createdByName.trim() !== '' && quote.createdByName !== 'Unknown User') {
+      return quote.createdByName;
+    }
 
-/**
- * Get creator's email from quote
- */
-getCreatorEmail(quote: PriceQuote): string {
-  return quote.createdByInfo?.email || 'N/A';
-}
+    if (quote.createdByInfo) {
+      return quote.createdByInfo.name || quote.createdByInfo.username;
+    }
 
-/**
- * Get creator's username from quote
- */
-getCreatorUsername(quote: PriceQuote): string {
-  return quote.createdByInfo?.username || quote.createdBy;
-}
+    return quote.createdBy || '-';
+  }
+
+  getCreatorEmail(quote: PriceQuote): string {
+    return quote.createdByInfo?.email || 'N/A';
+  }
+
+  getCreatorUsername(quote: PriceQuote): string {
+    return quote.createdByInfo?.username || quote.createdBy;
+  }
 
   // ============================================
   // CREATE PRICE QUOTE
   // ============================================
 
-  /**
-   * Create a new price quote with optional attachment
-   */
   createPriceQuote(quoteData: CreatePriceQuoteData): Observable<PriceQuoteResponse> {
     const formData = new FormData();
 
-    // Add required fields
     formData.append('clientName', quoteData.clientName);
     formData.append('clientPhone', quoteData.clientPhone);
     formData.append('date', quoteData.date);
 
-    // Add optional fields
     if (quoteData.clientAddress) {
       formData.append('clientAddress', quoteData.clientAddress);
     }
     if (quoteData.clientCity) {
       formData.append('clientCity', quoteData.clientCity);
+    }
+    // ✅ NEW FIELD
+    if (quoteData.projectName) {
+      formData.append('projectName', quoteData.projectName);
     }
     if (quoteData.revNumber) {
       formData.append('revNumber', quoteData.revNumber);
@@ -204,24 +186,19 @@ getCreatorUsername(quote: PriceQuote): string {
       formData.append('validForDays', quoteData.validForDays.toString());
     }
 
-    // Add language (default: arabic)
     formData.append('language', quoteData.language || 'arabic');
 
-    // Add tax information - FIXED: Only send taxRate if includeTax is true
     formData.append('includeTax', (quoteData.includeTax || false).toString());
     if (quoteData.includeTax === true && quoteData.taxRate && quoteData.taxRate > 0) {
       formData.append('taxRate', quoteData.taxRate.toString());
     }
 
-    // Add items as JSON string
     formData.append('items', JSON.stringify(quoteData.items));
 
-    // Add custom notes
     if (quoteData.customNotes) {
       formData.append('customNotes', quoteData.customNotes);
     }
 
-    // Add attachment file if provided
     if (quoteData.attachment) {
       formData.append('attachment', quoteData.attachment, quoteData.attachment.name);
     }
@@ -237,9 +214,6 @@ getCreatorUsername(quote: PriceQuote): string {
   // GET PRICE QUOTES
   // ============================================
 
-  /**
-   * Get all price quotes (Super Admin only)
-   */
   getAllPriceQuotes(filters?: PriceQuotesFilters): Observable<PriceQuotesListResponse> {
     let params = new HttpParams();
 
@@ -267,9 +241,6 @@ getCreatorUsername(quote: PriceQuote): string {
     );
   }
 
-  /**
-   * Get latest quote by current user
-   */
   getMyLatestQuote(): Observable<PriceQuoteResponse> {
     return this.http.get<PriceQuoteResponse>(
       API_ENDPOINTS.PRICE_QUOTES.GET_MY_LATEST,
@@ -277,9 +248,6 @@ getCreatorUsername(quote: PriceQuote): string {
     );
   }
 
-  /**
-   * Get specific price quote by ID
-   */
   getPriceQuoteById(id: string): Observable<PriceQuoteResponse> {
     return this.http.get<PriceQuoteResponse>(
       API_ENDPOINTS.PRICE_QUOTES.GET_BY_ID(id),
@@ -291,13 +259,9 @@ getCreatorUsername(quote: PriceQuote): string {
   // UPDATE PRICE QUOTE
   // ============================================
 
-  /**
-   * Update price quote
-   */
   updatePriceQuote(id: string, updateData: UpdatePriceQuoteData): Observable<PriceQuoteResponse> {
     const formData = new FormData();
 
-    // Add fields only if they are provided
     if (updateData.clientName) {
       formData.append('clientName', updateData.clientName);
     }
@@ -309,6 +273,10 @@ getCreatorUsername(quote: PriceQuote): string {
     }
     if (updateData.clientCity !== undefined) {
       formData.append('clientCity', updateData.clientCity || '');
+    }
+    // ✅ NEW FIELD
+    if (updateData.projectName !== undefined) {
+      formData.append('projectName', updateData.projectName || '');
     }
     if (updateData.date) {
       formData.append('date', updateData.date);
@@ -325,7 +293,6 @@ getCreatorUsername(quote: PriceQuote): string {
     if (updateData.includeTax !== undefined) {
       formData.append('includeTax', updateData.includeTax.toString());
     }
-    // FIXED: Only send taxRate if includeTax is true
     if (updateData.includeTax === true && updateData.taxRate !== undefined && updateData.taxRate > 0) {
       formData.append('taxRate', updateData.taxRate.toString());
     }
@@ -350,9 +317,6 @@ getCreatorUsername(quote: PriceQuote): string {
   // DELETE PRICE QUOTE
   // ============================================
 
-  /**
-   * Delete price quote (Super Admin only)
-   */
   deletePriceQuote(id: string): Observable<DeleteResponse> {
     return this.http.delete<DeleteResponse>(
       API_ENDPOINTS.PRICE_QUOTES.DELETE(id),
@@ -364,9 +328,6 @@ getCreatorUsername(quote: PriceQuote): string {
   // DOWNLOAD PDF
   // ============================================
 
-  /**
-   * Download PDF of price quote
-   */
   downloadPDF(id: string): Observable<Blob> {
     return this.http.get(
       API_ENDPOINTS.PRICE_QUOTES.DOWNLOAD_PDF(id),
@@ -377,9 +338,6 @@ getCreatorUsername(quote: PriceQuote): string {
     );
   }
 
-  /**
-   * Helper method to trigger PDF download in browser
-   */
   triggerPDFDownload(id: string, filename?: string): void {
     this.downloadPDF(id).subscribe({
       next: (blob) => {
@@ -400,9 +358,6 @@ getCreatorUsername(quote: PriceQuote): string {
   // HELPER METHODS
   // ============================================
 
-  /**
-   * Calculate totals for quote items
-   */
   calculateTotals(items: PriceQuoteItem[], includeTax: boolean, taxRate: number): {
     subtotal: number;
     taxAmount: number;
@@ -424,9 +379,6 @@ getCreatorUsername(quote: PriceQuote): string {
     };
   }
 
-  /**
-   * Validate quote item
-   */
   validateQuoteItem(item: PriceQuoteItem): boolean {
     return !!(
       item.description &&
@@ -438,9 +390,6 @@ getCreatorUsername(quote: PriceQuote): string {
     );
   }
 
-  /**
-   * Validate all items in array
-   */
   validateQuoteItems(items: PriceQuoteItem[]): boolean {
     if (!items || items.length === 0) {
       return false;
@@ -448,32 +397,19 @@ getCreatorUsername(quote: PriceQuote): string {
     return items.every(item => this.validateQuoteItem(item));
   }
 
-  /**
-   * Validate phone number format (basic validation)
-   */
   validatePhoneNumber(phone: string): boolean {
-    // Basic validation: at least 10 digits
     const phoneRegex = /^\+?[\d\s-()]{10,}$/;
     return phoneRegex.test(phone);
   }
 
-  /**
-   * Format currency (JOD)
-   */
   formatCurrency(amount: number): string {
     return `JOD ${amount.toFixed(2)}`;
   }
 
-  /**
-   * Get language label in Arabic
-   */
   getLanguageLabel(language: 'arabic' | 'english'): string {
     return language === 'arabic' ? 'عربي' : 'إنجليزي';
   }
 
-  /**
-   * Format date for display (DD/MM/YYYY)
-   */
   formatDate(dateString: string): string {
     const date = new Date(dateString);
     const day = date.getDate().toString().padStart(2, '0');
@@ -482,17 +418,11 @@ getCreatorUsername(quote: PriceQuote): string {
     return `${day}/${month}/${year}`;
   }
 
-  /**
-   * Format date for input (YYYY-MM-DD)
-   */
   formatDateForInput(dateString: string): string {
     const date = new Date(dateString);
     return date.toISOString().split('T')[0];
   }
 
-  /**
-   * Create empty quote item
-   */
   createEmptyQuoteItem(): PriceQuoteItem {
     return {
       description: '',
@@ -502,11 +432,7 @@ getCreatorUsername(quote: PriceQuote): string {
     };
   }
 
-  /**
-   * Validate PDF file
-   */
   validatePDFFile(file: File): { valid: boolean; error?: string } {
-    // Check file type
     if (file.type !== 'application/pdf') {
       return {
         valid: false,
@@ -514,8 +440,7 @@ getCreatorUsername(quote: PriceQuote): string {
       };
     }
 
-    // Check file size (10MB limit)
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
       return {
         valid: false,
@@ -526,9 +451,6 @@ getCreatorUsername(quote: PriceQuote): string {
     return { valid: true };
   }
 
-  /**
-   * Generate quote number preview (for display purposes)
-   */
   generateQuoteNumberPreview(lastNumber: string): string {
     const match = lastNumber.match(/PQ(\d+)/);
     if (!match) return 'PQ0001';
