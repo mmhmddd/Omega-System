@@ -714,6 +714,13 @@ $breakpoint-xl: 1200px;
       color: #dc2626;
     }
 
+    &.btn-duplicate {
+      &:hover {
+        background: #fef3c7;
+        color: #d97706;
+      }
+    }
+
     i {
       font-size: 1rem;
     }
@@ -2012,6 +2019,10 @@ $breakpoint-xl: 1200px;
 
         .text-success {
           color: #059669;
+        }
+
+        .text-warning {
+          color: #d97706;
         }
       }
 

@@ -277,6 +277,11 @@
                     <span>{{ formLanguage === 'ar' ? 'تحميل الملف' : 'Download File' }}</span>
                   </button>
 
+                  <button type="button" class="action-menu-item" (click)="openDuplicateModal(job); closeActionsMenu(); $event.stopPropagation()">
+                    <i class="bi bi-files"></i>
+                    <span>{{ formLanguage === 'ar' ? 'نسخ وإعادة استخدام' : 'Duplicate & Reuse' }}</span>
+                  </button>
+
                   <button type="button" class="action-menu-item" (click)="openEditModal(job); closeActionsMenu(); $event.stopPropagation()">
                     <i class="bi bi-pencil"></i>
                     <span>{{ formLanguage === 'ar' ? 'تعديل' : 'Edit' }}</span>
@@ -1113,6 +1118,50 @@
           ? (formLanguage === 'ar' ? 'جاري الحذف...' : 'Deleting...')
           : (formLanguage === 'ar' ? 'حذف' : 'Delete')
         }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- DUPLICATE CONFIRMATION MODAL -->
+<!-- ============================================ -->
+<div class="modal-overlay" *ngIf="showDuplicateModal" (click)="closeDuplicateModal()">
+  <div class="modal-container modal-small" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <i class="bi bi-files text-warning"></i>
+        {{ formLanguage === 'ar' ? 'نسخ مهمة القص' : 'Duplicate Cutting Job' }}
+      </h2>
+      <button class="modal-close" (click)="closeDuplicateModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <p class="delete-message">
+        {{ formLanguage === 'ar'
+          ? 'هل تريد نسخ بيانات مهمة القص'
+          : 'Do you want to duplicate cutting job'
+        }}
+        <strong>{{ jobToDuplicate?.id }}</strong>؟
+        <br><br>
+        <span style="color: #d97706; font-weight: 500;">
+          {{ formLanguage === 'ar'
+            ? 'سيتم إنشاء مهمة قص جديدة بنفس البيانات مع إمكانية التعديل.'
+            : 'A new cutting job will be created with the same data that you can modify.'
+          }}
+        </span>
+      </p>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="closeDuplicateModal()">
+        {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
+      </button>
+      <button type="button" class="btn btn-primary" (click)="confirmDuplicate()">
+        <i class="bi bi-files"></i>
+        {{ formLanguage === 'ar' ? 'نسخ' : 'Duplicate' }}
       </button>
     </div>
   </div>

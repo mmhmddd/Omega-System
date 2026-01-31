@@ -1,4 +1,4 @@
-// receipts.component.ts - WITH SUCCESS MODAL AFTER SAVE
+// receipts.component.ts - WITH DUPLICATE FUNCTIONALITY
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -33,17 +33,17 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
   currentView: ViewMode = 'list';
   currentStep: FormStep = 'basic';
   formLanguage: FormLanguage = 'ar';
-  
+
   // Data
   receipts: Receipt[] = [];
   selectedReceipt: Receipt | null = null;
-  
+
   // Pagination
   currentPage: number = 1;
   totalPages: number = 1;
   totalReceipts: number = 0;
   limit: number = 10;
-  
+
   // Search
   searchTerm: string = '';
   showFilterModal: boolean = false;
@@ -53,18 +53,18 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     endDate: '',
     to: ''
   };
-  
+
   private searchSubject = new Subject<string>();
-  
+
   // Loading states
   loading: boolean = false;
   savingReceipt: boolean = false;
   generatingPDF: boolean = false;
-  
+
   // Error handling
   formError: string = '';
   fieldErrors: { [key: string]: string } = {};
-  
+
   // Form data
   receiptForm: CreateReceiptData = {
     to: '',
@@ -80,32 +80,36 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     items: [],
     notes: ''
   };
-  
+
   // PDF generation
   showPDFModal: boolean = false;
   pdfAttachment: File | null = null;
   pdfReceiptId: string = '';
   selectedReceiptNumber: string = '';
   formPdfAttachment: File | null = null;
-  
+
   // User role
   userRole: string = '';
-  
+
   // INLINE TOAST STATE
   toasts: Toast[] = [];
   private toastTimeouts: Map<string, any> = new Map();
-  
+
   // INLINE CONFIRMATION STATE
   showConfirmationModal: boolean = false;
   confirmationTitle: string = '';
   confirmationMessage: string = '';
   private confirmationCallback: (() => void) | null = null;
-  
+
   // SUCCESS MODAL STATE
   showSuccessModal: boolean = false;
   successReceiptId: string = '';
   successReceiptNumber: string = '';
-  
+
+  // DUPLICATE MODAL STATE
+  showDuplicateModal: boolean = false;
+  receiptToDuplicate: Receipt | null = null;
+
   // Translations
   private translations = {
     ar: {
@@ -187,7 +191,7 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
       }
     }
   };
-  
+
   constructor(
     private receiptService: ReceiptService,
     private authService: AuthService,
@@ -199,9 +203,9 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     this.loadReceipts();
     const user = this.authService.currentUserValue;
     this.userRole = user ? user.role : '';
-    
+
     this.updateDirection();
-    
+
     this.searchSubject.pipe(
       debounceTime(500),
       distinctUntilChanged()
@@ -222,20 +226,20 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
   // ========================================
   // INLINE TOAST METHODS
   // ========================================
-  
+
   showToast(type: ToastType, message: string, duration: number = 3000): void {
     const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const toast: Toast = { id, type, message };
-    
+
     this.toasts.push(toast);
-    
+
     if (duration > 0) {
       const timeout = setTimeout(() => {
         this.removeToast(id);
       }, duration);
       this.toastTimeouts.set(id, timeout);
     }
-    
+
     if (this.toasts.length > 5) {
       const oldestToast = this.toasts[0];
       this.removeToast(oldestToast.id);
@@ -257,7 +261,7 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
   // ========================================
   // SUCCESS MODAL METHODS
   // ========================================
-  
+
   openSuccessModal(receiptId: string, receiptNumber: string): void {
     this.successReceiptId = receiptId;
     this.successReceiptNumber = receiptNumber;
@@ -295,9 +299,63 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
   }
 
   // ========================================
+  // DUPLICATE FUNCTIONALITY
+  // ========================================
+
+  openDuplicateModal(receipt: Receipt): void {
+    this.receiptToDuplicate = receipt;
+    this.showDuplicateModal = true;
+  }
+
+  closeDuplicateModal(): void {
+    this.showDuplicateModal = false;
+    this.receiptToDuplicate = null;
+  }
+
+  confirmDuplicate(): void {
+    if (!this.receiptToDuplicate) return;
+
+    const receipt = this.receiptToDuplicate;
+
+    // Reset form first
+    this.resetForm();
+
+    // Populate form with duplicated data
+    this.receiptForm = {
+      to: receipt.to || '',
+      date: this.getTodayDate(), // Use today's date for new receipt
+      address: receipt.address || '',
+      addressTitle: receipt.addressTitle || '',
+      attention: receipt.attention || '',
+      projectCode: receipt.projectCode || '',
+      workLocation: receipt.workLocation || '',
+      companyNumber: receipt.companyNumber || '',
+      vehicleNumber: receipt.companyNumber || '',
+      additionalText: receipt.additionalText || '',
+      items: JSON.parse(JSON.stringify(receipt.items || [])), // Deep clone items
+      notes: receipt.notes || ''
+    };
+
+    // Set view to CREATE (not edit)
+    this.currentView = 'create';
+    this.currentStep = 'basic';
+    this.fieldErrors = {};
+    this.formError = '';
+
+    // Close modal
+    this.closeDuplicateModal();
+
+    // Show success message
+    const successMsg = this.formLanguage === 'ar'
+      ? `تم نسخ بيانات الإشعار ${receipt.receiptNumber}. يمكنك التعديل وحفظ إشعار جديد.`
+      : `Receipt ${receipt.receiptNumber} data copied. You can modify and save as a new receipt.`;
+    this.showToast('info', successMsg, 5000);
+  }
+
+  // ========================================
   // INLINE CONFIRMATION METHODS
   // ========================================
-  
+
   showConfirmation(title: string, message: string, callback: () => void): void {
     this.confirmationTitle = title;
     this.confirmationMessage = message;
@@ -532,7 +590,7 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
   loadReceipts(): void {
     this.loading = true;
     this.clearErrors();
-    
+
     const filterParams = {
       search: this.searchTerm || undefined,
       receiptNumber: this.filters.receiptNumber || undefined,
@@ -648,7 +706,7 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
 
     this.savingReceipt = true;
     this.clearErrors();
-    
+
     const receiptData = {
       to: this.receiptForm.to,
       date: this.receiptForm.date,
@@ -785,7 +843,7 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
 
   nextStep(): void {
     if (this.currentStep === 'basic') {
-      const itemsErrorKeys = Object.keys(this.fieldErrors).filter(key => 
+      const itemsErrorKeys = Object.keys(this.fieldErrors).filter(key =>
         key === 'items' || key.startsWith('item_')
       );
       itemsErrorKeys.forEach(key => delete this.fieldErrors[key]);

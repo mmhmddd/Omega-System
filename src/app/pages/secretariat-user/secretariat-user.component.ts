@@ -112,7 +112,9 @@ export class SecretariatUserComponent implements OnInit, OnDestroy {
   // MODALS
   // ============================================
   showSuccessModal: boolean = false;
+  showDuplicateModal: boolean = false;
   generatedFormId: string = '';
+  formToDuplicate: UserForm | null = null;
 
   constructor(
     private secretariatUserService: SecretariatUserService,
@@ -259,6 +261,57 @@ export class SecretariatUserComponent implements OnInit, OnDestroy {
     this.currentView = 'list';
     this.resetForm();
     this.loadMyForms();
+  }
+
+  // ============================================
+  // DUPLICATE FORM FUNCTIONALITY
+  // ============================================
+
+  openDuplicateModal(form: UserForm): void {
+    this.formToDuplicate = form;
+    this.showDuplicateModal = true;
+  }
+
+  closeDuplicateModal(): void {
+    this.showDuplicateModal = false;
+    this.formToDuplicate = null;
+  }
+
+  confirmDuplicate(): void {
+    if (!this.formToDuplicate) return;
+
+    const form = this.formToDuplicate;
+
+    // Reset form first
+    this.resetForm();
+
+    // Populate form with duplicated data
+    this.formData = {
+      formType: form.formType,
+      projectName: form.projectName || '',
+      date: this.getTodayDate() // Use today's date for new form
+    };
+
+    // Copy manual data if it exists
+    if (form.manualData) {
+      this.manualData = { ...form.manualData };
+    } else {
+      this.manualData = this.secretariatUserService.createEmptyManualData(form.formType);
+    }
+
+    // Set view to CREATE (not edit)
+    this.currentView = 'create';
+    this.fieldErrors = {};
+    this.formError = '';
+
+    // Close modal
+    this.closeDuplicateModal();
+
+    // Show success message
+    const successMsg = this.formLanguage === 'ar'
+      ? `تم نسخ بيانات النموذج ${form.formNumber}. يمكنك التعديل وحفظ نموذج جديد.`
+      : `Form ${form.formNumber} data copied. You can modify and save as a new form.`;
+    this.showToast('info', successMsg, 5000);
   }
 
   // ============================================

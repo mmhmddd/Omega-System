@@ -131,6 +131,8 @@ export class CuttingComponent implements OnInit, OnDestroy {
   showTrackModal: boolean = false;
   showViewModal: boolean = false;
   showUserHistoryModal: boolean = false;
+  showDuplicateModal: boolean = false;
+  jobToDuplicate: CuttingJob | null = null;
 
   // ============================================
   // USER HISTORY
@@ -226,8 +228,6 @@ export class CuttingComponent implements OnInit, OnDestroy {
       this.showToast('error', errorMsg);
     }
   }
-
-
 
   // ============================================
   // TOAST METHODS
@@ -361,6 +361,53 @@ export class CuttingComponent implements OnInit, OnDestroy {
   }
 
   // ============================================
+  // DUPLICATE JOB FUNCTIONALITY
+  // ============================================
+
+  openDuplicateModal(job: CuttingJob): void {
+    this.jobToDuplicate = job;
+    this.showDuplicateModal = true;
+  }
+
+  closeDuplicateModal(): void {
+    this.showDuplicateModal = false;
+    this.jobToDuplicate = null;
+  }
+
+  confirmDuplicate(): void {
+    if (!this.jobToDuplicate) return;
+
+    const job = this.jobToDuplicate;
+
+    // Reset form first
+    this.resetForm();
+
+    // Populate form with duplicated data
+    this.formData = {
+      projectName: job.projectName,
+      pieceName: job.pieceName || '',
+      quantity: job.quantity,
+      materialType: job.materialType,
+      thickness: job.thickness,
+      notes: job.notes || ''
+    };
+
+    // Set view to CREATE (not edit)
+    this.currentView = 'create';
+    this.fieldErrors = {};
+    this.formError = '';
+
+    // Close modal
+    this.closeDuplicateModal();
+
+    // Show success message
+    const successMsg = this.formLanguage === 'ar'
+      ? `تم نسخ بيانات مهمة القص ${job.id}. يمكنك التعديل وحفظ مهمة جديدة.`
+      : `Cutting job ${job.id} data copied. You can modify and save as a new job.`;
+    this.showToast('info', successMsg, 5000);
+  }
+
+  // ============================================
   // VIEW DETAILS MODAL
   // ============================================
 
@@ -403,97 +450,96 @@ export class CuttingComponent implements OnInit, OnDestroy {
     }, 300);
   }
 
-buildUserActivityHistory(job: CuttingJob): void {
-  this.userActivities = [];
+  buildUserActivityHistory(job: CuttingJob): void {
+    this.userActivities = [];
 
-  // ✅ NEW: Use updateHistory from backend if available
-  if (job.updateHistory && job.updateHistory.length > 0) {
-    job.updateHistory.forEach((historyEntry) => {
-      const userName = historyEntry.updatedByInfo
-        ? (historyEntry.updatedByInfo.name || historyEntry.updatedByInfo.username)
-        : historyEntry.updatedBy;
+    // ✅ NEW: Use updateHistory from backend if available
+    if (job.updateHistory && job.updateHistory.length > 0) {
+      job.updateHistory.forEach((historyEntry) => {
+        const userName = historyEntry.updatedByInfo
+          ? (historyEntry.updatedByInfo.name || historyEntry.updatedByInfo.username)
+          : historyEntry.updatedBy;
 
-      let actionType: 'created' | 'updated' | 'status_changed' = 'updated';
-      let details = '';
+        let actionType: 'created' | 'updated' | 'status_changed' = 'updated';
+        let details = '';
 
-      if (historyEntry.changes.action === 'created') {
-        actionType = 'created';
-        details = this.formLanguage === 'ar'
-          ? 'قام بإنشاء مهمة القص'
-          : 'Created cutting job';
-      } else if (historyEntry.changes.modifications && historyEntry.changes.modifications.length > 0) {
-        const mods = historyEntry.changes.modifications;
-
-        // Check if status was changed
-        const statusChange = mods.find(m => m.field === 'fileStatus');
-        if (statusChange) {
-          actionType = 'status_changed';
+        if (historyEntry.changes.action === 'created') {
+          actionType = 'created';
           details = this.formLanguage === 'ar'
-            ? `قام بتغيير الحالة من "${statusChange.oldValue}" إلى "${statusChange.newValue}"`
-            : `Changed status from "${statusChange.oldValue}" to "${statusChange.newValue}"`;
+            ? 'قام بإنشاء مهمة القص'
+            : 'Created cutting job';
+        } else if (historyEntry.changes.modifications && historyEntry.changes.modifications.length > 0) {
+          const mods = historyEntry.changes.modifications;
+
+          // Check if status was changed
+          const statusChange = mods.find(m => m.field === 'fileStatus');
+          if (statusChange) {
+            actionType = 'status_changed';
+            details = this.formLanguage === 'ar'
+              ? `قام بتغيير الحالة من "${statusChange.oldValue}" إلى "${statusChange.newValue}"`
+              : `Changed status from "${statusChange.oldValue}" to "${statusChange.newValue}"`;
+          } else {
+            // General update
+            const changedFields = mods.map(m => m.field).join(', ');
+            details = this.formLanguage === 'ar'
+              ? `قام بتحديث: ${changedFields}`
+              : `Updated: ${changedFields}`;
+          }
         } else {
-          // General update
-          const changedFields = mods.map(m => m.field).join(', ');
           details = this.formLanguage === 'ar'
-            ? `قام بتحديث: ${changedFields}`
-            : `Updated: ${changedFields}`;
+            ? 'قام بتحديث مهمة القص'
+            : 'Updated cutting job';
         }
-      } else {
-        details = this.formLanguage === 'ar'
-          ? 'قام بتحديث مهمة القص'
-          : 'Updated cutting job';
-      }
-
-      this.userActivities.push({
-        userId: historyEntry.updatedBy,
-        userName: userName,
-        action: actionType,
-        timestamp: historyEntry.timestamp,
-        details: details
-      });
-    });
-  } else {
-    // ✅ FALLBACK: Use old method if updateHistory is not available
-    const creatorName = job.uploadedByInfo
-      ? (job.uploadedByInfo.name || job.uploadedByInfo.username)
-      : job.uploadedBy;
-
-    this.userActivities.push({
-      userId: job.uploadedBy,
-      userName: creatorName,
-      action: 'created',
-      timestamp: job.createdAt,
-      details: this.formLanguage === 'ar'
-        ? 'قام بإنشاء مهمة القص'
-        : 'Created cutting job'
-    });
-
-    if (job.cutBy && job.cutBy.length > 0 && job.cutByInfo && job.cutByInfo.length > 0) {
-      job.cutBy.forEach((userId) => {
-        const userInfo = job.cutByInfo!.find(u => u.id === userId);
-        const userName = userInfo
-          ? (userInfo.name || userInfo.username)
-          : userId;
 
         this.userActivities.push({
-          userId: userId,
+          userId: historyEntry.updatedBy,
           userName: userName,
-          action: 'updated',
-          timestamp: job.updatedAt,
-          details: this.formLanguage === 'ar'
-            ? 'قام بتحديث مهمة القص'
-            : 'Updated cutting job'
+          action: actionType,
+          timestamp: historyEntry.timestamp,
+          details: details
         });
       });
+    } else {
+      // ✅ FALLBACK: Use old method if updateHistory is not available
+      const creatorName = job.uploadedByInfo
+        ? (job.uploadedByInfo.name || job.uploadedByInfo.username)
+        : job.uploadedBy;
+
+      this.userActivities.push({
+        userId: job.uploadedBy,
+        userName: creatorName,
+        action: 'created',
+        timestamp: job.createdAt,
+        details: this.formLanguage === 'ar'
+          ? 'قام بإنشاء مهمة القص'
+          : 'Created cutting job'
+      });
+
+      if (job.cutBy && job.cutBy.length > 0 && job.cutByInfo && job.cutByInfo.length > 0) {
+        job.cutBy.forEach((userId) => {
+          const userInfo = job.cutByInfo!.find(u => u.id === userId);
+          const userName = userInfo
+            ? (userInfo.name || userInfo.username)
+            : userId;
+
+          this.userActivities.push({
+            userId: userId,
+            userName: userName,
+            action: 'updated',
+            timestamp: job.updatedAt,
+            details: this.formLanguage === 'ar'
+              ? 'قام بتحديث مهمة القص'
+              : 'Updated cutting job'
+          });
+        });
+      }
     }
+
+    // Sort by timestamp (newest first)
+    this.userActivities.sort((a, b) => {
+      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    });
   }
-
-  // Sort by timestamp (newest first)
-  this.userActivities.sort((a, b) => {
-    return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-  });
-}
-
 
   getActionLabel(action: 'created' | 'updated' | 'status_changed'): string {
     const labels: { [key: string]: { ar: string; en: string } } = {
@@ -1078,63 +1124,52 @@ buildUserActivityHistory(job: CuttingJob): void {
     return Math;
   }
 
-
   getUploadedByName(job: CuttingJob): string {
-  if (job.uploadedByInfo) {
-    return job.uploadedByInfo.name || job.uploadedByInfo.username;
-  }
-  return job.uploadedBy;
-}
-
-/**
- * Get the name of last user who updated the job
- */
-getLastUpdatedByName(job: CuttingJob): string {
-  if (job.lastUpdatedByInfo) {
-    return job.lastUpdatedByInfo.name || job.lastUpdatedByInfo.username;
-  }
-  return job.lastUpdatedBy || '-';
-}
-
-/**
- * Get names of all users who worked on the job
- */
-getCutByNames(job: CuttingJob): string {
-  if (!job.cutByInfo || job.cutByInfo.length === 0) {
-    return this.formLanguage === 'ar' ? 'لا أحد' : 'None';
-  }
-  return job.cutByInfo.map(user => user.name || user.username).join(', ');
-}
-
-/**
- * Get count of users who worked on the job
- */
-getCutByCount(job: CuttingJob): number {
-  return job.cutByInfo ? job.cutByInfo.length : 0;
-}
-
-// REPLACE the existing getUserDisplayName method with this improved version:
-getUserDisplayName(userId: string, job?: CuttingJob): string {
-  if (!job) return userId;
-
-  // Check uploadedByInfo
-  if (job.uploadedByInfo && job.uploadedByInfo.id === userId) {
-    return job.uploadedByInfo.name || job.uploadedByInfo.username;
-  }
-
-  // Check lastUpdatedByInfo
-  if (job.lastUpdatedByInfo && job.lastUpdatedByInfo.id === userId) {
-    return job.lastUpdatedByInfo.name || job.lastUpdatedByInfo.username;
-  }
-
-  // Check cutByInfo
-  if (job.cutByInfo && Array.isArray(job.cutByInfo)) {
-    const user = job.cutByInfo.find(u => u.id === userId);
-    if (user) {
-      return user.name || user.username;
+    if (job.uploadedByInfo) {
+      return job.uploadedByInfo.name || job.uploadedByInfo.username;
     }
+    return job.uploadedBy;
   }
 
-  return userId;
-}
+  getLastUpdatedByName(job: CuttingJob): string {
+    if (job.lastUpdatedByInfo) {
+      return job.lastUpdatedByInfo.name || job.lastUpdatedByInfo.username;
+    }
+    return job.lastUpdatedBy || '-';
+  }
+
+  getCutByNames(job: CuttingJob): string {
+    if (!job.cutByInfo || job.cutByInfo.length === 0) {
+      return this.formLanguage === 'ar' ? 'لا أحد' : 'None';
+    }
+    return job.cutByInfo.map(user => user.name || user.username).join(', ');
+  }
+
+  getCutByCount(job: CuttingJob): number {
+    return job.cutByInfo ? job.cutByInfo.length : 0;
+  }
+
+  getUserDisplayName(userId: string, job?: CuttingJob): string {
+    if (!job) return userId;
+
+    // Check uploadedByInfo
+    if (job.uploadedByInfo && job.uploadedByInfo.id === userId) {
+      return job.uploadedByInfo.name || job.uploadedByInfo.username;
+    }
+
+    // Check lastUpdatedByInfo
+    if (job.lastUpdatedByInfo && job.lastUpdatedByInfo.id === userId) {
+      return job.lastUpdatedByInfo.name || job.lastUpdatedByInfo.username;
+    }
+
+    // Check cutByInfo
+    if (job.cutByInfo && Array.isArray(job.cutByInfo)) {
+      const user = job.cutByInfo.find(u => u.id === userId);
+      if (user) {
+        return user.name || user.username;
+      }
+    }
+
+    return userId;
+  }
 }

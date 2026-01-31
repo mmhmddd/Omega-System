@@ -96,8 +96,10 @@ export class SecretariatControlComponent implements OnInit, OnDestroy {
   showDeleteModal: boolean = false;
   showSuccessModal: boolean = false;
   showStatusModal: boolean = false;
+  showDuplicateModal: boolean = false;
   generatedFormId: string = '';
   newStatus: 'pending' | 'approved' | 'rejected' = 'pending';
+  formToDuplicate: SecretariatForm | null = null;
 
   constructor(
     private secretariatService: SecretariatService,
@@ -232,17 +234,12 @@ export class SecretariatControlComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ============================================
-  // FIXED: Load employees using secretariat service
-  // ============================================
   loadEmployees(): void {
     this.loadingEmployees = true;
-    // Use the new secretariat employees endpoint
     this.secretariatService.getAllEmployees().subscribe({
       next: (response) => {
         this.employees = response.data;
         this.loadingEmployees = false;
-        console.log('Employees loaded:', this.employees.length);
       },
       error: (error) => {
         console.error('Error loading employees:', error);
@@ -270,6 +267,51 @@ export class SecretariatControlComponent implements OnInit, OnDestroy {
     this.currentView = 'list';
     this.resetForm();
     this.loadForms();
+  }
+
+  // ============================================
+  // DUPLICATE FORM FUNCTIONALITY
+  // ============================================
+
+  openDuplicateModal(form: SecretariatForm): void {
+    this.formToDuplicate = form;
+    this.showDuplicateModal = true;
+  }
+
+  closeDuplicateModal(): void {
+    this.showDuplicateModal = false;
+    this.formToDuplicate = null;
+  }
+
+  confirmDuplicate(): void {
+    if (!this.formToDuplicate) return;
+
+    const form = this.formToDuplicate;
+
+    // Reset form first
+    this.resetForm();
+
+    // Populate form with duplicated data
+    this.formData = {
+      employeeId: form.employeeId,
+      formType: form.formType,
+      projectName: form.projectName || '',
+      date: this.getTodayDate() // Use today's date for new form
+    };
+
+    // Set view to CREATE (not edit)
+    this.currentView = 'create';
+    this.fieldErrors = {};
+    this.formError = '';
+
+    // Close modal
+    this.closeDuplicateModal();
+
+    // Show success message
+    const successMsg = this.formLanguage === 'ar'
+      ? `تم نسخ بيانات النموذج ${form.formNumber}. يمكنك التعديل وحفظ نموذج جديد.`
+      : `Form ${form.formNumber} data copied. You can modify and save as a new form.`;
+    this.showToast('info', successMsg, 5000);
   }
 
   // ============================================

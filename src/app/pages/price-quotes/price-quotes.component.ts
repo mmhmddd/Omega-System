@@ -23,7 +23,7 @@ interface Toast {
 export class PriceQuotesComponent implements OnInit, OnDestroy {
 
   // ============================================
-  // ✅ NEW: USER INFO DISPLAY METHODS
+  // ✅ USER INFO DISPLAY METHODS
   // ============================================
 
   /**
@@ -125,7 +125,9 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
   // ============================================
   showDeleteModal: boolean = false;
   showSuccessModal: boolean = false;
+  showDuplicateModal: boolean = false;
   generatedQuoteId: string = '';
+  quoteToDuplicate: PriceQuote | null = null;
 
   constructor(
     public priceQuoteService: PriceQuoteService,
@@ -318,6 +320,78 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
     this.currentView = 'list';
     this.resetForm();
     this.loadQuotes();
+  }
+
+  // ============================================
+  // DUPLICATE QUOTE FUNCTIONALITY
+  // ============================================
+
+  /**
+   * Open duplicate confirmation modal
+   */
+  openDuplicateModal(quote: PriceQuote): void {
+    // Check permission
+    if (!this.canCreateQuote()) {
+      const errorMsg = this.formLanguage === 'ar'
+        ? 'ليس لديك صلاحية لإنشاء عرض سعر'
+        : 'You do not have permission to create quotes';
+      this.showToast('error', errorMsg);
+      return;
+    }
+
+    this.quoteToDuplicate = quote;
+    this.showDuplicateModal = true;
+  }
+
+  /**
+   * Close duplicate modal
+   */
+  closeDuplicateModal(): void {
+    this.showDuplicateModal = false;
+    this.quoteToDuplicate = null;
+  }
+
+  /**
+   * Confirm duplicate and create new quote with copied data
+   */
+  confirmDuplicate(): void {
+    if (!this.quoteToDuplicate) return;
+
+    const quote = this.quoteToDuplicate;
+
+    // Reset form first
+    this.resetForm();
+
+    // Populate form with quote data
+    this.quoteForm = {
+      clientName: quote.clientName,
+      clientPhone: quote.clientPhone,
+      clientAddress: quote.clientAddress || '',
+      clientCity: quote.clientCity || '',
+      date: this.getTodayDate(), // Use today's date for new quote
+      revNumber: '00', // Reset revision number
+      validForDays: quote.validForDays || 30,
+      language: quote.language,
+      includeTax: quote.includeTax,
+      taxRate: quote.taxRate,
+      items: [...quote.items.map(item => ({ ...item }))], // Deep copy items
+      customNotes: quote.customNotes || ''
+    };
+
+    // Set view to CREATE (not edit) - this is crucial
+    this.currentView = 'create';
+    this.currentStep = 'basic';
+    this.formError = '';
+    this.fieldErrors = {};
+
+    // Close modal
+    this.closeDuplicateModal();
+
+    // Show success message
+    const successMsg = this.formLanguage === 'ar'
+      ? `تم نسخ بيانات عرض السعر ${quote.quoteNumber}. يمكنك التعديل وحفظ عرض سعر جديد.`
+      : `Quote ${quote.quoteNumber} data copied. You can modify and save as a new quote.`;
+    this.showToast('info', successMsg, 5000);
   }
 
   // ============================================

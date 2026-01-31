@@ -128,6 +128,12 @@
                 <i class="bi bi-download"></i>
               </button>
               <button
+                class="btn-icon btn-duplicate"
+                (click)="openDuplicateModal(quote)"
+                [title]="formLanguage === 'ar' ? 'نسخ وإعادة استخدام' : 'Duplicate & Reuse'">
+                <i class="bi bi-files"></i>
+              </button>
+              <button
                 *ngIf="canEditQuote(quote)"
                 class="btn-icon btn-edit"
                 (click)="editQuote(quote)"
@@ -762,6 +768,50 @@
             ? (formLanguage === 'ar' ? 'جاري الحذف...' : 'Deleting...')
             : (formLanguage === 'ar' ? 'حذف' : 'Delete')
           }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- DUPLICATE CONFIRMATION MODAL -->
+  <!-- ============================================ -->
+  <div class="modal-overlay" *ngIf="showDuplicateModal" (click)="closeDuplicateModal()">
+    <div class="modal-content modal-small" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title">
+          <i class="bi bi-files text-warning"></i>
+          {{ formLanguage === 'ar' ? 'نسخ عرض السعر' : 'Duplicate Quote' }}
+        </h2>
+        <button class="modal-close" (click)="closeDuplicateModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p class="delete-message">
+          {{ formLanguage === 'ar'
+            ? 'هل تريد نسخ بيانات عرض السعر'
+            : 'Do you want to duplicate quote'
+          }}
+          <strong>{{ quoteToDuplicate?.quoteNumber }}</strong>؟
+          <br><br>
+          <span style="color: #d97706; font-weight: 500;">
+            {{ formLanguage === 'ar'
+              ? 'سيتم إنشاء عرض سعر جديد بنفس البيانات مع إمكانية التعديل.'
+              : 'A new quote will be created with the same data that you can modify.'
+            }}
+          </span>
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeDuplicateModal()">
+          {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
+        </button>
+        <button type="button" class="btn-duplicate" style="  color: #d97706; border:none ; padding:12px" (click)="confirmDuplicate()">
+          <i class="bi bi-files"></i>
+          {{ formLanguage === 'ar' ? 'نسخ' : 'Duplicate' }}
         </button>
       </div>
     </div>
