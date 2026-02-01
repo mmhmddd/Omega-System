@@ -51,7 +51,7 @@
         <i class="bi bi-search"></i>
         <input
           type="text"
-          placeholder="بحث بالاسم أو الوصف..."
+          placeholder="بحث بالاسم أو الوصف أو الوحدة..."
           [(ngModel)]="searchTerm"
           (ngModelChange)="onSearchChange()"
           (keyup.enter)="onSearch()"
@@ -67,6 +67,7 @@
             <th class="text-center">الإجراءات</th>
             <th class="text-center">رقم الصنف</th>
             <th class="text-center">اسم الصنف</th>
+            <th class="text-center">الوحدة</th>
             <th class="text-center">الوصف</th>
             <th class="text-center">تاريخ الإنشاء</th>
             <th class="text-center">آخر تحديث</th>
@@ -95,6 +96,9 @@
               <span class="item-name">{{ item.name }}</span>
             </td>
             <td class="text-center">
+              <span class="item-unit">{{ item.unit || '-' }}</span>
+            </td>
+            <td class="text-center">
               <span class="item-description">{{ item.description || '-' }}</span>
             </td>
             <td class="text-center">{{ formatDate(item.createdAt) }}</td>
@@ -103,14 +107,14 @@
         </tbody>
         <tbody *ngIf="loading">
           <tr>
-            <td colspan="6" class="text-center loading-cell">
+            <td colspan="7" class="text-center loading-cell">
               <i class="bi bi-arrow-clockwise spin"></i> جاري التحميل...
             </td>
           </tr>
         </tbody>
         <tbody *ngIf="!loading && items.length === 0">
           <tr>
-            <td colspan="6" class="text-center empty-cell">
+            <td colspan="7" class="text-center empty-cell">
               لا توجد أصناف
             </td>
           </tr>
@@ -196,6 +200,25 @@
           <small class="error-message" *ngIf="fieldErrors['name']">
             <i class="bi bi-exclamation-circle"></i>
             {{ fieldErrors['name'] }}
+          </small>
+        </div>
+
+        <!-- Unit -->
+        <div class="form-group">
+          <label>
+            <i class="bi bi-rulers"></i>
+            الوحدة
+          </label>
+          <input
+            type="text"
+            [(ngModel)]="itemForm.unit"
+            placeholder="مثال: كجم، متر، قطعة، لتر (اختياري)"
+            class="form-control"
+            [class.error]="fieldErrors['unit']"
+          />
+          <small class="error-message" *ngIf="fieldErrors['unit']">
+            <i class="bi bi-exclamation-circle"></i>
+            {{ fieldErrors['unit'] }}
           </small>
         </div>
 

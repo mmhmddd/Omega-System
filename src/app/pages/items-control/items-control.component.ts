@@ -44,7 +44,8 @@ export class ItemsControlComponent implements OnInit, OnDestroy {
   // ============================================
   itemForm: CreateItemData = {
     name: '',
-    description: ''
+    description: '',
+    unit: ''
   };
 
   // ============================================
@@ -226,7 +227,8 @@ export class ItemsControlComponent implements OnInit, OnDestroy {
   resetForm(): void {
     this.itemForm = {
       name: '',
-      description: ''
+      description: '',
+      unit: ''
     };
     this.selectedItem = null;
     this.fieldErrors = {};
@@ -236,7 +238,8 @@ export class ItemsControlComponent implements OnInit, OnDestroy {
   populateFormWithItem(item: Item): void {
     this.itemForm = {
       name: item.name,
-      description: item.description || ''
+      description: item.description || '',
+      unit: item.unit || ''
     };
   }
 
@@ -262,6 +265,13 @@ export class ItemsControlComponent implements OnInit, OnDestroy {
       isValid = false;
     }
 
+    // Validate unit
+    const unitValidation = this.itemsService.validateUnit(this.itemForm.unit || null);
+    if (!unitValidation.valid) {
+      this.fieldErrors['unit'] = unitValidation.error || 'الوحدة غير صالحة';
+      isValid = false;
+    }
+
     return isValid;
   }
 
@@ -281,7 +291,8 @@ export class ItemsControlComponent implements OnInit, OnDestroy {
 
     const itemData: CreateItemData | UpdateItemData = {
       name: this.itemForm.name.trim(),
-      description: this.itemForm.description?.trim() || undefined
+      description: this.itemForm.description?.trim() || undefined,
+      unit: this.itemForm.unit?.trim() || undefined
     };
 
     if (this.currentView === 'create') {

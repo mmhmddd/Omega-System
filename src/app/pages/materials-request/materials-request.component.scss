@@ -399,7 +399,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        
+
         i {
           font-size: 1.5rem;
         }
@@ -860,11 +860,11 @@
         order: 2;
         width: 100%;
         justify-content: space-between;
-        
+
         .language-toggle {
           order: 1;
         }
-        
+
         .btn-primary {
           order: 2;
           width: 100%;
@@ -887,7 +887,7 @@
     max-width: 100%;
     margin-bottom: 1.5rem;
     flex-wrap: wrap;
-    
+
     .search-box {
       position: relative;
       flex: 0 0 40%;
@@ -930,7 +930,7 @@
         left: auto;
         right: 1rem;
       }
-      
+
       input {
         padding: 0.75rem 3rem 0.75rem 1rem;
       }
@@ -1292,7 +1292,7 @@
         margin-left: 0;
         margin-right: 20px;
       }
-      
+
       .form-sidebar {
         border-right: none;
         border-left: 1px solid #e2e8f0;
@@ -1498,7 +1498,7 @@
               padding-left: 1rem;
               padding-right: 2.5rem;
             }
-          
+
           .step-title {
             font-size: 1.5rem;
             font-weight: 700;
@@ -1905,7 +1905,7 @@
                         }
                       }
                     }
-                    
+
 
                     .error-message {
                       display: flex;
@@ -2656,5 +2656,215 @@
     color: #0c4a6e;
     font-size: 13px;
     line-height: 1.5;
+  }
+}/* ============================================================
+   ADDITIONAL STYLES FOR ITEMS API SELECTION
+   Add these styles to materials-request.component.scss
+   ============================================================ */
+
+.materials-container {
+
+  // ========================================
+  // ✅ ITEM SELECTION DROPDOWN STYLES
+  // ========================================
+  .form-fields {
+    .item-card-body {
+
+      // Item selection dropdown
+      .item-select {
+        font-weight: 500;
+        cursor: pointer;
+        appearance: none;
+        background-color: white;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: left 1rem center;
+        padding-left: 2.5rem;
+
+        optgroup {
+          font-weight: 600;
+          color: #1565C0;
+          background: #f0f7ff;
+          padding: 0.5rem 0;
+        }
+
+        option {
+          padding: 0.75rem 1rem;
+          background: white;
+          color: #334155;
+          font-weight: 400;
+
+          &:disabled {
+            color: #94a3b8;
+            font-style: italic;
+          }
+
+          &:hover {
+            background: #f8fafc;
+          }
+        }
+      }
+
+      html[dir="ltr"] .item-select {
+        background-position: right 1rem center;
+        padding-left: 1rem;
+        padding-right: 2.5rem;
+      }
+
+      // Auto-filled badge
+      .auto-filled-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 8px;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        font-size: 0.65rem;
+        font-weight: 700;
+        border-radius: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-left: 0.5rem;
+        box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+      }
+
+      [dir="rtl"] .auto-filled-badge {
+        margin-left: 0;
+        margin-right: 0.5rem;
+      }
+
+      // Loading items indicator
+      .loading-items {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+        padding: 0.75rem 1rem;
+        background: #f0f7ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 6px;
+        color: #1e40af;
+        font-size: 0.875rem;
+        font-weight: 500;
+
+        i {
+          font-size: 1rem;
+          animation: spin 1s linear infinite;
+        }
+      }
+
+      // Custom item input styling
+      .custom-item-input {
+        margin-top: 0.75rem;
+
+        input {
+          border-color: #a78bfa;
+          background: linear-gradient(135deg, #faf5ff 0%, #ffffff 100%);
+
+          &:focus {
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+          }
+
+          &::placeholder {
+            color: #a78bfa;
+          }
+        }
+      }
+
+      // Readonly unit field (when auto-filled)
+      input[readonly] {
+        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+        border-color: #86efac;
+        color: #065f46;
+        font-weight: 600;
+        cursor: not-allowed;
+
+        &:focus {
+          border-color: #4ade80;
+          box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.1);
+        }
+      }
+    }
+  }
+
+  // ========================================
+  // ✅ ITEM CARD ENHANCEMENTS
+  // ========================================
+  .items-section {
+    .item-card {
+      transition: all 0.3s ease;
+
+      // Highlight card when item is selected from list
+      &:has(.item-select option:checked:not([value=""])) {
+        border-color: #1565C0;
+        box-shadow: 0 4px 12px rgba(21, 101, 192, 0.15);
+
+        .item-card-header {
+          background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+          border-bottom-color: #90caf9;
+
+          .item-number {
+            color: #0d47a1;
+          }
+        }
+      }
+
+      // Custom item styling
+      &:has(input.item-input:not([readonly])) {
+        .item-card-header {
+          background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+
+          .item-number {
+            color: #7c3aed;
+
+            &::before {
+              content: '✏️ ';
+              margin-right: 0.25rem;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // ========================================
+  // ✅ RESPONSIVE ADJUSTMENTS
+  // ========================================
+  @media (max-width: 768px) {
+    .form-fields {
+      .item-card-body {
+        .auto-filled-badge {
+          font-size: 0.6rem;
+          padding: 2px 6px;
+          margin-left: 0.25rem;
+        }
+
+        [dir="rtl"] .auto-filled-badge {
+          margin-left: 0;
+          margin-right: 0.25rem;
+        }
+
+        .loading-items {
+          padding: 0.5rem 0.75rem;
+          font-size: 0.8125rem;
+
+          i {
+            font-size: 0.875rem;
+          }
+        }
+      }
+    }
+  }
+}
+
+// ========================================
+// ✅ SPIN ANIMATION
+// ========================================
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
