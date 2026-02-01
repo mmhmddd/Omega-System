@@ -1,22 +1,22 @@
 <!-- ============================================================
-     MATERIAL REQUEST COMPONENT HTML - UPDATED WITH ROLE COLUMN
-     materials-request.component.html (PART 1)
+     MATERIAL REQUEST COMPONENT HTML - UPDATED WITH ITEMS API
+     materials-request.component.html (UPDATED)
      ============================================================ -->
 
 <div class="materials-container">
-  
+
   <!-- TOAST NOTIFICATIONS CONTAINER -->
   <div class="toast-container" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
-    <div 
-      *ngFor="let toast of toasts" 
+    <div
+      *ngFor="let toast of toasts"
       class="toast"
       [class.toast-success]="toast.type === 'success'"
       [class.toast-error]="toast.type === 'error'"
       [class.toast-info]="toast.type === 'info'"
       [class.toast-warning]="toast.type === 'warning'">
-      
+
       <div class="toast-icon">
-        <i class="bi" 
+        <i class="bi"
            [ngClass]="{
              'bi-check-circle-fill': toast.type === 'success',
              'bi-x-circle-fill': toast.type === 'error',
@@ -24,11 +24,11 @@
              'bi-exclamation-triangle-fill': toast.type === 'warning'
            }"></i>
       </div>
-      
+
       <div class="toast-content">
         <p class="toast-message">{{ toast.message }}</p>
       </div>
-      
+
       <button class="toast-close" (click)="removeToast(toast.id)">
         <i class="bi bi-x"></i>
       </button>
@@ -38,23 +38,23 @@
   <!-- SUCCESS MODAL -->
   <div *ngIf="showSuccessModal" class="success-modal-overlay" (click)="closeSuccessModal()">
     <div class="success-modal" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'" (click)="$event.stopPropagation()">
-      
+
       <!-- Header -->
       <div class="success-header">
         <button class="close-btn" (click)="closeSuccessModal()">
           <i class="bi bi-x-lg"></i>
         </button>
-        
+
         <div class="success-icon-wrapper">
           <i class="bi bi-check-circle-fill"></i>
         </div>
-        
+
         <h2>{{ formLanguage === 'ar' ? 'تم إنشاء طلب المواد بنجاح' : 'Material Request Created Successfully' }}</h2>
       </div>
-      
+
       <!-- Body -->
       <div class="success-body">
-        
+
         <!-- PDF Info Box -->
         <div class="pdf-info-box">
           <i class="bi bi-file-earmark-pdf-fill"></i>
@@ -65,7 +65,7 @@
             </p>
           </div>
         </div>
-        
+
         <!-- Action Buttons -->
         <div class="action-buttons">
           <!-- View PDF -->
@@ -77,7 +77,7 @@
               {{ formLanguage === 'ar' ? 'عرض PDF' : 'View PDF' }}
             </span>
           </button>
-          
+
           <!-- Print PDF -->
           <button class="action-btn btn-print" (click)="printPDFFromSuccess()">
             <div class="btn-icon">
@@ -87,7 +87,7 @@
               {{ formLanguage === 'ar' ? 'طباعة' : 'Print' }}
             </span>
           </button>
-          
+
           <!-- Download PDF -->
           <button class="action-btn btn-download" (click)="downloadPDFFromSuccess()">
             <div class="btn-icon">
@@ -98,14 +98,14 @@
             </span>
           </button>
         </div>
-        
+
         <!-- Done Button -->
         <button class="done-button" (click)="doneSuccess()">
           <i class="bi bi-check-circle"></i>
           {{ formLanguage === 'ar' ? 'تم' : 'Done' }}
         </button>
       </div>
-      
+
     </div>
   </div>
 
@@ -117,7 +117,7 @@
       <div class="header-actions">
         <!-- Language Toggle -->
         <div class="language-toggle">
-          <button 
+          <button
             type="button"
             class="lang-btn"
             [class.active]="formLanguage === 'ar'"
@@ -125,7 +125,7 @@
             <i class="bi bi-translate"></i>
             عربي
           </button>
-          <button 
+          <button
             type="button"
             class="lang-btn"
             [class.active]="formLanguage === 'en'"
@@ -145,8 +145,8 @@
     <div class="search-filter-section" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
       <div class="search-box main-search">
         <i class="bi bi-search"></i>
-        <input 
-          type="text" 
+        <input
+          type="text"
           [placeholder]="formLanguage === 'ar' ? 'بحث برقم الطلب، القسم، المشروع ...' : 'Search by MR number, section, project ...'"
           [(ngModel)]="searchTerm"
           (ngModelChange)="onSearchChange()"
@@ -166,7 +166,6 @@
             <th class="text-center">{{ formLanguage === 'ar' ? 'الأولوية' : 'Priority' }}</th>
             <th class="text-center">{{ formLanguage === 'ar' ? 'التاريخ' : 'Date' }}</th>
             <th class="text-center">{{ formLanguage === 'ar' ? 'منشئ' : 'Created By' }}</th>
-            <!-- ✅ تغيير العمود من "الحالة" إلى "الدور" -->
             <th class="text-center">{{ formLanguage === 'ar' ? 'الدور' : 'Role' }}</th>
             <th class="text-center">{{ formLanguage === 'ar' ? 'الإجراءات' : 'Actions' }}</th>
           </tr>
@@ -183,7 +182,6 @@
             </td>
             <td class="text-center">{{ mr.date }}</td>
             <td class="text-center">{{ getCreatorName(mr) }}</td>
-            <!-- ✅ تغيير من status إلى role -->
             <td class="text-center">
               <span class="role-badge" [ngClass]="getRoleClass(mr.createdByRole)">
                 {{ getRoleText(mr.createdByRole) }}
@@ -191,40 +189,40 @@
             </td>
 
             <td class="actions-cell text-center">
-              <button 
-                class="btn-icon btn-view" 
-                (click)="viewPDF(mr)" 
+              <button
+                class="btn-icon btn-view"
+                (click)="viewPDF(mr)"
                 [title]="formLanguage === 'ar' ? 'عرض PDF' : 'View PDF'">
                 <i class="bi bi-eye"></i>
               </button>
-              <button 
-                class="btn-icon btn-print" 
-                (click)="printMRPDF(mr)" 
+              <button
+                class="btn-icon btn-print"
+                (click)="printMRPDF(mr)"
                 [title]="formLanguage === 'ar' ? 'طباعة' : 'Print'">
                 <i class="bi bi-printer"></i>
               </button>
-              <button 
-                class="btn-icon btn-download" 
-                (click)="downloadPDF(mr)" 
+              <button
+                class="btn-icon btn-download"
+                (click)="downloadPDF(mr)"
                 [title]="formLanguage === 'ar' ? 'تحميل PDF' : 'Download PDF'">
                 <i class="bi bi-download"></i>
               </button>
-              <button 
-                class="btn-icon btn-duplicate" 
-                (click)="openDuplicateModal(mr)" 
+              <button
+                class="btn-icon btn-duplicate"
+                (click)="openDuplicateModal(mr)"
                 [title]="formLanguage === 'ar' ? 'نسخ وإعادة استخدام' : 'Duplicate & Reuse'">
                 <i class="bi bi-files"></i>
               </button>
-              <button 
-                class="btn-icon btn-edit" 
-                (click)="editMR(mr)" 
+              <button
+                class="btn-icon btn-edit"
+                (click)="editMR(mr)"
                 [title]="formLanguage === 'ar' ? 'تعديل' : 'Edit'">
                 <i class="bi bi-pencil"></i>
               </button>
-              <button 
-                *ngIf="isSuperAdmin()" 
-                class="btn-icon btn-delete" 
-                (click)="showDeleteConfirmation(mr)" 
+              <button
+                *ngIf="isSuperAdmin()"
+                class="btn-icon btn-delete"
+                (click)="showDeleteConfirmation(mr)"
                 [title]="formLanguage === 'ar' ? 'حذف' : 'Delete'">
                 <i class="bi bi-trash"></i>
               </button>
@@ -250,37 +248,36 @@
 
     <!-- Pagination -->
     <div class="pagination" *ngIf="totalPages > 1">
-      <button 
-        class="btn-page" 
+      <button
+        class="btn-page"
         [disabled]="currentPage === 1"
         (click)="goToPage(currentPage - 1)">
         <i class="bi bi-chevron-left"></i>
       </button>
-      
+
       <span class="page-info">
         {{ formLanguage === 'ar' ? 'صفحة' : 'Page' }} {{ currentPage }} {{ formLanguage === 'ar' ? 'من' : 'of' }} {{ totalPages }}
       </span>
-      
-      <button 
-        class="btn-page" 
+
+      <button
+        class="btn-page"
         [disabled]="currentPage === totalPages"
         (click)="goToPage(currentPage + 1)">
         <i class="bi bi-chevron-right"></i>
       </button>
     </div>
   </div>
-
   <!-- CREATE/EDIT VIEW -->
-  <div 
-    *ngIf="currentView === 'create' || currentView === 'edit'" 
+  <div
+    *ngIf="currentView === 'create' || currentView === 'edit'"
     class="form-view"
     [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
     <!-- Header -->
     <div class="form-header">
       <h1 class="form-title">
-        {{ currentView === 'create' 
+        {{ currentView === 'create'
           ? (formLanguage === 'ar' ? 'إنشاء طلب مواد' : 'Create Material Request')
-          : (formLanguage === 'ar' ? 'تعديل طلب مواد' : 'Edit Material Request') 
+          : (formLanguage === 'ar' ? 'تعديل طلب مواد' : 'Edit Material Request')
         }}
       </h1>
       <div class="form-header-actions">
@@ -288,14 +285,14 @@
           <button class="btn-secondary" (click)="backToList()">
             {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
           </button>
-          <button 
-            class="btn-primary" 
+          <button
+            class="btn-primary"
             (click)="saveMR()"
             [disabled]="savingMR">
             <i class="bi bi-save"></i>
-            {{ savingMR 
-              ? (formLanguage === 'ar' ? 'جاري الحفظ...' : 'Saving...') 
-              : (formLanguage === 'ar' ? 'حفظ' : 'Save') 
+            {{ savingMR
+              ? (formLanguage === 'ar' ? 'جاري الحفظ...' : 'Saving...')
+              : (formLanguage === 'ar' ? 'حفظ' : 'Save')
             }}
           </button>
         </div>
@@ -312,13 +309,13 @@
     <div class="form-content">
       <!-- Sidebar Navigation -->
       <div class="form-sidebar">
-        <button 
+        <button
           class="sidebar-step"
           [class.active]="currentStep === 'basic'"
           (click)="currentStep = 'basic'">
           {{ formLanguage === 'ar' ? 'المعلومات الأساسية' : 'Basic Info' }}
         </button>
-        <button 
+        <button
           class="sidebar-step"
           [class.active]="currentStep === 'items'"
           [class.has-error]="fieldErrors['items']"
@@ -332,14 +329,14 @@
 
       <!-- Form Fields -->
       <div class="form-fields">
-        
+
         <!-- STEP 1: Basic Info -->
         <div *ngIf="currentStep === 'basic'" class="step-content">
           <h2 class="step-title">
             {{ formLanguage === 'ar' ? 'المعلومات الأساسية (اختيارية)' : 'Basic Info (Optional)' }}
           </h2>
 
-          <!-- ✅ Info Alert -->
+          <!-- Info Alert -->
           <div class="info-alert">
             <i class="bi bi-info-circle"></i>
             <div style="flex: 1;">
@@ -351,14 +348,15 @@
               </p>
             </div>
           </div>
+
           <!-- Date Field -->
           <div class="form-group">
             <label>
               <i class="bi bi-calendar"></i>
-              {{ formLanguage === 'ar' ? 'التاريخ' : 'Date' }} 
+              {{ formLanguage === 'ar' ? 'التاريخ' : 'Date' }}
             </label>
-            <input 
-              type="date" 
+            <input
+              type="date"
               [(ngModel)]="mrForm.date"
               class="form-control"
               [class.error]="fieldErrors['date']"
@@ -376,29 +374,29 @@
           </div>
 
           <!-- Section Field -->
-        <div class="form-group">
-          <label>
-            <i class="bi bi-building"></i>
-            {{ formLanguage === 'ar' ? 'القسم' : 'Department' }}
-          </label>
-          <select 
-            [(ngModel)]="mrForm.section"
-            class="form-control"
-            [class.error]="fieldErrors['section']"
-            required
-          >
-            <option value="" disabled selected>
-              {{ formLanguage === 'ar' ? 'اختر القسم' : 'Select Department' }}
-            </option>
-            <option *ngFor="let dept of departments" [value]="getDepartmentLabel(dept)">
-              {{ getDepartmentLabel(dept) }}
-            </option>
-          </select>
-          <small class="error-message" *ngIf="fieldErrors['production']">
-            <i class="bi bi-exclamation-circle"></i>
-            {{ fieldErrors['production'] }}
-          </small>
-        </div>
+          <div class="form-group">
+            <label>
+              <i class="bi bi-building"></i>
+              {{ formLanguage === 'ar' ? 'القسم' : 'Department' }}
+            </label>
+            <select
+              [(ngModel)]="mrForm.section"
+              class="form-control"
+              [class.error]="fieldErrors['section']"
+              required
+            >
+              <option value="" disabled selected>
+                {{ formLanguage === 'ar' ? 'اختر القسم' : 'Select Department' }}
+              </option>
+              <option *ngFor="let dept of departments" [value]="getDepartmentLabel(dept)">
+                {{ getDepartmentLabel(dept) }}
+              </option>
+            </select>
+            <small class="error-message" *ngIf="fieldErrors['production']">
+              <i class="bi bi-exclamation-circle"></i>
+              {{ fieldErrors['production'] }}
+            </small>
+          </div>
 
           <!-- Project Field -->
           <div class="form-group">
@@ -406,8 +404,8 @@
               <i class="bi bi-briefcase"></i>
               {{ formLanguage === 'ar' ? 'المشروع' : 'Project' }}
             </label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               [(ngModel)]="mrForm.project"
               [placeholder]="formLanguage === 'ar' ? 'اسم المشروع' : 'Project Name'"
               class="form-control"
@@ -426,7 +424,7 @@
               <i class="bi bi-flag"></i>
               {{ formLanguage === 'ar' ? 'أولوية الطلب' : 'Request Priority' }}
             </label>
-            <select 
+            <select
               [(ngModel)]="mrForm.requestPriority"
               class="form-control"
               [class.error]="fieldErrors['requestPriority']"
@@ -451,7 +449,7 @@
               <i class="bi bi-question-circle"></i>
               {{ formLanguage === 'ar' ? 'سبب الطلب' : 'Request Reason' }}
             </label>
-            <textarea 
+            <textarea
               [(ngModel)]="mrForm.requestReason"
               [placeholder]="formLanguage === 'ar' ? 'اذكر سبب الطلب' : 'State the reason for request'"
               class="form-control"
@@ -471,7 +469,7 @@
               <i class="bi bi-chat-left-text"></i>
               {{ formLanguage === 'ar' ? 'ملاحظات إضافية' : 'Additional Notes' }}
             </label>
-            <textarea 
+            <textarea
               [(ngModel)]="mrForm.additionalNotes"
               [placeholder]="formLanguage === 'ar' ? 'ملاحظات إضافية (اختياري)' : 'Additional notes (optional)'"
               class="form-control"
@@ -485,10 +483,10 @@
               <i class="bi bi-paperclip"></i>
               {{ formLanguage === 'ar' ? 'إرفاق ملف PDF (اختياري)' : 'Attach PDF File (Optional)' }}
             </label>
-            
+
             <div class="file-upload-wrapper">
-              <input 
-                type="file" 
+              <input
+                type="file"
                 id="form-pdf-attachment"
                 accept=".pdf"
                 (change)="onFormPdfAttachmentSelected($event)"
@@ -499,7 +497,7 @@
                 <span>{{ formLanguage === 'ar' ? 'اختر ملف PDF' : 'Choose PDF File' }}</span>
               </label>
             </div>
-            
+
             <div *ngIf="formPdfAttachment" class="file-selected">
               <i class="bi bi-check-circle-fill"></i>
               <span class="file-name">{{ formPdfAttachment.name }}</span>
@@ -507,11 +505,11 @@
                 <i class="bi bi-x"></i>
               </button>
             </div>
-            
+
             <small class="help-text">
-              {{ formLanguage === 'ar' 
+              {{ formLanguage === 'ar'
                 ? 'الحد الأقصى لحجم الملف: 10 ميجابايت. سيتم دمج الملف المرفق مع طلب المواد.'
-                : 'Maximum file size: 10MB. The attached file will be merged with the material request.' 
+                : 'Maximum file size: 10MB. The attached file will be merged with the material request.'
               }}
             </small>
           </div>
@@ -523,21 +521,22 @@
             </button>
           </div>
         </div>
-        
-        <!-- STEP 2: Items -->
+
+        <!-- ✅ STEP 2: Items WITH API SELECTION -->
         <div *ngIf="currentStep === 'items'" class="step-content">
           <h2 class="step-title">
             {{ formLanguage === 'ar' ? 'المواد المطلوبة (اختياري)' : 'Required Materials (Optional)' }}
             <span class="optional-badge">{{ formLanguage === 'ar' ? 'اختياري' : 'Optional' }}</span>
           </h2>
-                    <!-- ✅ Info Alert -->
+
+          <!-- Info Alert -->
           <div class="info-alert">
             <i class="bi bi-info-circle"></i>
             <div style="flex: 1;">
               <p>
                 {{ formLanguage === 'ar'
-                  ? 'إضافة العناصر اختيارية. إذا لم تقم بإضافة أي عناصر، فلن يظهر الجدول في ملف PDF.'
-                  : 'Adding items is optional. If you don\'t add any items, the table won\'t appear in the PDF.'
+                  ? 'إضافة العناصر اختيارية. يمكنك اختيار صنف من القائمة أو إدخال صنف مخصص.'
+                  : 'Adding items is optional. You can select an item from the list or enter a custom item.'
                 }}
               </p>
             </div>
@@ -549,7 +548,7 @@
           </div>
 
           <div class="items-section">
-            <!-- Items List - CARD DESIGN -->
+            <!-- Items List - CARD DESIGN WITH API SELECTION -->
             <div class="items-body" *ngIf="mrForm.items.length > 0">
               <ng-container *ngFor="let item of mrForm.items; let i = index">
                 <div class="item-card">
@@ -562,63 +561,99 @@
                     </button>
                   </div>
 
-                  <!-- Card Body -->
+                  <!-- ✅ Card Body WITH ITEM SELECTION -->
                   <div class="item-card-body">
-                    
-                    <!-- Row 1: Description (Full Width) -->
+
+                    <!-- Row 1: Item Selection Dropdown -->
                     <div class="item-field">
                       <label class="field-label">
-                        {{ formLanguage === 'ar' ? 'الوصف' : 'Description' }}
+                        <i class="bi bi-box-seam"></i>
+                        {{ formLanguage === 'ar' ? 'الصنف' : 'Item' }}
                       </label>
-                      <input 
-                        type="text" 
-                        [(ngModel)]="item.description"
-                        class="item-input"
-                        [class.error]="fieldErrors['item_' + i + '_description']"
-                        [placeholder]="formLanguage === 'ar' ? 'وصف المادة' : 'Material description'"
-                        required
-                      />
+
+                      <!-- ✅ Dropdown to select from Items API -->
+                      <select
+                        [value]="getSelectedItemId(i)"
+                        (change)="onItemSelected(i, $any($event.target).value)"
+                        class="item-input item-select"
+                        [class.error]="fieldErrors['item_' + i + '_description']">
+                        <option value="">
+                          {{ formLanguage === 'ar' ? 'اختر من القائمة' : 'Select from list or enter manually' }}
+                        </option>
+                        <optgroup [label]="formLanguage === 'ar' ? '📦 الأصناف المتاحة' : '📦 Available Items'">
+                          <option *ngFor="let availableItem of availableItems" [value]="availableItem.id">
+                            {{ availableItem.name }}
+                            <span *ngIf="availableItem.unit"> ({{ availableItem.unit }})</span>
+                          </option>
+                        </optgroup>
+                      </select>
+
+                      <!-- ✅ Loading indicator -->
+                      <div *ngIf="loadingItems" class="loading-items">
+                        <i class="bi bi-arrow-clockwise spin"></i>
+                        {{ formLanguage === 'ar' ? 'جاري تحميل الأصناف...' : 'Loading items...' }}
+                      </div>
+
                       <small class="error-message" *ngIf="fieldErrors['item_' + i + '_description']">
                         <i class="bi bi-exclamation-circle"></i>
                         {{ fieldErrors['item_' + i + '_description'] }}
                       </small>
                     </div>
 
+                    <!-- ✅ Custom Description Input (shows when no item is selected or custom item) -->
+                    <div class="item-field" *ngIf="!getSelectedItemId(i) || isCustomItem(i)">
+                      <label class="field-label">
+                        <i class="bi bi-pencil"></i>
+                        {{ formLanguage === 'ar' ? 'الوصف (مخصص)' : 'Description (Custom)' }}
+                      </label>
+                      <input
+                        type="text"
+                        [(ngModel)]="item.description"
+                        class="item-input"
+                        [class.error]="fieldErrors['item_' + i + '_description']"
+                        [placeholder]="formLanguage === 'ar' ? 'أدخل وصف الصنف' : 'Enter item description'"
+                      />
+                    </div>
+
                     <!-- Row 2: Unit and Quantity (2 Columns) -->
                     <div class="item-row-fields">
-                      <!-- Unit -->
+                      <!-- ✅ Unit (Auto-filled or manual) -->
                       <div class="item-field">
                         <label class="field-label">
+                          <i class="bi bi-rulers"></i>
                           {{ formLanguage === 'ar' ? 'الوحدة' : 'Unit' }}
+                          <span *ngIf="getSelectedItemId(i)" class="auto-filled-badge">
+                            {{ formLanguage === 'ar' ? 'تلقائي' : 'Auto' }}
+                          </span>
                         </label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           [(ngModel)]="item.unit"
                           class="item-input"
                           [class.error]="fieldErrors['item_' + i + '_unit']"
                           [placeholder]="formLanguage === 'ar' ? 'مثال: كجم، متر' : 'e.g. kg, meter'"
-                          required
+                          [readonly]="!!getSelectedItemId(i)"
                         />
                         <small class="error-message" *ngIf="fieldErrors['item_' + i + '_unit']">
                           <i class="bi bi-exclamation-circle"></i>
                           {{ fieldErrors['item_' + i + '_unit'] }}
                         </small>
                       </div>
-                      
+
                       <!-- Quantity -->
                       <div class="item-field">
                         <label class="field-label">
+                          <i class="bi bi-123"></i>
                           {{ formLanguage === 'ar' ? 'الكمية' : 'Quantity' }}
                         </label>
-                        <input 
-                          type="number" 
+                        <input
+                          type="number"
                           [(ngModel)]="item.quantity"
                           class="item-input"
                           [class.error]="fieldErrors['item_' + i + '_quantity']"
                           [placeholder]="formLanguage === 'ar' ? 'الكمية' : 'Qty'"
                           min="0"
                           step="1"
-                          required
                         />
                         <small class="error-message" *ngIf="fieldErrors['item_' + i + '_quantity']">
                           <i class="bi bi-exclamation-circle"></i>
@@ -632,21 +667,23 @@
                       <!-- Required Date -->
                       <div class="item-field">
                         <label class="field-label">
+                          <i class="bi bi-calendar-check"></i>
                           {{ formLanguage === 'ar' ? 'مطلوب بتاريخ' : 'Required Date' }}
                         </label>
-                        <input 
-                          type="date" 
+                        <input
+                          type="date"
                           [(ngModel)]="item.requiredDate"
                           class="item-input"
                         />
                       </div>
-                      
+
                       <!-- Item Priority -->
                       <div class="item-field">
                         <label class="field-label">
+                          <i class="bi bi-flag-fill"></i>
                           {{ formLanguage === 'ar' ? 'أولوية المادة' : 'Material Priority' }}
                         </label>
-                        <select 
+                        <select
                           [(ngModel)]="item.priority"
                           class="item-input">
                           <option value="">{{ formLanguage === 'ar' ? 'اختيار (اختياري)' : 'Select (optional)' }}</option>
@@ -666,7 +703,7 @@
             <div class="items-empty" *ngIf="mrForm.items.length === 0">
               <i class="bi bi-inbox" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
               <p style="margin: 0; color: #64748b;">
-                {{ formLanguage === 'ar' ? 'لم يتم إضافة عناصر. يجب إضافة عنصر واحد على الأقل.' : 'No items added. At least one item is required.' }}
+                {{ formLanguage === 'ar' ? 'لم يتم إضافة عناصر بعد' : 'No items added yet' }}
               </p>
             </div>
 
@@ -689,7 +726,6 @@
       </div>
     </div>
   </div>
-
   <!-- PDF GENERATION MODAL -->
   <div *ngIf="showPDFModal" class="modal-overlay" (click)="closePDFModal()">
     <div class="modal-content pdf-modal" (click)="$event.stopPropagation()">
@@ -702,16 +738,16 @@
           <i class="bi bi-x-lg"></i>
         </button>
       </div>
-      
+
       <div class="modal-body">
         <div class="info-box">
           <i class="bi bi-info-circle"></i>
-          <p>{{ formLanguage === 'ar' 
+          <p>{{ formLanguage === 'ar'
             ? 'سيتم إنشاء ملف PDF لطلب المواد هذا. يمكنك إرفاق ملف PDF إضافي اختيارياً ليتم دمجه مع الطلب.'
-            : 'A PDF document will be generated for this material request. You can optionally attach an additional PDF file to be merged with the request.' 
+            : 'A PDF document will be generated for this material request. You can optionally attach an additional PDF file to be merged with the request.'
           }}</p>
         </div>
-        
+
         <div class="pdf-info-card">
           <div class="pdf-info-row">
             <span class="pdf-info-label">
@@ -728,16 +764,16 @@
             <span class="pdf-info-value">{{ getPDFFilename() }}</span>
           </div>
         </div>
-        
+
         <div class="form-group">
           <label class="upload-label">
             <i class="bi bi-paperclip"></i>
             {{ formLanguage === 'ar' ? 'إرفاق ملف PDF إضافي (اختياري)' : 'Attach Additional PDF (Optional)' }}
           </label>
-          
+
           <div class="file-upload-wrapper">
-            <input 
-              type="file" 
+            <input
+              type="file"
               id="pdf-attachment"
               accept=".pdf"
               (change)="onPDFFileSelected($event)"
@@ -748,7 +784,7 @@
               <span>{{ formLanguage === 'ar' ? 'اختر ملف PDF' : 'Choose PDF File' }}</span>
             </label>
           </div>
-          
+
           <div *ngIf="pdfAttachment" class="file-selected">
             <i class="bi bi-check-circle-fill"></i>
             <span class="file-name">{{ pdfAttachment.name }}</span>
@@ -756,30 +792,30 @@
               <i class="bi bi-x"></i>
             </button>
           </div>
-          
+
           <small class="help-text">
             <i class="bi bi-exclamation-circle"></i>
-            {{ formLanguage === 'ar' 
+            {{ formLanguage === 'ar'
               ? 'الحد الأقصى لحجم الملف: 10 ميجابايت. سيتم دمج الملف المرفق مع الطلب.'
-              : 'Maximum file size: 10MB. The attached file will be merged with the request.' 
+              : 'Maximum file size: 10MB. The attached file will be merged with the request.'
             }}
           </small>
         </div>
       </div>
-      
+
       <div class="modal-footer">
         <button class="btn-secondary" (click)="closePDFModal()" [disabled]="generatingPDF">
           <i class="bi bi-x-circle"></i>
           {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
         </button>
-        <button 
-          class="btn-primary btn-generate" 
+        <button
+          class="btn-primary btn-generate"
           (click)="generatePDF()"
           [disabled]="generatingPDF">
           <i class="bi" [ngClass]="generatingPDF ? 'bi-arrow-clockwise spin' : 'bi-file-earmark-pdf'"></i>
-          {{ generatingPDF 
-            ? (formLanguage === 'ar' ? 'جاري الإنشاء...' : 'Generating...') 
-            : (formLanguage === 'ar' ? 'إنشاء PDF' : 'Generate PDF') 
+          {{ generatingPDF
+            ? (formLanguage === 'ar' ? 'جاري الإنشاء...' : 'Generating...')
+            : (formLanguage === 'ar' ? 'إنشاء PDF' : 'Generate PDF')
           }}
         </button>
       </div>
@@ -795,11 +831,11 @@
         </div>
         <h3 class="modal-title">{{ confirmationTitle }}</h3>
       </div>
-      
+
       <div class="modal-body">
         <p class="modal-message">{{ confirmationMessage }}</p>
       </div>
-      
+
       <div class="modal-footer">
         <button class="btn-cancel" (click)="cancelConfirmation()">
           <i class="bi bi-x-circle"></i>
@@ -813,44 +849,44 @@
     </div>
   </div>
 
-<!-- DUPLICATE CONFIRMATION MODAL -->
-<div *ngIf="showDuplicateModal" class="confirmation-overlay" (click)="closeDuplicateModal()">
-  <div class="confirmation-modal" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'" (click)="$event.stopPropagation()">
-    <div class="modal-header warning">
-      <div class="modal-icon">
-        <i class="bi bi-files"></i>
+  <!-- DUPLICATE CONFIRMATION MODAL -->
+  <div *ngIf="showDuplicateModal" class="confirmation-overlay" (click)="closeDuplicateModal()">
+    <div class="confirmation-modal" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'" (click)="$event.stopPropagation()">
+      <div class="modal-header warning">
+        <div class="modal-icon">
+          <i class="bi bi-files"></i>
+        </div>
+        <h3 class="modal-title">{{ formLanguage === 'ar' ? 'نسخ طلب المواد' : 'Duplicate Material Request' }}</h3>
       </div>
-      <h3 class="modal-title">{{ formLanguage === 'ar' ? 'نسخ طلب المواد' : 'Duplicate Material Request' }}</h3>
-    </div>
-    
-    <div class="modal-body">
-      <p class="modal-message">
-        {{ formLanguage === 'ar'
-          ? 'هل تريد نسخ بيانات طلب المواد'
-          : 'Do you want to duplicate Material Request'
-        }}
-        <strong>{{ mrToDuplicate?.mrNumber }}</strong>؟
-        <br><br>
-        <span style="color: #d97706; font-weight: 500;">
+
+      <div class="modal-body">
+        <p class="modal-message">
           {{ formLanguage === 'ar'
-            ? 'سيتم إنشاء طلب جديد بنفس البيانات مع إمكانية التعديل.'
-            : 'A new Material Request will be created with the same data that you can modify.'
+            ? 'هل تريد نسخ بيانات طلب المواد'
+            : 'Do you want to duplicate Material Request'
           }}
-        </span>
-      </p>
-    </div>
-    
-    <div class="modal-footer">
-      <button class="btn-cancel" (click)="closeDuplicateModal()">
-        <i class="bi bi-x-circle"></i>
-        {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
-      </button>
-      <button class="btn-confirm" (click)="confirmDuplicate()">
-        <i class="bi bi-files"></i>
-        {{ formLanguage === 'ar' ? 'نسخ' : 'Duplicate' }}
-      </button>
+          <strong>{{ mrToDuplicate?.mrNumber }}</strong>؟
+          <br><br>
+          <span style="color: #d97706; font-weight: 500;">
+            {{ formLanguage === 'ar'
+              ? 'سيتم إنشاء طلب جديد بنفس البيانات مع إمكانية التعديل.'
+              : 'A new Material Request will be created with the same data that you can modify.'
+            }}
+          </span>
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="closeDuplicateModal()">
+          <i class="bi bi-x-circle"></i>
+          {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
+        </button>
+        <button class="btn-confirm" (click)="confirmDuplicate()">
+          <i class="bi bi-files"></i>
+          {{ formLanguage === 'ar' ? 'نسخ' : 'Duplicate' }}
+        </button>
+      </div>
     </div>
   </div>
-</div>
 
 </div>

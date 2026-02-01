@@ -204,7 +204,7 @@
     [title]="formLanguage === 'ar' ? 'تحميل PDF' : 'Download PDF'">
     <i class="bi bi-download"></i>
   </button>
-  
+
   <!-- ✅ NEW: DUPLICATE BUTTON -->
   <button
     class="btn-icon btn-duplicate"
@@ -212,7 +212,7 @@
     [title]="formLanguage === 'ar' ? 'نسخ وإعادة استخدام' : 'Duplicate & Reuse'">
     <i class="bi bi-files"></i>
   </button>
-  
+
   <button
     class="btn-icon btn-edit"
     (click)="editPO(po)"
@@ -592,17 +592,24 @@
           </div>
         </div>
 
-        <!-- STEP 2: Items -->
-<!-- ========================================
-     PURCHASE ORDER ITEMS SECTION - CARD-BASED DESIGN
-     طلب الشراء - تصميم الكاردات (مع الاحتفاظ ببيانات PO)
-     ======================================== -->
-
 <div *ngIf="currentStep === 'items'" class="step-content">
-          <h2 class="step-title">
-            {{ formLanguage === 'ar' ? 'العناصر  (اختياري)' : 'Items (Optional)' }}
-            <span class="optional-badge">{{ formLanguage === 'ar' ? 'اختياري' : 'Optional' }}</span>
-          </h2>
+  <h2 class="step-title">
+    {{ formLanguage === 'ar' ? 'العناصر  (اختياري)' : 'Items (Optional)' }}
+    <span class="optional-badge">{{ formLanguage === 'ar' ? 'اختياري' : 'Optional' }}</span>
+  </h2>
+
+  <!-- ✅ Info Alert -->
+  <div class="info-alert">
+    <i class="bi bi-info-circle"></i>
+    <div style="flex: 1;">
+      <p>
+        {{ formLanguage === 'ar'
+          ? 'يمكنك اختيار صنف من القائمة . إذا لم تكن الوحدة متوفرة، يمكنك إدخالها يدوياً.'
+          : 'You can select an item from the list or enter a custom item. If the unit is not available, you can enter it manually.'
+        }}
+      </p>
+    </div>
+  </div>
 
   <div class="error-alert" *ngIf="fieldErrors['items']" style="margin-bottom: 1.5rem;">
     <i class="bi bi-exclamation-circle"></i>
@@ -623,43 +630,87 @@
             </button>
           </div>
 
-          <!-- Card Body -->
+          <!-- ✅ Card Body WITH ITEM SELECTION -->
           <div class="item-card-body">
 
-            <!-- Row 1: Description (Full Width) -->
+            <!-- Row 1: Item Selection Dropdown -->
             <div class="item-field">
               <label class="field-label">
-                {{ formLanguage === 'ar' ? 'الوصف' : 'Description' }}
+                <i class="bi bi-box-seam"></i>
+                {{ formLanguage === 'ar' ? 'الصنف' : 'Item' }}
               </label>
-              <input
-                type="text"
-                [(ngModel)]="item.description"
-                class="item-input"
-                [class.error]="fieldErrors['item_' + i + '_description']"
-                [placeholder]="formLanguage === 'ar' ? 'الوصف' : 'Description'"
-                required
-              />
+
+              <!-- ✅ Dropdown to select from Items API -->
+              <select
+                [value]="getSelectedItemId(i)"
+                (change)="onItemSelected(i, $any($event.target).value)"
+                class="item-input item-select"
+                [class.error]="fieldErrors['item_' + i + '_description']">
+                <option value="">
+                  {{ formLanguage === 'ar' ? 'اختر من القائمة أو أدخل يدوياً' : 'Select from list or enter manually' }}
+                </option>
+                <optgroup [label]="formLanguage === 'ar' ? '📦 الأصناف المتاحة' : '📦 Available Items'">
+                  <option *ngFor="let availableItem of availableItems" [value]="availableItem.id">
+                    {{ availableItem.name }}
+                    <span *ngIf="availableItem.unit"> ({{ availableItem.unit }})</span>
+                  </option>
+                </optgroup>
+              </select>
+
+              <!-- ✅ Loading indicator -->
+              <div *ngIf="loadingItems" class="loading-items">
+                <i class="bi bi-arrow-clockwise spin"></i>
+                {{ formLanguage === 'ar' ? 'جاري تحميل الأصناف...' : 'Loading items...' }}
+              </div>
+
               <small class="error-message" *ngIf="fieldErrors['item_' + i + '_description']">
                 <i class="bi bi-exclamation-circle"></i>
                 {{ fieldErrors['item_' + i + '_description'] }}
               </small>
             </div>
 
+            <!-- ✅ Custom Description Input (shows when no item is selected or custom item) -->
+            <div class="item-field" *ngIf="!getSelectedItemId(i) || isCustomItem(i)">
+              <label class="field-label">
+                <i class="bi bi-pencil"></i>
+                {{ formLanguage === 'ar' ? 'الوصف (مخصص)' : 'Description (Custom)' }}
+              </label>
+              <input
+                type="text"
+                [(ngModel)]="item.description"
+                class="item-input"
+                [class.error]="fieldErrors['item_' + i + '_description']"
+                [placeholder]="formLanguage === 'ar' ? 'أدخل وصف الصنف' : 'Enter item description'"
+              />
+            </div>
+
             <!-- Row 2: Unit and Quantity (2 Columns) -->
             <div class="item-row-fields">
-              <!-- Unit -->
+              <!-- ✅ Unit (Auto-filled or manual) -->
               <div class="item-field">
                 <label class="field-label">
+                  <i class="bi bi-rulers"></i>
                   {{ formLanguage === 'ar' ? 'الوحدة' : 'Unit' }}
+                  <!-- ✅ Show "تلقائي" badge ONLY if unit is auto-filled AND has value -->
+                  <span *ngIf="hasAutoFilledUnit(i)" class="auto-filled-badge">
+                    {{ formLanguage === 'ar' ? 'تلقائي' : 'Auto' }}
+                  </span>
                 </label>
                 <input
                   type="text"
                   [(ngModel)]="item.unit"
                   class="item-input"
                   [class.error]="fieldErrors['item_' + i + '_unit']"
-                  [placeholder]="formLanguage === 'ar' ? 'الوحدة' : 'Unit'"
-                  required
+                  [class.auto-filled-input]="hasAutoFilledUnit(i)"
+                  [placeholder]="formLanguage === 'ar' ? 'مثال: كجم، متر' : 'e.g. kg, meter'"
                 />
+                <small class="help-text" *ngIf="getSelectedItemId(i) && !hasAutoFilledUnit(i)">
+                  <i class="bi bi-info-circle"></i>
+                  {{ formLanguage === 'ar'
+                    ? 'الوحدة غير متوفرة. يمكنك إدخالها يدوياً.'
+                    : 'Unit not available. You can enter it manually.'
+                  }}
+                </small>
                 <small class="error-message" *ngIf="fieldErrors['item_' + i + '_unit']">
                   <i class="bi bi-exclamation-circle"></i>
                   {{ fieldErrors['item_' + i + '_unit'] }}
@@ -669,6 +720,7 @@
               <!-- Quantity -->
               <div class="item-field">
                 <label class="field-label">
+                  <i class="bi bi-123"></i>
                   {{ formLanguage === 'ar' ? 'الكمية' : 'Quantity' }}
                 </label>
                 <input
@@ -679,7 +731,6 @@
                   [placeholder]="formLanguage === 'ar' ? 'الكمية' : 'Qty'"
                   min="0"
                   step="1"
-                  required
                 />
                 <small class="error-message" *ngIf="fieldErrors['item_' + i + '_quantity']">
                   <i class="bi bi-exclamation-circle"></i>
@@ -693,6 +744,7 @@
               <!-- Unit Price -->
               <div class="item-field">
                 <label class="field-label">
+                  <i class="bi bi-currency-dollar"></i>
                   {{ formLanguage === 'ar' ? 'سعر الوحدة' : 'Unit Price' }}
                 </label>
                 <input
@@ -703,7 +755,6 @@
                   [placeholder]="formLanguage === 'ar' ? 'السعر' : 'Price'"
                   min="0"
                   step="0.01"
-                  required
                 />
                 <small class="error-message" *ngIf="fieldErrors['item_' + i + '_unitPrice']">
                   <i class="bi bi-exclamation-circle"></i>
@@ -714,11 +765,12 @@
               <!-- Total (Auto-calculated, Read-only) -->
               <div class="item-field">
                 <label class="field-label">
+                  <i class="bi bi-calculator"></i>
                   {{ formLanguage === 'ar' ? 'الإجمالي' : 'Total' }}
                 </label>
                 <input
                   type="text"
-                  [value]="calculateItemTotal(item)"
+                  [value]="calculateItemTotal(item) | number:'1.2-2'"
                   class="item-input total-field"
                   readonly
                   disabled
@@ -735,7 +787,7 @@
     <div class="items-empty" *ngIf="poForm.items.length === 0">
       <i class="bi bi-inbox" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
       <p style="margin: 0; color: #64748b;">
-        {{ formLanguage === 'ar' ? 'لم يتم إضافة عناصر. يجب إضافة عنصر واحد على الأقل.' : 'No items added. At least one item is required.' }}
+        {{ formLanguage === 'ar' ? 'لم يتم إضافة عناصر بعد' : 'No items added yet' }}
       </p>
     </div>
 
@@ -774,7 +826,6 @@
     </button>
   </div>
 </div>
-
       </div>
     </div>
   </div>
@@ -910,7 +961,7 @@
       </div>
       <h3 class="modal-title">{{ formLanguage === 'ar' ? 'نسخ طلب الشراء' : 'Duplicate Purchase Order' }}</h3>
     </div>
-    
+
     <div class="modal-body">
       <p class="modal-message">
         {{ formLanguage === 'ar'
@@ -927,7 +978,7 @@
         </span>
       </p>
     </div>
-    
+
     <div class="modal-footer">
       <button class="btn-cancel" (click)="closeDuplicateModal()">
         <i class="bi bi-x-circle"></i>

@@ -11,6 +11,7 @@ export interface Item {
   id: string;
   name: string;
   description: string | null;
+  unit: string | null;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -20,11 +21,13 @@ export interface Item {
 export interface CreateItemData {
   name: string;
   description?: string;
+  unit?: string;
 }
 
 export interface UpdateItemData {
   name?: string;
   description?: string;
+  unit?: string;
 }
 
 export interface ItemsListResponse {
@@ -55,6 +58,7 @@ export interface DeleteItemResponse {
 export interface SimpleItem {
   id: string;
   name: string;
+  unit?: string | null;
 }
 
 export interface SimpleItemsResponse {
@@ -219,6 +223,17 @@ export class ItemsService {
     return { valid: true };
   }
 
+  /**
+   * Validate item unit
+   */
+  validateUnit(unit: string | null): { valid: boolean; error?: string } {
+    if (unit && unit.trim().length > 50) {
+      return { valid: false, error: 'الوحدة يجب أن لا تتجاوز 50 حرف' };
+    }
+
+    return { valid: true };
+  }
+
   // ============================================
   // HELPER METHODS
   // ============================================
@@ -255,7 +270,8 @@ export class ItemsService {
   createEmptyItem(): CreateItemData {
     return {
       name: '',
-      description: ''
+      description: '',
+      unit: ''
     };
   }
 }

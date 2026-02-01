@@ -1,4 +1,4 @@
-// purchases.component.ts - UPDATED WITH OPTIONAL FIELDS (NO VALIDATION)
+// purchases.component.ts - UPDATED WITH ITEMS API INTEGRATION
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -10,6 +10,8 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { PurchaseService, PurchaseOrder, POItem, CreatePurchaseOrderData } from '../../core/services/purchase.service';
 import { AuthService } from '../../core/services/auth.service';
 import { SupplierService, Supplier } from '../../core/services/supplier.service';
+// ✅ استيراد ItemsService
+import { ItemsService, SimpleItem } from '../../core/services/items.service';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'view';
 type FormStep = 'basic' | 'items';
@@ -36,6 +38,10 @@ export class PurchasesComponent implements OnInit, OnDestroy {
   currentView: ViewMode = 'list';
   currentStep: FormStep = 'basic';
   formLanguage: FormLanguage = 'ar';
+
+  // ✅ قائمة العناصر من Items API
+  availableItems: SimpleItem[] = [];
+  loadingItems: boolean = false;
 
   // Data
   pos: PurchaseOrder[] = [];
@@ -109,46 +115,47 @@ export class PurchasesComponent implements OnInit, OnDestroy {
   successPOId: string = '';
   successPONumber: string = '';
 
-  // ✅ DUPLICATE MODAL STATE
+  // DUPLICATE MODAL STATE
   showDuplicateModal: boolean = false;
   poToDuplicate: PurchaseOrder | null = null;
 
   // Translations
   private translations = {
-  ar: {
-    errors: {
-      required: 'هذا الحقل مطلوب',
-      dateRequired: 'التاريخ مطلوب',
-      supplierRequired: 'المورد مطلوب',
-      receiverRequired: 'المستلم مطلوب',
-      itemsRequired: 'يجب إضافة عنصر واحد على الأقل',
-      itemDescriptionRequired: 'الوصف مطلوب للعنصر',
-      itemUnitRequired: 'الوحدة مطلوبة للعنصر',
-      itemQuantityRequired: 'الكمية مطلوبة للعنصر',
-      itemPriceRequired: 'السعر مطلوب للعنصر',
-      loadFailed: 'فشل تحميل البيانات',
-      saveFailed: 'فشل حفظ البيانات',
-      deleteFailed: 'فشل حذف طلب الشراء',
-      pdfFailed: 'فشل إنشاء PDF',
-      networkError: 'خطأ في الاتصال بالخادم',
-      invalidPdfFile: 'يرجى اختيار ملف PDF صالح',
-      fileTooLarge: 'حجم الملف كبير جداً. الحد الأقصى 10 ميجابايت',
-      pdfNotGenerated: 'لم يتم إنشاء PDF بعد',
-      pdfGenerationWarning: 'تم إنشاء طلب الشراء ولكن فشل إنشاء PDF',
-      pdfUpdateWarning: 'تم تحديث طلب الشراء ولكن فشل تحديث PDF',
-      suppliersLoadFailed: 'فشل تحميل قائمة الموردين'
+    ar: {
+      errors: {
+        required: 'هذا الحقل مطلوب',
+        dateRequired: 'التاريخ مطلوب',
+        supplierRequired: 'المورد مطلوب',
+        receiverRequired: 'المستلم مطلوب',
+        itemsRequired: 'يجب إضافة عنصر واحد على الأقل',
+        itemDescriptionRequired: 'الوصف مطلوب للعنصر',
+        itemUnitRequired: 'الوحدة مطلوبة للعنصر',
+        itemQuantityRequired: 'الكمية مطلوبة للعنصر',
+        itemPriceRequired: 'السعر مطلوب للعنصر',
+        loadFailed: 'فشل تحميل البيانات',
+        saveFailed: 'فشل حفظ البيانات',
+        deleteFailed: 'فشل حذف طلب الشراء',
+        pdfFailed: 'فشل إنشاء PDF',
+        networkError: 'خطأ في الاتصال بالخادم',
+        invalidPdfFile: 'يرجى اختيار ملف PDF صالح',
+        fileTooLarge: 'حجم الملف كبير جداً. الحد الأقصى 10 ميجابايت',
+        pdfNotGenerated: 'لم يتم إنشاء PDF بعد',
+        pdfGenerationWarning: 'تم إنشاء طلب الشراء ولكن فشل إنشاء PDF',
+        pdfUpdateWarning: 'تم تحديث طلب الشراء ولكن فشل تحديث PDF',
+        suppliersLoadFailed: 'فشل تحميل قائمة الموردين',
+        loadItemsFailed: 'فشل تحميل قائمة العناصر'
+      },
+      messages: {
+        deleteConfirmTitle: 'تأكيد الحذف',
+        deleteConfirmMessage: 'هل أنت متأكد من حذف طلب الشراء',
+        created: 'تم إنشاء طلب الشراء بنجاح',
+        updated: 'تم تحديث طلب الشراء بنجاح',
+        deleted: 'تم حذف طلب الشراء بنجاح',
+        pdfGenerated: 'تم إنشاء ملف PDF بنجاح',
+        createdWithPdf: 'تم إنشاء طلب الشراء وملف PDF بنجاح',
+        updatedWithPdf: 'تم تحديث طلب الشراء وملف PDF بنجاح'
+      }
     },
-    messages: {
-      deleteConfirmTitle: 'تأكيد الحذف',
-      deleteConfirmMessage: 'هل أنت متأكد من حذف طلب الشراء',
-      created: 'تم إنشاء طلب الشراء بنجاح',
-      updated: 'تم تحديث طلب الشراء بنجاح',
-      deleted: 'تم حذف طلب الشراء بنجاح',
-      pdfGenerated: 'تم إنشاء ملف PDF بنجاح',
-      createdWithPdf: 'تم إنشاء طلب الشراء وملف PDF بنجاح',
-      updatedWithPdf: 'تم تحديث طلب الشراء وملف PDF بنجاح'
-    }
-  },
     en: {
       errors: {
         required: 'This field is required',
@@ -169,7 +176,8 @@ export class PurchasesComponent implements OnInit, OnDestroy {
         fileTooLarge: 'File size is too large. Maximum 10MB',
         pdfNotGenerated: 'PDF not generated yet',
         pdfGenerationWarning: 'Purchase Order created but PDF failed',
-        pdfUpdateWarning: 'Purchase Order updated but PDF failed'
+        pdfUpdateWarning: 'Purchase Order updated but PDF failed',
+        loadItemsFailed: 'Failed to load items list'
       },
       messages: {
         deleteConfirmTitle: 'Confirm Delete',
@@ -189,12 +197,17 @@ export class PurchasesComponent implements OnInit, OnDestroy {
     private supplierService: SupplierService,
     private authService: AuthService,
     private router: Router,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    // ✅ إضافة ItemsService
+    private itemsService: ItemsService
   ) {}
 
   ngOnInit(): void {
     this.loadPOs();
     this.loadSuppliers();
+    // ✅ تحميل قائمة العناصر عند بدء التطبيق
+    this.loadAvailableItems();
+
     const user = this.authService.currentUserValue;
     this.userRole = user ? user.role : '';
 
@@ -218,9 +231,96 @@ export class PurchasesComponent implements OnInit, OnDestroy {
   }
 
   // ========================================
-  // ✅ DUPLICATE FUNCTIONALITY
+  // ✅ ITEMS API METHODS
   // ========================================
-  
+
+  /**
+   * تحميل قائمة العناصر المتاحة من Items API
+   */
+  loadAvailableItems(): void {
+    this.loadingItems = true;
+    this.itemsService.getSimpleItems().subscribe({
+      next: (response) => {
+        this.availableItems = response.data;
+        this.loadingItems = false;
+      },
+      error: (error) => {
+        console.error('Error loading items:', error);
+        this.loadingItems = false;
+        this.showToast('error', this.t('errors.loadItemsFailed'));
+      }
+    });
+  }
+
+  /**
+   * عند اختيار عنصر من القائمة، يتم ملء الوصف والوحدة تلقائياً
+   * ✅ إذا لم تكن الوحدة موجودة، يمكن إدخالها يدوياً
+   */
+  onItemSelected(index: number, itemId: string): void {
+    if (!itemId) {
+      // إذا تم إلغاء الاختيار، امسح الحقول
+      this.poForm.items[index].description = '';
+      this.poForm.items[index].unit = '';
+      return;
+    }
+
+    // البحث عن العنصر المختار
+    const selectedItem = this.availableItems.find(item => item.id === itemId);
+
+    if (selectedItem) {
+      // ملء الوصف تلقائياً
+      this.poForm.items[index].description = selectedItem.name;
+
+      // ✅ ملء الوحدة إذا كانت موجودة، وإلا اتركها فارغة للإدخال اليدوي
+      if (selectedItem.unit && selectedItem.unit.trim() !== '') {
+        this.poForm.items[index].unit = selectedItem.unit;
+      } else {
+        this.poForm.items[index].unit = '';
+      }
+    }
+  }
+
+  /**
+   * التحقق إذا كان العنصر مخصصاً (غير موجود في القائمة)
+   */
+  isCustomItem(index: number): boolean {
+    const item = this.poForm.items[index];
+    if (!item.description) return false;
+
+    return !this.availableItems.some(
+      availableItem => availableItem.name === item.description
+    );
+  }
+
+  /**
+   * الحصول على ID العنصر المختار
+   */
+  getSelectedItemId(index: number): string {
+    const item = this.poForm.items[index];
+    if (!item.description) return '';
+
+    const foundItem = this.availableItems.find(
+      availableItem => availableItem.name === item.description
+    );
+
+    return foundItem ? foundItem.id : '';
+  }
+
+  /**
+   * ✅ التحقق إذا كانت الوحدة مملوءة تلقائياً من القائمة
+   */
+  hasAutoFilledUnit(index: number): boolean {
+    const selectedItemId = this.getSelectedItemId(index);
+    if (!selectedItemId) return false;
+
+    const selectedItem = this.availableItems.find(item => item.id === selectedItemId);
+    return !!(selectedItem && selectedItem.unit && selectedItem.unit.trim() !== '');
+  }
+
+  // ========================================
+  // DUPLICATE FUNCTIONALITY
+  // ========================================
+
   openDuplicateModal(po: PurchaseOrder): void {
     this.poToDuplicate = po;
     this.showDuplicateModal = true;
@@ -236,12 +336,10 @@ export class PurchasesComponent implements OnInit, OnDestroy {
 
     const po = this.poToDuplicate;
 
-    // Reset form first
     this.resetForm();
 
-    // Populate form with duplicated data
     this.poForm = {
-      date: this.getTodayDate(), // Use today's date for new PO
+      date: this.getTodayDate(),
       supplier: po.supplier || '',
       supplierAddress: po.supplierAddress || '',
       supplierPhone: po.supplierPhone || '',
@@ -251,20 +349,17 @@ export class PurchasesComponent implements OnInit, OnDestroy {
       receiverPhone: po.receiverPhone || '',
       tableHeaderText: po.tableHeaderText || '',
       taxRate: po.taxRate || 0,
-      items: JSON.parse(JSON.stringify(po.items || [])), // Deep clone items
+      items: JSON.parse(JSON.stringify(po.items || [])),
       notes: po.notes || ''
     };
 
-    // Set view to CREATE (not edit)
     this.currentView = 'create';
     this.currentStep = 'basic';
     this.fieldErrors = {};
     this.formError = '';
 
-    // Close modal
     this.closeDuplicateModal();
 
-    // Show success message
     const successMsg = this.formLanguage === 'ar'
       ? `تم نسخ بيانات طلب الشراء ${po.poNumber}. يمكنك التعديل وحفظ طلب جديد.`
       : `Purchase Order ${po.poNumber} data copied. You can modify and save as a new PO.`;
@@ -440,14 +535,12 @@ export class PurchasesComponent implements OnInit, OnDestroy {
     return value || key;
   }
 
-  // ✅ UPDATED: No validation - all fields are optional
   private validateForm(): boolean {
     this.fieldErrors = {};
     this.formError = '';
     return true;
   }
 
-  // ✅ UPDATED: No validation - all fields are optional
   private validateBasicFields(): boolean {
     this.fieldErrors = {};
     this.formError = '';
@@ -654,7 +747,6 @@ export class PurchasesComponent implements OnInit, OnDestroy {
   }
 
   savePO(): void {
-    // ✅ NO VALIDATION - Save directly
     this.savingPO = true;
     this.clearErrors();
 
@@ -795,7 +887,6 @@ export class PurchasesComponent implements OnInit, OnDestroy {
 
   nextStep(): void {
     if (this.currentStep === 'basic') {
-      // ✅ NO VALIDATION - Just move to next step
       this.currentStep = 'items';
     }
   }
