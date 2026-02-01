@@ -172,26 +172,28 @@ export class SuppliersControlComponent implements OnInit {
   // ============================================
 
   private initializeForms(): void {
+    // Create form - Only name is required
     this.createSupplierForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(3)]],
       companyName: [''],
-      contactPerson: ['', Validators.required],
-      email: ['', [Validators.required, Validators.email]],
-      phone: ['', [Validators.required, Validators.pattern(/^[+]?[\d\s-]+$/)]],
+      contactPerson: [''],
+      email: [''], // Optional
+      phone: [''], // Optional
       address: [''],
       city: [''],
       country: [''],
       materialTypes: [[]],
-      rating: [0, [Validators.min(0), Validators.max(5)]],
+      rating: [0],
       status: ['active']
     });
 
+    // Edit form - Only name is required
     this.editSupplierForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(3)]],
       companyName: [''],
-      contactPerson: ['', Validators.required],
-      email: ['', [Validators.required, Validators.email]],
-      phone: ['', [Validators.required, Validators.pattern(/^[+]?[\d\s-]+$/)]],
+      contactPerson: [''], // Optional
+      email: [''], // Optional
+      phone: [''], // Optional
       address: [''],
       city: [''],
       country: [''],
@@ -444,9 +446,63 @@ export class SuppliersControlComponent implements OnInit {
       return;
     }
 
+    const formData = this.createSupplierForm.value;
+    
+    // Check if supplier name already exists
+    const nameExists = this.suppliers.some(
+      s => s.name.toLowerCase().trim() === formData.name.toLowerCase().trim()
+    );
+    
+    if (nameExists) {
+      this.showToast('error', 'اسم المورد موجود بالفعل! يرجى اختيار اسم آخر');
+      return;
+    }
+
     this.savingSupplier = true;
 
-    const supplierData: CreateSupplierData = this.createSupplierForm.value;
+    // Generate unique temporary values for required fields if empty
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substring(2, 8);
+    
+    const supplierData: any = {
+      name: formData.name,
+      status: formData.status || 'active',
+      rating: formData.rating || 0
+    };
+
+    // Add email - use temporary unique email if empty
+    if (formData.email && formData.email.trim() !== '') {
+      supplierData.email = formData.email;
+    } else {
+      supplierData.email = `temp_${timestamp}_${randomId}@supplier.local`;
+    }
+
+    // Add phone - use temporary unique phone if empty
+    if (formData.phone && formData.phone.trim() !== '') {
+      supplierData.phone = formData.phone;
+    } else {
+      supplierData.phone = `TEMP${timestamp}`;
+    }
+
+    // Add optional fields only if they have values
+    if (formData.companyName && formData.companyName.trim() !== '') {
+      supplierData.companyName = formData.companyName;
+    }
+    if (formData.contactPerson && formData.contactPerson.trim() !== '') {
+      supplierData.contactPerson = formData.contactPerson;
+    }
+    if (formData.address && formData.address.trim() !== '') {
+      supplierData.address = formData.address;
+    }
+    if (formData.city && formData.city.trim() !== '') {
+      supplierData.city = formData.city;
+    }
+    if (formData.country && formData.country.trim() !== '') {
+      supplierData.country = formData.country;
+    }
+    if (formData.materialTypes && formData.materialTypes.length > 0) {
+      supplierData.materialTypes = formData.materialTypes;
+    }
 
     this.supplierService.createSupplier(supplierData).subscribe({
       next: (response) => {
@@ -499,9 +555,74 @@ export class SuppliersControlComponent implements OnInit {
       return;
     }
 
-    this.savingSupplier = true;
+    const formData = this.editSupplierForm.value;
+    
+    // Check if new name already exists (excluding current supplier)
+    const nameExists = this.suppliers.some(
+      s => s.id !== this.selectedSupplier!.id && 
+           s.name.toLowerCase().trim() === formData.name.toLowerCase().trim()
+    );
+    
+    if (nameExists) {
+      this.showToast('error', 'اسم المورد موجود بالفعل! يرجى اختيار اسم آخر');
+      return;
+    }
 
-    const updateData = this.editSupplierForm.value;
+    this.savingSupplier = true;
+    
+    // Generate unique temporary values for required fields if empty
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substring(2, 8);
+    
+    const updateData: any = {
+      name: formData.name,
+      status: formData.status || 'active',
+      rating: formData.rating || 0
+    };
+
+    // Add email - keep existing or use temporary unique email if empty
+    if (formData.email && formData.email.trim() !== '') {
+      updateData.email = formData.email;
+    } else {
+      // Keep old email if exists and not temp, otherwise generate new temp
+      if (this.selectedSupplier.email && !this.selectedSupplier.email.includes('temp_') && !this.selectedSupplier.email.includes('@supplier.local')) {
+        updateData.email = this.selectedSupplier.email;
+      } else {
+        updateData.email = `temp_${timestamp}_${randomId}@supplier.local`;
+      }
+    }
+
+    // Add phone - keep existing or use temporary unique phone if empty
+    if (formData.phone && formData.phone.trim() !== '') {
+      updateData.phone = formData.phone;
+    } else {
+      // Keep old phone if exists and not temp, otherwise generate new temp
+      if (this.selectedSupplier.phone && !this.selectedSupplier.phone.includes('TEMP')) {
+        updateData.phone = this.selectedSupplier.phone;
+      } else {
+        updateData.phone = `TEMP${timestamp}`;
+      }
+    }
+
+    // Add optional fields only if they have values
+    if (formData.companyName && formData.companyName.trim() !== '') {
+      updateData.companyName = formData.companyName;
+    }
+    if (formData.contactPerson && formData.contactPerson.trim() !== '') {
+      updateData.contactPerson = formData.contactPerson;
+    }
+    if (formData.address && formData.address.trim() !== '') {
+      updateData.address = formData.address;
+    }
+    if (formData.city && formData.city.trim() !== '') {
+      updateData.city = formData.city;
+    }
+    if (formData.country && formData.country.trim() !== '') {
+      updateData.country = formData.country;
+    }
+    if (formData.materialTypes && formData.materialTypes.length > 0) {
+      updateData.materialTypes = formData.materialTypes;
+    }
 
     this.supplierService.updateSupplier(this.selectedSupplier.id, updateData).subscribe({
       next: (response) => {

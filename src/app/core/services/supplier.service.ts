@@ -37,8 +37,8 @@ export interface Supplier {
 
 export interface CreateSupplierData {
   name: string;
-  email: string;
-  phone: string;
+  email?: string;
+  phone?: string;
   companyName?: string;
   contactPerson?: string;
   secondaryPhone?: string;

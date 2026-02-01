@@ -1,11 +1,12 @@
-<div class="suppliers-control-container">
+<div class="suppliers-control-container" dir="rtl">
   <!-- ============================================ -->
   <!-- TOAST NOTIFICATIONS CONTAINER -->
   <!-- ============================================ -->
-  <div class="toast-container">
+  <div class="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 99999 !important; pointer-events: none;">
     <div 
       *ngFor="let toast of toasts" 
       class="toast"
+      style="pointer-events: auto; margin-bottom: 10px;"
       [class.toast-success]="toast.type === 'success'"
       [class.toast-error]="toast.type === 'error'"
       [class.toast-info]="toast.type === 'info'"
@@ -428,38 +429,20 @@
                   {{ getFormError(createSupplierForm, 'name') }}
                 </small>
               </div>
-
-              <div class="form-group">
-                <label class="form-label">
-                  <i class="bi bi-building"></i>
-                  اسم الشركة
-                </label>
-                <input
-                  type="text"
-                  class="form-input"
-                  formControlName="companyName"
-                  placeholder="أدخل اسم الشركة"
-                />
-              </div>
             </div>
 
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">
                   <i class="bi bi-person-badge"></i>
-                  اسم الشخص المسؤول *
+                  اسم الشخص المسؤول
                 </label>
                 <input
                   type="text"
                   class="form-input"
                   formControlName="contactPerson"
                   placeholder="أدخل اسم الشخص المسؤول"
-                  [class.error]="createSupplierForm.get('contactPerson')?.touched && createSupplierForm.get('contactPerson')?.invalid"
                 />
-                <small class="error-message" *ngIf="getFormError(createSupplierForm, 'contactPerson')">
-                  <i class="bi bi-exclamation-circle"></i>
-                  {{ getFormError(createSupplierForm, 'contactPerson') }}
-                </small>
               </div>
             </div>
           </div>
@@ -475,37 +458,27 @@
               <div class="form-group">
                 <label class="form-label">
                   <i class="bi bi-envelope"></i>
-                  البريد الإلكتروني *
+                  البريد الإلكتروني
                 </label>
                 <input
                   type="email"
                   class="form-input"
                   formControlName="email"
                   placeholder="example@company.com"
-                  [class.error]="createSupplierForm.get('email')?.touched && createSupplierForm.get('email')?.invalid"
                 />
-                <small class="error-message" *ngIf="getFormError(createSupplierForm, 'email')">
-                  <i class="bi bi-exclamation-circle"></i>
-                  {{ getFormError(createSupplierForm, 'email') }}
-                </small>
               </div>
 
               <div class="form-group">
                 <label class="form-label">
                   <i class="bi bi-telephone"></i>
-                  رقم الهاتف *
+                  رقم الهاتف
                 </label>
                 <input
                   type="tel"
                   class="form-input"
                   formControlName="phone"
-                  placeholder="+20 123 456 7890"
-                  [class.error]="createSupplierForm.get('phone')?.touched && createSupplierForm.get('phone')?.invalid"
+                  placeholder="07 XXXX XXXX"
                 />
-                <small class="error-message" *ngIf="getFormError(createSupplierForm, 'phone')">
-                  <i class="bi bi-exclamation-circle"></i>
-                  {{ getFormError(createSupplierForm, 'phone') }}
-                </small>
               </div>
             </div>
           </div>
@@ -542,7 +515,7 @@
                   type="text"
                   class="form-input"
                   formControlName="city"
-                  placeholder="القاهرة، الإسكندرية..."
+                  placeholder="عمّان، إربد، الزرقاء..."
                 />
               </div>
 
@@ -551,71 +524,16 @@
                   <i class="bi bi-flag"></i>
                   الدولة
                 </label>
-                <select class="form-select" formControlName="country">
-                  <option value="">اختر الدولة</option>
-                  <option *ngFor="let country of countries" [value]="country">
-                    {{ country }}
-                  </option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <!-- Materials & Rating Section -->
-          <div class="form-section">
-            <h3 class="section-title">
-              <i class="bi bi-box-seam"></i>
-              المواد والتقييم
-            </h3>
-
-            <div class="form-group">
-              <label class="form-label">
-                <i class="bi bi-boxes"></i>
-                أنواع المواد
-              </label>
-              <div class="materials-checkbox-grid">
-                <label class="material-checkbox" *ngFor="let material of availableMaterials">
-                  <input
-                    type="checkbox"
-                    [checked]="isMaterialSelected(createSupplierForm, material)"
-                    (change)="toggleMaterialInForm(createSupplierForm, material)"
-                  />
-                  <span>{{ material }}</span>
-                </label>
-              </div>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">
-                  <i class="bi bi-star-fill"></i>
-                  التقييم (0-5)
-                </label>
                 <input
-                  type="number"
+                  type="text"
                   class="form-input"
-                  formControlName="rating"
-                  min="0"
-                  max="5"
-                  step="0.1"
-                  placeholder="4.5"
+                  formControlName="country"
+                  placeholder="الأردن، مصر، السعودية..."
                 />
               </div>
-
-              <div class="form-group">
-                <label class="form-label">
-                  <i class="bi bi-toggle-on"></i>
-                  الحالة
-                </label>
-                <select class="form-select" formControlName="status">
-                  <option value="active">نشط</option>
-                  <option value="inactive">غير نشط</option>
-                  <option value="pending">قيد الانتظار</option>
-                  <option value="suspended">معلق</option>
-                </select>
-              </div>
             </div>
           </div>
+
         </div>
       </div>
 
@@ -690,7 +608,7 @@
               <div class="form-group">
                 <label class="form-label">
                   <i class="bi bi-person-badge"></i>
-                  اسم الشخص المسؤول *
+                  اسم الشخص المسؤول
                 </label>
                 <input
                   type="text"
@@ -713,7 +631,7 @@
               <div class="form-group">
                 <label class="form-label">
                   <i class="bi bi-envelope"></i>
-                  البريد الإلكتروني *
+                  البريد الإلكتروني
                 </label>
                 <input
                   type="email"
@@ -726,7 +644,7 @@
               <div class="form-group">
                 <label class="form-label">
                   <i class="bi bi-telephone"></i>
-                  رقم الهاتف *
+                  رقم الهاتف
                 </label>
                 <input
                   type="tel"
@@ -943,4 +861,3 @@
     </div>
   </div>
 </div>
-
