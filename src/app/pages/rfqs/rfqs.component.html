@@ -741,6 +741,10 @@
               <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
               {{ formLanguage === 'ar' ? 'السابق' : 'Back' }}
             </button>
+              <button class="btn-primary btn-next" (click)="nextStep()">
+              {{ formLanguage === 'ar' ? 'التالي' : 'Next' }}
+              <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-left' : 'bi-arrow-right'"></i>
+              </button>
           </div>
         </div>
 

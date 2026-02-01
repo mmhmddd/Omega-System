@@ -1,4 +1,4 @@
-// src/core/services/purchase.service.ts - COMPLETE PURCHASE SERVICE
+// src/core/services/purchase.service.ts - UPDATED WITH includeStaticFile
 
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
@@ -16,7 +16,7 @@ export interface POItem {
 }
 
 /**
- * Purchase Order Interface
+ * Purchase Order Interface - UPDATED WITH includeStaticFile
  */
 export interface PurchaseOrder {
   id: string;
@@ -33,8 +33,6 @@ export interface PurchaseOrder {
   taxRate: number;
   items: POItem[];
   notes?: string;
-  language: 'ar' | 'en';
-  status: 'pending' | 'approved' | 'rejected';
   pdfFilename?: string;
   pdfLanguage?: string;
   pdfGeneratedAt?: string;
@@ -44,17 +42,20 @@ export interface PurchaseOrder {
     attachment?: number;
     total?: number;
   };
+  language: string;
+  status: string;
   createdBy: string;
   createdByName?: string;
   createdByRole: string;
   createdAt: string;
   updatedAt: string;
+  includeStaticFile?: boolean; // ✅ NEW FIELD
 }
 
 /**
- * Purchase Order List Response Interface
+ * PO List Response Interface
  */
-export interface PurchaseOrderResponse {
+export interface POResponse {
   success: boolean;
   data: PurchaseOrder[];
   pagination: {
@@ -67,15 +68,15 @@ export interface PurchaseOrderResponse {
 }
 
 /**
- * Single Purchase Order Response Interface
+ * Single PO Response Interface
  */
-export interface SinglePurchaseOrderResponse {
+export interface SinglePOResponse {
   success: boolean;
   data: PurchaseOrder;
 }
 
 /**
- * Create Purchase Order Data Interface
+ * Create Purchase Order Data Interface - UPDATED WITH includeStaticFile
  */
 export interface CreatePurchaseOrderData {
   date?: string;
@@ -90,12 +91,13 @@ export interface CreatePurchaseOrderData {
   taxRate: number;
   items: POItem[];
   notes?: string;
+  includeStaticFile?: boolean; // ✅ NEW FIELD
 }
 
 /**
  * PDF Generation Response Interface
  */
-export interface POPDFGenerateResponse {
+export interface PDFGenerateResponse {
   success: boolean;
   message: string;
   data: {
@@ -129,7 +131,7 @@ export class PurchaseService {
   /**
    * Get all purchase orders with optional filters and pagination
    */
- getAllPOs(filters?: {
+  getAllPOs(filters?: {
     poNumber?: string;
     startDate?: string;
     endDate?: string;
@@ -138,59 +140,42 @@ export class PurchaseService {
     search?: string;
     page?: number;
     limit?: number;
-  }): Observable<PurchaseOrderResponse> {
+  }): Observable<POResponse> {
     let params = new HttpParams();
     
     if (filters) {
-      // Only add parameter if it has a value (not undefined, not empty string)
-      if (filters.poNumber && filters.poNumber.trim() !== '') {
-        params = params.set('poNumber', filters.poNumber);
-      }
-      if (filters.startDate && filters.startDate.trim() !== '') {
-        params = params.set('startDate', filters.startDate);
-      }
-      if (filters.endDate && filters.endDate.trim() !== '') {
-        params = params.set('endDate', filters.endDate);
-      }
-      if (filters.supplier && filters.supplier.trim() !== '') {
-        params = params.set('supplier', filters.supplier);
-      }
-      if (filters.status && filters.status.trim() !== '') {
-        params = params.set('status', filters.status);
-      }
-      if (filters.search && filters.search.trim() !== '') {
-        params = params.set('search', filters.search);
-      }
-      if (filters.page) {
-        params = params.set('page', filters.page.toString());
-      }
-      if (filters.limit) {
-        params = params.set('limit', filters.limit.toString());
-      }
+      if (filters.poNumber) params = params.set('poNumber', filters.poNumber);
+      if (filters.startDate) params = params.set('startDate', filters.startDate);
+      if (filters.endDate) params = params.set('endDate', filters.endDate);
+      if (filters.supplier) params = params.set('supplier', filters.supplier);
+      if (filters.status) params = params.set('status', filters.status);
+      if (filters.search) params = params.set('search', filters.search);
+      if (filters.page) params = params.set('page', filters.page.toString());
+      if (filters.limit) params = params.set('limit', filters.limit.toString());
     }
 
-    return this.http.get<PurchaseOrderResponse>(this.API_URL, { params });
+    return this.http.get<POResponse>(this.API_URL, { params });
   }
 
   /**
    * Get purchase order by ID
    */
-  getPOById(id: string): Observable<SinglePurchaseOrderResponse> {
-    return this.http.get<SinglePurchaseOrderResponse>(`${this.API_URL}/${id}`);
+  getPOById(id: string): Observable<SinglePOResponse> {
+    return this.http.get<SinglePOResponse>(`${this.API_URL}/${id}`);
   }
 
   /**
    * Create new purchase order
    */
-  createPO(data: CreatePurchaseOrderData): Observable<SinglePurchaseOrderResponse> {
-    return this.http.post<SinglePurchaseOrderResponse>(this.API_URL, data);
+  createPO(data: CreatePurchaseOrderData): Observable<SinglePOResponse> {
+    return this.http.post<SinglePOResponse>(this.API_URL, data);
   }
 
   /**
    * Update existing purchase order
    */
-  updatePO(id: string, data: Partial<CreatePurchaseOrderData>): Observable<SinglePurchaseOrderResponse> {
-    return this.http.put<SinglePurchaseOrderResponse>(`${this.API_URL}/${id}`, data);
+  updatePO(id: string, data: Partial<CreatePurchaseOrderData>): Observable<SinglePOResponse> {
+    return this.http.put<SinglePOResponse>(`${this.API_URL}/${id}`, data);
   }
 
   /**
@@ -203,14 +188,14 @@ export class PurchaseService {
   /**
    * Generate PDF for purchase order with optional attachment
    */
-  generatePDF(id: string, attachmentFile?: File): Observable<POPDFGenerateResponse> {
+  generatePDF(id: string, attachmentFile?: File): Observable<PDFGenerateResponse> {
     const formData = new FormData();
     
     if (attachmentFile) {
       formData.append('attachment', attachmentFile);
     }
 
-    return this.http.post<POPDFGenerateResponse>(`${this.API_URL}/${id}/generate-pdf`, formData);
+    return this.http.post<PDFGenerateResponse>(`${this.API_URL}/${id}/generate-pdf`, formData);
   }
 
   /**
@@ -264,16 +249,6 @@ export class PurchaseService {
     .catch(error => {
       console.error('Error loading PDF for print:', error);
       alert('Failed to load PDF for printing. Please try again.');
-    });
-  }
-
-  /**
-   * Get PDF as Blob for viewer
-   */
-  getPDFBlob(id: string): Observable<Blob> {
-    const url = `${this.API_URL}/${id}/download-pdf`;
-    return this.http.get(url, { 
-      responseType: 'blob'
     });
   }
 

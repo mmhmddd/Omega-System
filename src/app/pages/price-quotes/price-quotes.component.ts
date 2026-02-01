@@ -51,7 +51,7 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
   // VIEW MANAGEMENT
   // ============================================
   currentView: 'list' | 'create' | 'edit' = 'list';
-  currentStep: 'basic' | 'items' | 'tax' = 'basic';
+  currentStep: 'basic' | 'items' | 'tax' | 'options' = 'basic'; // ✅ UPDATED: Added 'options' step
   formLanguage: 'ar' | 'en' = 'ar';
 
   // ============================================
@@ -67,7 +67,7 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
   private toastTimeouts: Map<string, any> = new Map();
 
   // ============================================
-  // FORM DATA
+  // FORM DATA - ✅ UPDATED WITH includeStaticFile
   // ============================================
   quoteForm: CreatePriceQuoteData = {
     clientName: '',
@@ -82,7 +82,8 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
     includeTax: false,
     taxRate: 0,
     items: [],
-    customNotes: ''
+    customNotes: '',
+    includeStaticFile: false // ✅ NEW FIELD
   };
 
   // File attachment
@@ -354,6 +355,7 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
 
   /**
    * Confirm duplicate and create new quote with copied data
+   * ✅ UPDATED: Now includes includeStaticFile
    */
   confirmDuplicate(): void {
     if (!this.quoteToDuplicate) return;
@@ -375,7 +377,8 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
       includeTax: quote.includeTax,
       taxRate: quote.taxRate,
       items: [...quote.items.map(item => ({ ...item }))],
-      customNotes: quote.customNotes || ''
+      customNotes: quote.customNotes || '',
+      includeStaticFile: quote.includeStaticFile || false // ✅ NEW FIELD
     };
 
     this.currentView = 'create';
@@ -391,9 +394,8 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
     this.showToast('info', successMsg, 5000);
   }
 
-
   // ============================================
-  // FORM MANAGEMENT
+  // FORM MANAGEMENT - ✅ UPDATED WITH includeStaticFile
   // ============================================
 
   resetForm(): void {
@@ -410,13 +412,17 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
       includeTax: false,
       taxRate: 0,
       items: [],
-      customNotes: ''
+      customNotes: '',
+      includeStaticFile: false // ✅ NEW FIELD
     };
     this.pdfAttachment = null;
     this.fieldErrors = {};
     this.formError = '';
   }
 
+  /**
+   * ✅ UPDATED: Now includes includeStaticFile
+   */
   populateFormWithQuote(quote: PriceQuote): void {
     this.quoteForm = {
       clientName: quote.clientName,
@@ -431,7 +437,8 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
       includeTax: quote.includeTax,
       taxRate: quote.taxRate,
       items: [...quote.items],
-      customNotes: quote.customNotes || ''
+      customNotes: quote.customNotes || '',
+      includeStaticFile: quote.includeStaticFile || false // ✅ NEW FIELD
     };
   }
 
@@ -454,7 +461,7 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
   }
 
   // ============================================
-  // STEP NAVIGATION
+  // STEP NAVIGATION - ✅ UPDATED FOR 4 STEPS
   // ============================================
 
   nextStep(): void {
@@ -466,11 +473,17 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
       if (this.validateItems()) {
         this.currentStep = 'tax';
       }
+    } else if (this.currentStep === 'tax') {
+      // ✅ From tax, go to options step
+      this.currentStep = 'options';
     }
   }
 
   previousStep(): void {
-    if (this.currentStep === 'tax') {
+    if (this.currentStep === 'options') {
+      // ✅ From options, go back to tax
+      this.currentStep = 'tax';
+    } else if (this.currentStep === 'tax') {
       this.currentStep = 'items';
     } else if (this.currentStep === 'items') {
       this.currentStep = 'basic';
@@ -557,102 +570,102 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
   // VALIDATION
   // ============================================
 
-validateBasicInfo(): boolean {
-  this.fieldErrors = {};
-  let isValid = true;
+  validateBasicInfo(): boolean {
+    this.fieldErrors = {};
+    let isValid = true;
 
-  if (!this.quoteForm.clientName || this.quoteForm.clientName.trim() === '') {
-    this.fieldErrors['clientName'] = this.formLanguage === 'ar'
-      ? 'اسم العميل مطلوب'
-      : 'Client name is required';
-    isValid = false;
-  }
-
-  if (!this.quoteForm.clientPhone || this.quoteForm.clientPhone.trim() === '') {
-    this.fieldErrors['clientPhone'] = this.formLanguage === 'ar'
-      ? 'رقم هاتف العميل مطلوب'
-      : 'Phone number is required';
-    isValid = false;
-  } else if (!this.priceQuoteService.validatePhoneNumber(this.quoteForm.clientPhone)) {
-    this.fieldErrors['clientPhone'] = this.formLanguage === 'ar'
-      ? 'رقم الهاتف غير صالح'
-      : 'Invalid phone number';
-    isValid = false;
-  }
-
-  if (!this.quoteForm.date) {
-    this.fieldErrors['date'] = this.formLanguage === 'ar'
-      ? 'التاريخ مطلوب'
-      : 'Date is required';
-    isValid = false;
-  }
-
-  return isValid;
-}
-
-validateItems(): boolean {
-  this.fieldErrors = {};
-  let isValid = true;
-
-  // ✅ Items are now optional - no error if empty
-  // Only validate if items exist
-  if (this.quoteForm.items.length > 0) {
-    this.quoteForm.items.forEach((item, index) => {
-      if (!item.description || item.description.trim() === '') {
-        this.fieldErrors[`item_${index}_description`] = this.formLanguage === 'ar'
-          ? 'الوصف مطلوب'
-          : 'Description is required';
-        isValid = false;
-      }
-
-      if (!item.unit || item.unit.trim() === '') {
-        this.fieldErrors[`item_${index}_unit`] = this.formLanguage === 'ar'
-          ? 'الوحدة مطلوبة'
-          : 'Unit is required';
-        isValid = false;
-      }
-
-      if (item.quantity === undefined || item.quantity <= 0) {
-        this.fieldErrors[`item_${index}_quantity`] = this.formLanguage === 'ar'
-          ? 'الكمية يجب أن تكون أكبر من صفر'
-          : 'Quantity must be greater than zero';
-        isValid = false;
-      }
-
-      if (item.unitPrice === undefined || item.unitPrice < 0) {
-        this.fieldErrors[`item_${index}_unitPrice`] = this.formLanguage === 'ar'
-          ? 'السعر يجب أن يكون صفر أو أكثر'
-          : 'Price must be zero or greater';
-        isValid = false;
-      }
-    });
-  }
-
-  return isValid;
-}
-
-validateTaxInfo(): boolean {
-  this.fieldErrors = {};
-  let isValid = true;
-
-  // Only validate tax rate if tax is actually included
-  if (this.quoteForm.includeTax === true) {
-    if (!this.quoteForm.taxRate || this.quoteForm.taxRate <= 0) {
-      this.fieldErrors['taxRate'] = this.formLanguage === 'ar'
-        ? 'نسبة الضريبة مطلوبة'
-        : 'Tax rate is required';
+    if (!this.quoteForm.clientName || this.quoteForm.clientName.trim() === '') {
+      this.fieldErrors['clientName'] = this.formLanguage === 'ar'
+        ? 'اسم العميل مطلوب'
+        : 'Client name is required';
       isValid = false;
     }
-  } else {
-    // If tax is not included, ensure taxRate is 0
-    this.quoteForm.taxRate = 0;
+
+    if (!this.quoteForm.clientPhone || this.quoteForm.clientPhone.trim() === '') {
+      this.fieldErrors['clientPhone'] = this.formLanguage === 'ar'
+        ? 'رقم هاتف العميل مطلوب'
+        : 'Phone number is required';
+      isValid = false;
+    } else if (!this.priceQuoteService.validatePhoneNumber(this.quoteForm.clientPhone)) {
+      this.fieldErrors['clientPhone'] = this.formLanguage === 'ar'
+        ? 'رقم الهاتف غير صالح'
+        : 'Invalid phone number';
+      isValid = false;
+    }
+
+    if (!this.quoteForm.date) {
+      this.fieldErrors['date'] = this.formLanguage === 'ar'
+        ? 'التاريخ مطلوب'
+        : 'Date is required';
+      isValid = false;
+    }
+
+    return isValid;
   }
 
-  return isValid;
-}
+  validateItems(): boolean {
+    this.fieldErrors = {};
+    let isValid = true;
+
+    // ✅ Items are now optional - no error if empty
+    // Only validate if items exist
+    if (this.quoteForm.items.length > 0) {
+      this.quoteForm.items.forEach((item, index) => {
+        if (!item.description || item.description.trim() === '') {
+          this.fieldErrors[`item_${index}_description`] = this.formLanguage === 'ar'
+            ? 'الوصف مطلوب'
+            : 'Description is required';
+          isValid = false;
+        }
+
+        if (!item.unit || item.unit.trim() === '') {
+          this.fieldErrors[`item_${index}_unit`] = this.formLanguage === 'ar'
+            ? 'الوحدة مطلوبة'
+            : 'Unit is required';
+          isValid = false;
+        }
+
+        if (item.quantity === undefined || item.quantity <= 0) {
+          this.fieldErrors[`item_${index}_quantity`] = this.formLanguage === 'ar'
+            ? 'الكمية يجب أن تكون أكبر من صفر'
+            : 'Quantity must be greater than zero';
+          isValid = false;
+        }
+
+        if (item.unitPrice === undefined || item.unitPrice < 0) {
+          this.fieldErrors[`item_${index}_unitPrice`] = this.formLanguage === 'ar'
+            ? 'السعر يجب أن يكون صفر أو أكثر'
+            : 'Price must be zero or greater';
+          isValid = false;
+        }
+      });
+    }
+
+    return isValid;
+  }
+
+  validateTaxInfo(): boolean {
+    this.fieldErrors = {};
+    let isValid = true;
+
+    // Only validate tax rate if tax is actually included
+    if (this.quoteForm.includeTax === true) {
+      if (!this.quoteForm.taxRate || this.quoteForm.taxRate <= 0) {
+        this.fieldErrors['taxRate'] = this.formLanguage === 'ar'
+          ? 'نسبة الضريبة مطلوبة'
+          : 'Tax rate is required';
+        isValid = false;
+      }
+    } else {
+      // If tax is not included, ensure taxRate is 0
+      this.quoteForm.taxRate = 0;
+    }
+
+    return isValid;
+  }
 
   // ============================================
-  // SAVE QUOTE
+  // SAVE QUOTE - ✅ INCLUDES includeStaticFile
   // ============================================
 
   saveQuote(): void {
@@ -691,6 +704,7 @@ validateTaxInfo(): boolean {
     this.savingQuote = true;
     this.formError = '';
 
+    // ✅ quoteForm already includes includeStaticFile
     const quoteData: CreatePriceQuoteData = {
       ...this.quoteForm,
       attachment: this.pdfAttachment || undefined

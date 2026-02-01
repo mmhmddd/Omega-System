@@ -257,6 +257,14 @@
           (click)="currentStep = 'tax'">
           {{ formLanguage === 'ar' ? 'الضريبة والإجمالي' : 'Tax & Total' }}
         </button>
+
+        <!-- ✅ NEW STEP: Terms & Conditions -->
+        <button
+          class="sidebar-step"
+          [class.active]="currentStep === 'options'"
+          (click)="currentStep = 'options'">
+          {{ formLanguage === 'ar' ? 'الشروط والأحكام' : 'Terms & Conditions' }}
+        </button>
       </div>
 
       <!-- Form Fields -->
@@ -343,7 +351,7 @@
             />
           </div>
 
-          <!-- ✅ PROJECT NAME FIELD - NEW -->
+          <!-- Project Name -->
           <div class="form-group">
             <label>
               <i class="bi bi-folder"></i>
@@ -353,14 +361,25 @@
             <input
               type="text"
               [(ngModel)]="quoteForm.projectName"
-              [placeholder]="formLanguage === 'ar' ? 'أدخل اسم المشروع)' : 'Enter project name '"
+              [placeholder]="formLanguage === 'ar' ? 'أدخل اسم المشروع' : 'Enter project name'"
               class="form-control"
             />
-
           </div>
 
           <!-- City and Rev Number Row -->
           <div class="form-row">
+            <div class="form-group">
+              <label>
+                <i class="bi bi-pin-map"></i>
+                {{ formLanguage === 'ar' ? 'المدينة' : 'City' }}
+              </label>
+              <input
+                type="text"
+                [(ngModel)]="quoteForm.clientCity"
+                [placeholder]="formLanguage === 'ar' ? 'أدخل المدينة' : 'Enter city'"
+                class="form-control"
+              />
+            </div>
 
             <div class="form-group">
               <label>
@@ -695,24 +714,86 @@
               <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
               {{ formLanguage === 'ar' ? 'السابق' : 'Back' }}
             </button>
+            <button class="btn-primary btn-next" (click)="nextStep()">
+              {{ formLanguage === 'ar' ? 'التالي' : 'Next' }}
+              <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-left' : 'bi-arrow-right'"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- ✅ NEW STEP 4: Terms & Conditions Options -->
+        <div *ngIf="currentStep === 'options'" class="step-content">
+          <h2 class="step-title">
+            {{ formLanguage === 'ar' ? 'الشروط والأحكام' : 'Terms & Conditions' }}
+          </h2>
+          
+          <!-- Info Alert -->
+          <div class="info-alert">
+            <i class="bi bi-info-circle"></i>
+            <div style="flex: 1;">
+              <p>
+                {{ formLanguage === 'ar'
+                  ? 'يمكنك اختيار إضافة ملف PDF ثابت (الشروط والأحكام) إلى عرض السعر الخاص بك. سيتم دمج الملف تلقائياً في نهاية المستند عند تفعيل هذا الخيار.'
+                  : 'You can choose to include a static PDF file (Terms and Conditions) with your price quote. The file will be automatically merged at the end of the document when this option is enabled.'
+                }}
+              </p>
+            </div>
           </div>
 
-          <!-- Save Button at Bottom of Tax Step -->
-          <div class="save-section">
+          <!-- Static PDF Checkbox -->
+          <div class="static-pdf-option">
+            <div class="checkbox-container">
+              <input
+                type="checkbox"
+                id="includeStaticFile"
+                [(ngModel)]="quoteForm.includeStaticFile"
+                class="checkbox-input"
+              />
+              <label for="includeStaticFile" class="checkbox-label">
+                <i class="bi bi-file-earmark-pdf"></i>
+                <span>
+                  {{ formLanguage === 'ar'
+                    ? 'إضافة ملف الشروط والأحكام إلى عرض السعر'
+                    : 'Include Terms and Conditions with Price Quote'
+                  }}
+                </span>
+              </label>
+            </div>
+            
+            <small class="help-text">
+              {{ formLanguage === 'ar'
+                ? 'عند تفعيل هذا الخيار، سيتم إضافة ملف الشروط والأحكام الثابت تلقائياً في نهاية ملف PDF الخاص بعرض السعر.'
+                : 'When enabled, the static Terms and Conditions file will be automatically added to the end of the price quote PDF.'
+              }}
+            </small>
+          </div>
+
+          <!-- Navigation Buttons -->
+          <div class="form-navigation">
+            <button class="btn-secondary btn-back" (click)="previousStep()" type="button">
+              <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
+              {{ formLanguage === 'ar' ? 'السابق' : 'Back' }}
+            </button>
+          </div>
+
+          <!-- Final Save Section -->
+          <div class="final-save-section">
             <button
-              class="btn-save-quote"
+              class="btn-primary btn-save-final"
               (click)="saveQuote()"
-              [disabled]="savingQuote">
-              <i class="bi" [ngClass]="savingQuote ? 'bi-arrow-clockwise spin' : 'bi-file-earmark-pdf'"></i>
+              [disabled]="savingQuote"
+              type="button">
+              <i class="bi bi-save"></i>
               {{ savingQuote
-                ? (formLanguage === 'ar' ? 'جاري إنشاء عرض السعر...' : 'Creating Quote...')
-                : (formLanguage === 'ar' ? 'حفظ وإنشاء عرض السعر' : 'Save & Generate Quote')
+                ? (formLanguage === 'ar' ? 'جاري الحفظ...' : 'Saving...')
+                : (formLanguage === 'ar' ? 'حفظ عرض السعر' : 'Save Price Quote')
               }}
             </button>
-            <p class="save-hint">
+            
+            <p class="save-info-text">
               {{ formLanguage === 'ar'
-                ? 'سيتم إنشاء ملف PDF تلقائياً بعد الحفظ'
-                : 'PDF will be automatically generated after saving'
+                ? 'سيتم إنشاء ملف PDF تلقائياً بعد الحفظ.'
+                : 'A PDF file will be generated automatically after saving.'
               }}
             </p>
           </div>

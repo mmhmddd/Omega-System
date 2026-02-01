@@ -1,6 +1,6 @@
 // ============================================================
-// MATERIAL REQUEST COMPONENT - WITH ITEMS API INTEGRATION
-// materials-request.component.ts (COMPLETE)
+// MATERIAL REQUEST COMPONENT - WITH TERMS & CONDITIONS SUPPORT
+// materials-request.component.ts (COMPLETE WITH includeStaticFile)
 // ============================================================
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
@@ -21,7 +21,7 @@ interface Department {
   labelEn: string;
 }
 type ViewMode = 'list' | 'create' | 'edit' | 'view';
-type FormStep = 'basic' | 'items';
+type FormStep = 'basic' | 'items' | 'options'; // ✅ ADDED 'options'
 type FormLanguage = 'ar' | 'en';
 type ToastType = 'success' | 'error' | 'info' | 'warning';
 
@@ -96,7 +96,7 @@ export class MaterialsRequestComponent implements OnInit, OnDestroy {
   formError: string = '';
   fieldErrors: { [key: string]: string } = {};
 
-  // Form data
+  // Form data with includeStaticFile
   mrForm: CreateMaterialRequestData = {
     date: this.getTodayDate(),
     section: '',
@@ -104,7 +104,8 @@ export class MaterialsRequestComponent implements OnInit, OnDestroy {
     requestPriority: '',
     requestReason: '',
     items: [],
-    additionalNotes: ''
+    additionalNotes: '',
+    includeStaticFile: false // ✅ NEW: Terms & Conditions flag
   };
 
   // PDF generation
@@ -328,6 +329,17 @@ export class MaterialsRequestComponent implements OnInit, OnDestroy {
     return foundItem ? foundItem.id : '';
   }
 
+  /**
+   * ✅ Check if unit is auto-filled from item selection
+   */
+  hasAutoFilledUnit(index: number): boolean {
+    const selectedItemId = this.getSelectedItemId(index);
+    if (!selectedItemId) return false;
+    
+    const selectedItem = this.availableItems.find(item => item.id === selectedItemId);
+    return !!(selectedItem && selectedItem.unit && this.mrForm.items[index].unit);
+  }
+
   // ========================================
   // INLINE TOAST METHODS
   // ========================================
@@ -472,7 +484,8 @@ export class MaterialsRequestComponent implements OnInit, OnDestroy {
           requestPriority: sourceMR.requestPriority || '',
           requestReason: sourceMR.requestReason || '',
           items: clonedItems,
-          additionalNotes: sourceMR.additionalNotes || ''
+          additionalNotes: sourceMR.additionalNotes || '',
+          includeStaticFile: sourceMR.includeStaticFile || false // ✅ Copy T&C flag
         };
 
         this.currentView = 'create';
@@ -726,7 +739,8 @@ export class MaterialsRequestComponent implements OnInit, OnDestroy {
           requestPriority: freshMR.requestPriority || '',
           requestReason: freshMR.requestReason || '',
           items: clonedItems,
-          additionalNotes: freshMR.additionalNotes || ''
+          additionalNotes: freshMR.additionalNotes || '',
+          includeStaticFile: freshMR.includeStaticFile || false // ✅ Load T&C flag
         };
       },
       error: (error: any) => {
@@ -770,14 +784,15 @@ export class MaterialsRequestComponent implements OnInit, OnDestroy {
       priority: item.priority || ''
     }));
 
-    const mrData = {
+    const mrData: CreateMaterialRequestData = {
       date: this.mrForm.date,
       section: this.mrForm.section,
       project: this.mrForm.project,
       requestPriority: this.mrForm.requestPriority,
       requestReason: this.mrForm.requestReason,
       items: formattedItems,
-      additionalNotes: this.mrForm.additionalNotes
+      additionalNotes: this.mrForm.additionalNotes,
+      includeStaticFile: this.mrForm.includeStaticFile // ✅ Include T&C flag
     };
 
     if (this.currentView === 'create') {
@@ -903,12 +918,16 @@ export class MaterialsRequestComponent implements OnInit, OnDestroy {
   nextStep(): void {
     if (this.currentStep === 'basic') {
       this.currentStep = 'items';
+    } else if (this.currentStep === 'items') {
+      this.currentStep = 'options'; // ✅ Go to options step
     }
   }
 
   previousStep(): void {
     if (this.currentStep === 'items') {
       this.currentStep = 'basic';
+    } else if (this.currentStep === 'options') {
+      this.currentStep = 'items'; // ✅ Go back to items
     }
   }
 
@@ -946,7 +965,8 @@ export class MaterialsRequestComponent implements OnInit, OnDestroy {
       requestPriority: '',
       requestReason: '',
       items: [],
-      additionalNotes: ''
+      additionalNotes: '',
+      includeStaticFile: false // ✅ Reset T&C flag
     };
     this.formPdfAttachment = null;
     this.clearErrors();

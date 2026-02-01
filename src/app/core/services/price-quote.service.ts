@@ -29,7 +29,7 @@ export interface PriceQuote {
   clientPhone: string;
   clientAddress?: string | null;
   clientCity?: string | null;
-  projectName?: string | null; // ✅ NEW FIELD
+  projectName?: string | null;
   date: string;
   revNumber: string;
   validForDays?: number | null;
@@ -38,6 +38,7 @@ export interface PriceQuote {
   taxRate: number;
   items: PriceQuoteItem[];
   customNotes?: string | null;
+  includeStaticFile?: boolean; // ✅ NEW FIELD - Include terms and conditions PDF
   subtotal: number;
   taxAmount: number;
   total: number;
@@ -55,7 +56,7 @@ export interface CreatePriceQuoteData {
   clientPhone: string;
   clientAddress?: string;
   clientCity?: string;
-  projectName?: string; // ✅ NEW FIELD
+  projectName?: string;
   date: string;
   revNumber?: string;
   validForDays?: number;
@@ -64,6 +65,7 @@ export interface CreatePriceQuoteData {
   taxRate?: number;
   items: PriceQuoteItem[];
   customNotes?: string;
+  includeStaticFile?: boolean; // ✅ NEW FIELD - Include terms and conditions PDF
   attachment?: File;
 }
 
@@ -72,7 +74,7 @@ export interface UpdatePriceQuoteData {
   clientPhone?: string;
   clientAddress?: string;
   clientCity?: string;
-  projectName?: string; // ✅ NEW FIELD
+  projectName?: string;
   date?: string;
   revNumber?: string;
   validForDays?: number;
@@ -81,6 +83,7 @@ export interface UpdatePriceQuoteData {
   taxRate?: number;
   items?: PriceQuoteItem[];
   customNotes?: string;
+  includeStaticFile?: boolean; // ✅ NEW FIELD - Include terms and conditions PDF
   attachment?: File;
 }
 
@@ -175,7 +178,6 @@ export class PriceQuoteService {
     if (quoteData.clientCity) {
       formData.append('clientCity', quoteData.clientCity);
     }
-    // ✅ NEW FIELD
     if (quoteData.projectName) {
       formData.append('projectName', quoteData.projectName);
     }
@@ -197,6 +199,11 @@ export class PriceQuoteService {
 
     if (quoteData.customNotes) {
       formData.append('customNotes', quoteData.customNotes);
+    }
+
+    // ✅ NEW FIELD - Include terms and conditions PDF
+    if (quoteData.includeStaticFile !== undefined) {
+      formData.append('includeStaticFile', quoteData.includeStaticFile.toString());
     }
 
     if (quoteData.attachment) {
@@ -274,7 +281,6 @@ export class PriceQuoteService {
     if (updateData.clientCity !== undefined) {
       formData.append('clientCity', updateData.clientCity || '');
     }
-    // ✅ NEW FIELD
     if (updateData.projectName !== undefined) {
       formData.append('projectName', updateData.projectName || '');
     }
@@ -302,6 +308,12 @@ export class PriceQuoteService {
     if (updateData.customNotes !== undefined) {
       formData.append('customNotes', updateData.customNotes);
     }
+
+    // ✅ NEW FIELD - Include terms and conditions PDF
+    if (updateData.includeStaticFile !== undefined) {
+      formData.append('includeStaticFile', updateData.includeStaticFile.toString());
+    }
+
     if (updateData.attachment) {
       formData.append('attachment', updateData.attachment, updateData.attachment.name);
     }

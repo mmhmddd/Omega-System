@@ -1,4 +1,4 @@
-// purchases.component.ts - UPDATED WITH ITEMS API INTEGRATION
+// purchases.component.ts - WITH STATIC PDF TOGGLE (Options Step)
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -10,11 +10,10 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { PurchaseService, PurchaseOrder, POItem, CreatePurchaseOrderData } from '../../core/services/purchase.service';
 import { AuthService } from '../../core/services/auth.service';
 import { SupplierService, Supplier } from '../../core/services/supplier.service';
-// ✅ استيراد ItemsService
 import { ItemsService, SimpleItem } from '../../core/services/items.service';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'view';
-type FormStep = 'basic' | 'items';
+type FormStep = 'basic' | 'items' | 'options'; // ✅ ADDED 'options'
 type FormLanguage = 'ar' | 'en';
 type ToastType = 'success' | 'error' | 'info' | 'warning';
 
@@ -39,7 +38,6 @@ export class PurchasesComponent implements OnInit, OnDestroy {
   currentStep: FormStep = 'basic';
   formLanguage: FormLanguage = 'ar';
 
-  // ✅ قائمة العناصر من Items API
   availableItems: SimpleItem[] = [];
   loadingItems: boolean = false;
 
@@ -74,7 +72,7 @@ export class PurchasesComponent implements OnInit, OnDestroy {
   formError: string = '';
   fieldErrors: { [key: string]: string } = {};
 
-  // Form data
+  // Form data - ✅ ADDED includeStaticFile
   poForm: CreatePurchaseOrderData = {
     date: this.getTodayDate(),
     supplier: '',
@@ -87,7 +85,8 @@ export class PurchasesComponent implements OnInit, OnDestroy {
     tableHeaderText: '',
     taxRate: 0,
     items: [],
-    notes: ''
+    notes: '',
+    includeStaticFile: false // ✅ NEW FIELD
   };
 
   // PDF generation
@@ -198,14 +197,12 @@ export class PurchasesComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private router: Router,
     private sanitizer: DomSanitizer,
-    // ✅ إضافة ItemsService
     private itemsService: ItemsService
   ) {}
 
   ngOnInit(): void {
     this.loadPOs();
     this.loadSuppliers();
-    // ✅ تحميل قائمة العناصر عند بدء التطبيق
     this.loadAvailableItems();
 
     const user = this.authService.currentUserValue;
@@ -231,12 +228,9 @@ export class PurchasesComponent implements OnInit, OnDestroy {
   }
 
   // ========================================
-  // ✅ ITEMS API METHODS
+  // ITEMS API METHODS
   // ========================================
 
-  /**
-   * تحميل قائمة العناصر المتاحة من Items API
-   */
   loadAvailableItems(): void {
     this.loadingItems = true;
     this.itemsService.getSimpleItems().subscribe({
@@ -252,26 +246,18 @@ export class PurchasesComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * عند اختيار عنصر من القائمة، يتم ملء الوصف والوحدة تلقائياً
-   * ✅ إذا لم تكن الوحدة موجودة، يمكن إدخالها يدوياً
-   */
   onItemSelected(index: number, itemId: string): void {
     if (!itemId) {
-      // إذا تم إلغاء الاختيار، امسح الحقول
       this.poForm.items[index].description = '';
       this.poForm.items[index].unit = '';
       return;
     }
 
-    // البحث عن العنصر المختار
     const selectedItem = this.availableItems.find(item => item.id === itemId);
 
     if (selectedItem) {
-      // ملء الوصف تلقائياً
       this.poForm.items[index].description = selectedItem.name;
 
-      // ✅ ملء الوحدة إذا كانت موجودة، وإلا اتركها فارغة للإدخال اليدوي
       if (selectedItem.unit && selectedItem.unit.trim() !== '') {
         this.poForm.items[index].unit = selectedItem.unit;
       } else {
@@ -280,9 +266,6 @@ export class PurchasesComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * التحقق إذا كان العنصر مخصصاً (غير موجود في القائمة)
-   */
   isCustomItem(index: number): boolean {
     const item = this.poForm.items[index];
     if (!item.description) return false;
@@ -292,9 +275,6 @@ export class PurchasesComponent implements OnInit, OnDestroy {
     );
   }
 
-  /**
-   * الحصول على ID العنصر المختار
-   */
   getSelectedItemId(index: number): string {
     const item = this.poForm.items[index];
     if (!item.description) return '';
@@ -306,9 +286,6 @@ export class PurchasesComponent implements OnInit, OnDestroy {
     return foundItem ? foundItem.id : '';
   }
 
-  /**
-   * ✅ التحقق إذا كانت الوحدة مملوءة تلقائياً من القائمة
-   */
   hasAutoFilledUnit(index: number): boolean {
     const selectedItemId = this.getSelectedItemId(index);
     if (!selectedItemId) return false;
@@ -350,7 +327,8 @@ export class PurchasesComponent implements OnInit, OnDestroy {
       tableHeaderText: po.tableHeaderText || '',
       taxRate: po.taxRate || 0,
       items: JSON.parse(JSON.stringify(po.items || [])),
-      notes: po.notes || ''
+      notes: po.notes || '',
+      includeStaticFile: false // ✅ Reset to false on duplicate
     };
 
     this.currentView = 'create';
@@ -367,7 +345,7 @@ export class PurchasesComponent implements OnInit, OnDestroy {
   }
 
   // ========================================
-  // INLINE TOAST METHODS
+  // TOAST METHODS
   // ========================================
 
   showToast(type: ToastType, message: string, duration: number = 3000): void {
@@ -446,7 +424,7 @@ export class PurchasesComponent implements OnInit, OnDestroy {
   }
 
   // ========================================
-  // INLINE CONFIRMATION METHODS
+  // CONFIRMATION METHODS
   // ========================================
 
   showConfirmation(title: string, message: string, callback: () => void): void {
@@ -485,10 +463,6 @@ export class PurchasesComponent implements OnInit, OnDestroy {
       this.validateForm();
     }
   }
-
-  // ========================================
-  // SUPPLIERS METHODS
-  // ========================================
 
   loadSuppliers(): void {
     this.loadingSuppliers = true;
@@ -536,12 +510,6 @@ export class PurchasesComponent implements OnInit, OnDestroy {
   }
 
   private validateForm(): boolean {
-    this.fieldErrors = {};
-    this.formError = '';
-    return true;
-  }
-
-  private validateBasicFields(): boolean {
     this.fieldErrors = {};
     this.formError = '';
     return true;
@@ -714,7 +682,8 @@ export class PurchasesComponent implements OnInit, OnDestroy {
           tableHeaderText: freshPO.tableHeaderText || '',
           taxRate: freshPO.taxRate || 0,
           items: JSON.parse(JSON.stringify(freshPO.items || [])),
-          notes: freshPO.notes || ''
+          notes: freshPO.notes || '',
+          includeStaticFile: freshPO.includeStaticFile || false // ✅ Load existing value
         };
       },
       error: (error: any) => {
@@ -746,6 +715,7 @@ export class PurchasesComponent implements OnInit, OnDestroy {
     });
   }
 
+  // ✅ UPDATED: Save with includeStaticFile
   savePO(): void {
     this.savingPO = true;
     this.clearErrors();
@@ -762,7 +732,8 @@ export class PurchasesComponent implements OnInit, OnDestroy {
       tableHeaderText: this.poForm.tableHeaderText,
       taxRate: this.poForm.taxRate,
       items: this.poForm.items,
-      notes: this.poForm.notes
+      notes: this.poForm.notes,
+      includeStaticFile: this.poForm.includeStaticFile // ✅ Include in save
     };
 
     if (this.currentView === 'create') {
@@ -882,17 +853,21 @@ export class PurchasesComponent implements OnInit, OnDestroy {
   }
 
   // ========================================
-  // FORM NAVIGATION
+  // FORM NAVIGATION - ✅ UPDATED for 3 steps
   // ========================================
 
   nextStep(): void {
     if (this.currentStep === 'basic') {
       this.currentStep = 'items';
+    } else if (this.currentStep === 'items') {
+      this.currentStep = 'options'; // ✅ Navigate to options step
     }
   }
 
   previousStep(): void {
-    if (this.currentStep === 'items') {
+    if (this.currentStep === 'options') {
+      this.currentStep = 'items'; // ✅ Go back from options to items
+    } else if (this.currentStep === 'items') {
       this.currentStep = 'basic';
     }
   }
@@ -936,7 +911,8 @@ export class PurchasesComponent implements OnInit, OnDestroy {
       tableHeaderText: '',
       taxRate: 0,
       items: [],
-      notes: ''
+      notes: '',
+      includeStaticFile: false // ✅ Reset to false
     };
     this.formPdfAttachment = null;
     this.clearErrors();

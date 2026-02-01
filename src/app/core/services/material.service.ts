@@ -1,5 +1,5 @@
 // ============================================================
-// MATERIAL REQUEST SERVICE - MATCHING PURCHASE ORDER DESIGN
+// MATERIAL REQUEST SERVICE - WITH TERMS AND CONDITIONS SUPPORT
 // src/app/core/services/material.service.ts
 // ============================================================
 
@@ -32,6 +32,7 @@ export interface MaterialRequest {
   requestReason: string;
   items: MRItem[];
   additionalNotes?: string;
+  includeStaticFile?: boolean; // ✅ NEW: Terms & Conditions flag
   language: 'ar' | 'en';
   status: 'pending' | 'approved' | 'rejected';
   pdfFilename?: string;
@@ -84,6 +85,7 @@ export interface CreateMaterialRequestData {
   requestReason: string;
   items: MRItem[];
   additionalNotes?: string;
+  includeStaticFile?: boolean; // ✅ NEW: Terms & Conditions flag
 }
 
 /**
@@ -181,17 +183,29 @@ export class MaterialService {
   }
 
   /**
-   * Create new material request
+   * ✅ Create new material request - WITH TERMS & CONDITIONS SUPPORT
    */
   createMaterialRequest(data: CreateMaterialRequestData): Observable<SingleMaterialRequestResponse> {
-    return this.http.post<SingleMaterialRequestResponse>(this.API_URL, data);
+    // ✅ Ensure includeStaticFile is sent as boolean
+    const payload = {
+      ...data,
+      includeStaticFile: data.includeStaticFile === true
+    };
+    
+    return this.http.post<SingleMaterialRequestResponse>(this.API_URL, payload);
   }
 
   /**
-   * Update existing material request
+   * ✅ Update existing material request - WITH TERMS & CONDITIONS SUPPORT
    */
   updateMaterialRequest(id: string, data: Partial<CreateMaterialRequestData>): Observable<SingleMaterialRequestResponse> {
-    return this.http.put<SingleMaterialRequestResponse>(`${this.API_URL}/${id}`, data);
+    // ✅ Ensure includeStaticFile is sent as boolean if present
+    const payload = { ...data };
+    if ('includeStaticFile' in data) {
+      payload.includeStaticFile = data.includeStaticFile === true;
+    }
+    
+    return this.http.put<SingleMaterialRequestResponse>(`${this.API_URL}/${id}`, payload);
   }
 
   /**
@@ -202,7 +216,11 @@ export class MaterialService {
   }
 
   /**
-   * Generate PDF for material request with optional attachment
+   * ✅ Generate PDF for material request with optional attachment
+   * 
+   * Note: The Terms & Conditions PDF is automatically included based on
+   * the includeStaticFile flag stored in the material request data.
+   * This method only handles user-uploaded attachments.
    */
   generatePDF(id: string, attachmentFile?: File): Observable<MRPDFGenerateResponse> {
     const formData = new FormData();

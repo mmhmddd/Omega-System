@@ -1,7 +1,4 @@
-<!-- ============================================================
-     MATERIAL REQUEST COMPONENT HTML - UPDATED WITH ITEMS API
-     materials-request.component.html (UPDATED)
-     ============================================================ -->
+<!-- materials-request.component.html - WITH TERMS & CONDITIONS SUPPORT -->
 
 <div class="materials-container">
 
@@ -134,6 +131,7 @@
             English
           </button>
         </div>
+        
         <button class="btn-primary" (click)="createMR()">
           <i class="bi bi-plus-lg"></i>
           {{ formLanguage === 'ar' ? 'إنشاء طلب مواد' : 'Create Material Request' }}
@@ -147,7 +145,7 @@
         <i class="bi bi-search"></i>
         <input
           type="text"
-          [placeholder]="formLanguage === 'ar' ? 'بحث برقم الطلب، القسم، المشروع ...' : 'Search by MR number, section, project ...'"
+          [placeholder]="formLanguage === 'ar' ? 'بحث برقم الطلب، القسم، المشروع...' : 'Search by MR number, section, project...'"
           [(ngModel)]="searchTerm"
           (ngModelChange)="onSearchChange()"
           (keyup.enter)="onSearch()"
@@ -173,10 +171,10 @@
         <tbody *ngIf="!loading && materialRequests.length > 0">
           <tr *ngFor="let mr of materialRequests">
             <td class="mr-number text-center">{{ mr.mrNumber }}</td>
-            <td class="mr-section text-center">{{ mr.section }}</td>
-            <td class="mr-project text-center">{{ mr.project }}</td>
+            <td class="text-center">{{ mr.section }}</td>
+            <td class="text-center">{{ mr.project }}</td>
             <td class="text-center">
-              <span class="priority-badge" [class]="'priority-' + mr.requestPriority">
+              <span class="priority-badge" [ngClass]="'priority-' + mr.requestPriority">
                 {{ getPriorityLabel(mr.requestPriority) }}
               </span>
             </td>
@@ -207,12 +205,15 @@
                 [title]="formLanguage === 'ar' ? 'تحميل PDF' : 'Download PDF'">
                 <i class="bi bi-download"></i>
               </button>
+
+              <!-- Duplicate Button -->
               <button
                 class="btn-icon btn-duplicate"
                 (click)="openDuplicateModal(mr)"
                 [title]="formLanguage === 'ar' ? 'نسخ وإعادة استخدام' : 'Duplicate & Reuse'">
                 <i class="bi bi-files"></i>
               </button>
+
               <button
                 class="btn-icon btn-edit"
                 (click)="editMR(mr)"
@@ -267,6 +268,7 @@
       </button>
     </div>
   </div>
+
   <!-- CREATE/EDIT VIEW -->
   <div
     *ngIf="currentView === 'create' || currentView === 'edit'"
@@ -320,10 +322,15 @@
           [class.active]="currentStep === 'items'"
           [class.has-error]="fieldErrors['items']"
           (click)="currentStep = 'items'">
-          <span>
-            {{ formLanguage === 'ar' ? 'العناصر (اختياري)' : 'Items (Optional)' }}
-          </span>
+          {{ formLanguage === 'ar' ? 'العناصر (اختياري)' : 'Items (Optional)' }}
           <span class="item-count" [class.error-count]="fieldErrors['items']">{{ getItemsCount() }}</span>
+        </button>
+        <!-- ✅ PDF Options Button -->
+        <button
+          class="sidebar-step"
+          [class.active]="currentStep === 'options'"
+          (click)="currentStep = 'options'">
+          {{ formLanguage === 'ar' ? 'الشروط والأحكام' : 'Terms & Conditions' }}
         </button>
       </div>
 
@@ -333,7 +340,7 @@
         <!-- STEP 1: Basic Info -->
         <div *ngIf="currentStep === 'basic'" class="step-content">
           <h2 class="step-title">
-            {{ formLanguage === 'ar' ? 'المعلومات الأساسية (اختيارية)' : 'Basic Info (Optional)' }}
+            {{ formLanguage === 'ar' ? 'المعلومات الأساسية' : 'Basic Information' }}
           </h2>
 
           <!-- Info Alert -->
@@ -342,8 +349,8 @@
             <div style="flex: 1;">
               <p>
                 {{ formLanguage === 'ar'
-                  ? 'جميع الحقول اختيارية. فقط الحقول المملوءة ستظهر في ملف PDF.'
-                  : 'All fields are optional. Only filled fields will appear in the PDF.'
+                  ? 'جميع الحقول مطلوبة لإنشاء طلب المواد.'
+                  : 'All fields are required to create the material request.'
                 }}
               </p>
             </div>
@@ -368,40 +375,34 @@
             </small>
           </div>
 
-          <!-- Request Information Section -->
-          <div class="section-divider">
-            <span class="section-title">{{ formLanguage === 'ar' ? 'معلومات الطلب' : 'Request Information' }}</span>
-          </div>
-
-          <!-- Section Field -->
+          <!-- Section Dropdown -->
           <div class="form-group">
             <label>
               <i class="bi bi-building"></i>
-              {{ formLanguage === 'ar' ? 'القسم' : 'Department' }}
+              {{ formLanguage === 'ar' ? 'القسم' : 'Section' }}
             </label>
             <select
               [(ngModel)]="mrForm.section"
               class="form-control"
               [class.error]="fieldErrors['section']"
-              required
-            >
+              required>
               <option value="" disabled selected>
-                {{ formLanguage === 'ar' ? 'اختر القسم' : 'Select Department' }}
+                {{ formLanguage === 'ar' ? 'اختر القسم' : 'Select Section' }}
               </option>
-              <option *ngFor="let dept of departments" [value]="getDepartmentLabel(dept)">
+              <option *ngFor="let dept of departments" [value]="dept.value">
                 {{ getDepartmentLabel(dept) }}
               </option>
             </select>
-            <small class="error-message" *ngIf="fieldErrors['production']">
+            <small class="error-message" *ngIf="fieldErrors['section']">
               <i class="bi bi-exclamation-circle"></i>
-              {{ fieldErrors['production'] }}
+              {{ fieldErrors['section'] }}
             </small>
           </div>
 
-          <!-- Project Field -->
+          <!-- Project -->
           <div class="form-group">
             <label>
-              <i class="bi bi-briefcase"></i>
+              <i class="bi bi-folder"></i>
               {{ formLanguage === 'ar' ? 'المشروع' : 'Project' }}
             </label>
             <input
@@ -418,23 +419,22 @@
             </small>
           </div>
 
-          <!-- Request Priority Field -->
+          <!-- Request Priority -->
           <div class="form-group">
             <label>
-              <i class="bi bi-flag"></i>
+              <i class="bi bi-exclamation-triangle"></i>
               {{ formLanguage === 'ar' ? 'أولوية الطلب' : 'Request Priority' }}
             </label>
             <select
               [(ngModel)]="mrForm.requestPriority"
               class="form-control"
               [class.error]="fieldErrors['requestPriority']"
-              required
-            >
+              required>
               <option value="" disabled selected>
                 {{ formLanguage === 'ar' ? 'اختر الأولوية' : 'Select Priority' }}
               </option>
-              <option *ngFor="let option of priorityOptions" [value]="option.value">
-                {{ formLanguage === 'ar' ? option.labelAr : option.labelEn }}
+              <option *ngFor="let priority of priorityOptions" [value]="priority.value">
+                {{ formLanguage === 'ar' ? priority.labelAr : priority.labelEn }}
               </option>
             </select>
             <small class="error-message" *ngIf="fieldErrors['requestPriority']">
@@ -443,18 +443,18 @@
             </small>
           </div>
 
-          <!-- Request Reason Field -->
+          <!-- Request Reason -->
           <div class="form-group">
             <label>
-              <i class="bi bi-question-circle"></i>
+              <i class="bi bi-chat-left-text"></i>
               {{ formLanguage === 'ar' ? 'سبب الطلب' : 'Request Reason' }}
             </label>
             <textarea
               [(ngModel)]="mrForm.requestReason"
-              [placeholder]="formLanguage === 'ar' ? 'اذكر سبب الطلب' : 'State the reason for request'"
+              [placeholder]="formLanguage === 'ar' ? 'اشرح سبب طلب المواد' : 'Explain the reason for requesting materials'"
               class="form-control"
+              rows="4"
               [class.error]="fieldErrors['requestReason']"
-              rows="3"
               required
             ></textarea>
             <small class="error-message" *ngIf="fieldErrors['requestReason']">
@@ -463,15 +463,15 @@
             </small>
           </div>
 
-          <!-- Additional Notes Field -->
+          <!-- Additional Notes -->
           <div class="form-group">
             <label>
-              <i class="bi bi-chat-left-text"></i>
-              {{ formLanguage === 'ar' ? 'ملاحظات إضافية' : 'Additional Notes' }}
+              <i class="bi bi-sticky"></i>
+              {{ formLanguage === 'ar' ? 'ملاحظات إضافية (اختياري)' : 'Additional Notes (Optional)' }}
             </label>
             <textarea
               [(ngModel)]="mrForm.additionalNotes"
-              [placeholder]="formLanguage === 'ar' ? 'ملاحظات إضافية (اختياري)' : 'Additional notes (optional)'"
+              [placeholder]="formLanguage === 'ar' ? 'أي ملاحظات إضافية' : 'Any additional notes'"
               class="form-control"
               rows="3"
             ></textarea>
@@ -515,17 +515,17 @@
           </div>
 
           <div class="form-navigation">
-            <button class="btn-primary btn-next" (click)="nextStep()">
+            <button class="btn-primary btn-next" (click)="nextStep()" type="button">
               {{ formLanguage === 'ar' ? 'التالي' : 'Next' }}
               <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-left' : 'bi-arrow-right'"></i>
             </button>
           </div>
         </div>
 
-        <!-- ✅ STEP 2: Items WITH API SELECTION -->
+        <!-- STEP 2: Items -->
         <div *ngIf="currentStep === 'items'" class="step-content">
           <h2 class="step-title">
-            {{ formLanguage === 'ar' ? 'المواد المطلوبة (اختياري)' : 'Required Materials (Optional)' }}
+            {{ formLanguage === 'ar' ? 'العناصر (اختياري)' : 'Items (Optional)' }}
             <span class="optional-badge">{{ formLanguage === 'ar' ? 'اختياري' : 'Optional' }}</span>
           </h2>
 
@@ -535,8 +535,8 @@
             <div style="flex: 1;">
               <p>
                 {{ formLanguage === 'ar'
-                  ? 'إضافة العناصر اختيارية. يمكنك اختيار صنف من القائمة أو إدخال صنف مخصص.'
-                  : 'Adding items is optional. You can select an item from the list or enter a custom item.'
+                  ? 'يمكنك اختيار صنف من القائمة أو إدخال صنف مخصص. إذا لم تكن الوحدة متوفرة، يمكنك إدخالها يدوياً.'
+                  : 'You can select an item from the list or enter a custom item. If the unit is not available, you can enter it manually.'
                 }}
               </p>
             </div>
@@ -548,7 +548,7 @@
           </div>
 
           <div class="items-section">
-            <!-- Items List - CARD DESIGN WITH API SELECTION -->
+            <!-- Items List - CARD DESIGN -->
             <div class="items-body" *ngIf="mrForm.items.length > 0">
               <ng-container *ngFor="let item of mrForm.items; let i = index">
                 <div class="item-card">
@@ -561,7 +561,7 @@
                     </button>
                   </div>
 
-                  <!-- ✅ Card Body WITH ITEM SELECTION -->
+                  <!-- Card Body WITH ITEM SELECTION -->
                   <div class="item-card-body">
 
                     <!-- Row 1: Item Selection Dropdown -->
@@ -571,14 +571,14 @@
                         {{ formLanguage === 'ar' ? 'الصنف' : 'Item' }}
                       </label>
 
-                      <!-- ✅ Dropdown to select from Items API -->
+                      <!-- Dropdown to select from Items API -->
                       <select
                         [value]="getSelectedItemId(i)"
                         (change)="onItemSelected(i, $any($event.target).value)"
                         class="item-input item-select"
                         [class.error]="fieldErrors['item_' + i + '_description']">
                         <option value="">
-                          {{ formLanguage === 'ar' ? 'اختر من القائمة' : 'Select from list or enter manually' }}
+                          {{ formLanguage === 'ar' ? 'اختر من القائمة أو أدخل يدوياً' : 'Select from list or enter manually' }}
                         </option>
                         <optgroup [label]="formLanguage === 'ar' ? '📦 الأصناف المتاحة' : '📦 Available Items'">
                           <option *ngFor="let availableItem of availableItems" [value]="availableItem.id">
@@ -588,7 +588,7 @@
                         </optgroup>
                       </select>
 
-                      <!-- ✅ Loading indicator -->
+                      <!-- Loading indicator -->
                       <div *ngIf="loadingItems" class="loading-items">
                         <i class="bi bi-arrow-clockwise spin"></i>
                         {{ formLanguage === 'ar' ? 'جاري تحميل الأصناف...' : 'Loading items...' }}
@@ -600,7 +600,7 @@
                       </small>
                     </div>
 
-                    <!-- ✅ Custom Description Input (shows when no item is selected or custom item) -->
+                    <!-- Custom Description Input (shows when no item is selected or custom item) -->
                     <div class="item-field" *ngIf="!getSelectedItemId(i) || isCustomItem(i)">
                       <label class="field-label">
                         <i class="bi bi-pencil"></i>
@@ -617,12 +617,13 @@
 
                     <!-- Row 2: Unit and Quantity (2 Columns) -->
                     <div class="item-row-fields">
-                      <!-- ✅ Unit (Auto-filled or manual) -->
+                      <!-- Unit (Auto-filled or manual) -->
                       <div class="item-field">
                         <label class="field-label">
                           <i class="bi bi-rulers"></i>
                           {{ formLanguage === 'ar' ? 'الوحدة' : 'Unit' }}
-                          <span *ngIf="getSelectedItemId(i)" class="auto-filled-badge">
+                          <!-- Show "تلقائي" badge ONLY if unit is auto-filled AND has value -->
+                          <span *ngIf="hasAutoFilledUnit(i)" class="auto-filled-badge">
                             {{ formLanguage === 'ar' ? 'تلقائي' : 'Auto' }}
                           </span>
                         </label>
@@ -631,9 +632,16 @@
                           [(ngModel)]="item.unit"
                           class="item-input"
                           [class.error]="fieldErrors['item_' + i + '_unit']"
-                          [placeholder]="formLanguage === 'ar' ? 'مثال: كجم، متر' : 'e.g. kg, meter'"
-                          [readonly]="!!getSelectedItemId(i)"
+                          [class.auto-filled-input]="hasAutoFilledUnit(i)"
+                          [placeholder]="formLanguage === 'ar' ? 'مثال: كجم، قطعة' : 'e.g. kg, piece'"
                         />
+                        <small class="help-text" *ngIf="getSelectedItemId(i) && !hasAutoFilledUnit(i)">
+                          <i class="bi bi-info-circle"></i>
+                          {{ formLanguage === 'ar'
+                            ? 'الوحدة غير متوفرة. يمكنك إدخالها يدوياً.'
+                            : 'Unit not available. You can enter it manually.'
+                          }}
+                        </small>
                         <small class="error-message" *ngIf="fieldErrors['item_' + i + '_unit']">
                           <i class="bi bi-exclamation-circle"></i>
                           {{ fieldErrors['item_' + i + '_unit'] }}
@@ -667,8 +675,8 @@
                       <!-- Required Date -->
                       <div class="item-field">
                         <label class="field-label">
-                          <i class="bi bi-calendar-check"></i>
-                          {{ formLanguage === 'ar' ? 'مطلوب بتاريخ' : 'Required Date' }}
+                          <i class="bi bi-calendar-event"></i>
+                          {{ formLanguage === 'ar' ? 'التاريخ المطلوب' : 'Required Date' }}
                         </label>
                         <input
                           type="date"
@@ -680,15 +688,15 @@
                       <!-- Item Priority -->
                       <div class="item-field">
                         <label class="field-label">
-                          <i class="bi bi-flag-fill"></i>
-                          {{ formLanguage === 'ar' ? 'أولوية المادة' : 'Material Priority' }}
+                          <i class="bi bi-flag"></i>
+                          {{ formLanguage === 'ar' ? 'الأولوية' : 'Priority' }}
                         </label>
                         <select
                           [(ngModel)]="item.priority"
                           class="item-input">
-                          <option value="">{{ formLanguage === 'ar' ? 'اختيار (اختياري)' : 'Select (optional)' }}</option>
-                          <option *ngFor="let option of priorityOptions" [value]="option.value">
-                            {{ formLanguage === 'ar' ? option.labelAr : option.labelEn }}
+                          <option value="">{{ formLanguage === 'ar' ? 'اختر الأولوية' : 'Select Priority' }}</option>
+                          <option *ngFor="let priority of priorityOptions" [value]="priority.value">
+                            {{ formLanguage === 'ar' ? priority.labelAr : priority.labelEn }}
                           </option>
                         </select>
                       </div>
@@ -720,104 +728,92 @@
               <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
               {{ formLanguage === 'ar' ? 'السابق' : 'Back' }}
             </button>
+            <!-- ✅ Next button to go to Options -->
+            <button class="btn-primary btn-next" (click)="nextStep()" type="button">
+              {{ formLanguage === 'ar' ? 'التالي' : 'Next' }}
+              <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-left' : 'bi-arrow-right'"></i>
+            </button>
           </div>
         </div>
 
-      </div>
-    </div>
-  </div>
-  <!-- PDF GENERATION MODAL -->
-  <div *ngIf="showPDFModal" class="modal-overlay" (click)="closePDFModal()">
-    <div class="modal-content pdf-modal" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <div class="modal-title-section">
-          <i class="bi bi-file-earmark-pdf modal-icon"></i>
-          <h2>{{ formLanguage === 'ar' ? 'إنشاء ملف PDF' : 'Generate PDF Document' }}</h2>
-        </div>
-        <button class="btn-close" (click)="closePDFModal()">
-          <i class="bi bi-x-lg"></i>
-        </button>
-      </div>
-
-      <div class="modal-body">
-        <div class="info-box">
-          <i class="bi bi-info-circle"></i>
-          <p>{{ formLanguage === 'ar'
-            ? 'سيتم إنشاء ملف PDF لطلب المواد هذا. يمكنك إرفاق ملف PDF إضافي اختيارياً ليتم دمجه مع الطلب.'
-            : 'A PDF document will be generated for this material request. You can optionally attach an additional PDF file to be merged with the request.'
-          }}</p>
-        </div>
-
-        <div class="pdf-info-card">
-          <div class="pdf-info-row">
-            <span class="pdf-info-label">
-              <i class="bi bi-hash"></i>
-              {{ formLanguage === 'ar' ? 'رقم الطلب' : 'MR Number' }}
-            </span>
-            <span class="pdf-info-value">{{ selectedMRNumber }}</span>
-          </div>
-          <div class="pdf-info-row">
-            <span class="pdf-info-label">
-              <i class="bi bi-file-text"></i>
-              {{ formLanguage === 'ar' ? 'اسم الملف' : 'File Name' }}
-            </span>
-            <span class="pdf-info-value">{{ getPDFFilename() }}</span>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="upload-label">
-            <i class="bi bi-paperclip"></i>
-            {{ formLanguage === 'ar' ? 'إرفاق ملف PDF إضافي (اختياري)' : 'Attach Additional PDF (Optional)' }}
-          </label>
-
-          <div class="file-upload-wrapper">
-            <input
-              type="file"
-              id="pdf-attachment"
-              accept=".pdf"
-              (change)="onPDFFileSelected($event)"
-              class="file-input"
-            />
-            <label for="pdf-attachment" class="file-upload-label">
-              <i class="bi bi-cloud-upload"></i>
-              <span>{{ formLanguage === 'ar' ? 'اختر ملف PDF' : 'Choose PDF File' }}</span>
-            </label>
+        <!-- ✅ STEP 3: PDF OPTIONS (NEW SECTION) -->
+        <div *ngIf="currentStep === 'options'" class="step-content">
+          <h2 class="step-title">
+            {{ formLanguage === 'ar' ? 'الشروط والأحكام' : 'Terms & Conditions' }}
+          </h2>           
+          <!-- Info Alert -->
+          <div class="info-alert">
+            <i class="bi bi-info-circle"></i>
+            <div style="flex: 1;">
+              <p>
+                {{ formLanguage === 'ar'
+                  ? 'يمكنك اختيار إضافة ملف PDF ثابت (الشروط والأحكام) إلى طلب المواد الخاص بك. سيتم دمج الملف تلقائياً في نهاية المستند عند تفعيل هذا الخيار.'
+                  : 'You can choose to include a static PDF file (Terms and Conditions) with your material request. The file will be automatically merged at the end of the document when this option is enabled.'
+                }}
+              </p>
+            </div>
           </div>
 
-          <div *ngIf="pdfAttachment" class="file-selected">
-            <i class="bi bi-check-circle-fill"></i>
-            <span class="file-name">{{ pdfAttachment.name }}</span>
-            <button class="btn-remove-file" (click)="removePDFAttachment()" type="button">
-              <i class="bi bi-x"></i>
+          <!-- Static PDF Checkbox -->
+          <div class="static-pdf-option">
+            <div class="checkbox-container">
+              <input
+                type="checkbox"
+                id="includeStaticFile"
+                [(ngModel)]="mrForm.includeStaticFile"
+                class="checkbox-input"
+              />
+              <label for="includeStaticFile" class="checkbox-label">
+                <i class="bi bi-file-earmark-pdf"></i>
+                <span>
+                  {{ formLanguage === 'ar'
+                    ? 'إضافة ملف الشروط والأحكام إلى طلب المواد'
+                    : 'Include Terms and Conditions with Material Request'
+                  }}
+                </span>
+              </label>
+            </div>
+            
+            <small class="help-text">
+              {{ formLanguage === 'ar'
+                ? 'عند تفعيل هذا الخيار، سيتم إضافة ملف الشروط والأحكام الثابت تلقائياً في نهاية ملف PDF الخاص بطلب المواد.'
+                : 'When enabled, the static Terms and Conditions file will be automatically added to the end of the material request PDF.'
+              }}
+            </small>
+          </div>
+
+          <!-- Navigation Buttons -->
+          <div class="form-navigation">
+            <button class="btn-secondary btn-back" (click)="previousStep()" type="button">
+              <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
+              {{ formLanguage === 'ar' ? 'السابق' : 'Back' }}
             </button>
           </div>
 
-          <small class="help-text">
-            <i class="bi bi-exclamation-circle"></i>
-            {{ formLanguage === 'ar'
-              ? 'الحد الأقصى لحجم الملف: 10 ميجابايت. سيتم دمج الملف المرفق مع الطلب.'
-              : 'Maximum file size: 10MB. The attached file will be merged with the request.'
-            }}
-          </small>
+          <!-- Final Save Section -->
+          <div class="final-save-section">
+            <button
+              class="btn-primary btn-save-final"
+              (click)="saveMR()"
+              [disabled]="savingMR"
+              type="button">
+              <i class="bi bi-save"></i>
+              {{ savingMR
+                ? (formLanguage === 'ar' ? 'جاري الحفظ...' : 'Saving...')
+                : (formLanguage === 'ar' ? 'حفظ طلب المواد' : 'Save Material Request')
+              }}
+            </button>
+            
+            <p class="save-info-text">
+              {{ formLanguage === 'ar'
+                ? 'سيتم إنشاء ملف PDF تلقائياً بعد الحفظ.'
+                : 'A PDF file will be generated automatically after saving.'
+              }}
+            </p>
+          </div>
         </div>
-      </div>
+        <!-- ✅ END OF OPTIONS STEP -->
 
-      <div class="modal-footer">
-        <button class="btn-secondary" (click)="closePDFModal()" [disabled]="generatingPDF">
-          <i class="bi bi-x-circle"></i>
-          {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
-        </button>
-        <button
-          class="btn-primary btn-generate"
-          (click)="generatePDF()"
-          [disabled]="generatingPDF">
-          <i class="bi" [ngClass]="generatingPDF ? 'bi-arrow-clockwise spin' : 'bi-file-earmark-pdf'"></i>
-          {{ generatingPDF
-            ? (formLanguage === 'ar' ? 'جاري الإنشاء...' : 'Generating...')
-            : (formLanguage === 'ar' ? 'إنشاء PDF' : 'Generate PDF')
-          }}
-        </button>
       </div>
     </div>
   </div>
@@ -849,7 +845,7 @@
     </div>
   </div>
 
-  <!-- DUPLICATE CONFIRMATION MODAL -->
+  <!-- DUPLICATE MODAL -->
   <div *ngIf="showDuplicateModal" class="confirmation-overlay" (click)="closeDuplicateModal()">
     <div class="confirmation-modal" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'" (click)="$event.stopPropagation()">
       <div class="modal-header warning">
@@ -869,8 +865,8 @@
           <br><br>
           <span style="color: #d97706; font-weight: 500;">
             {{ formLanguage === 'ar'
-              ? 'سيتم إنشاء طلب جديد بنفس البيانات مع إمكانية التعديل.'
-              : 'A new Material Request will be created with the same data that you can modify.'
+              ? 'سيتم إنشاء طلب مواد جديد بنفس البيانات مع إمكانية التعديل.'
+              : 'A new material request will be created with the same data that you can modify.'
             }}
           </span>
         </p>

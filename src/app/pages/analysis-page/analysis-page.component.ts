@@ -11,7 +11,7 @@ Chart.register(...registerables);
 // Import all services
 import { CuttingService, CuttingStatisticsResponse } from '../../core/services/cutting.service';
 import { PriceQuoteService } from '../../core/services/price-quote.service';
-import { PurchaseService, PurchaseOrderResponse } from '../../core/services/purchase.service';
+import { PurchaseService, POResponse } from '../../core/services/purchase.service';
 import { ReceiptService, ReceiptResponse } from '../../core/services/receipt.service';
 import { RfqService, RFQStatsResponse } from '../../core/services/rfq.service';
 import { SecretariatService, FormsResponse } from '../../core/services/secretariat.service';
@@ -290,11 +290,11 @@ export class AnalysisPageComponent implements OnInit, OnDestroy {
         subtitle: 'عرض سعر'
       },
       {
-        title: 'أوامر الشراء',
+        title: 'طلبات الشراء',
         value: this.systemOverview.totalPurchaseOrders,
         icon: 'bi-cart',
         color: '#06b6d4',
-        subtitle: 'أمر شراء'
+        subtitle: 'طلب شراء'
       },
       {
         title: 'إشعارات الاستلام',
