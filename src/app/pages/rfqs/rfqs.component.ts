@@ -12,7 +12,7 @@ import { SupplierService, Supplier } from '../../core/services/supplier.service'
 import { AuthService } from '../../core/services/auth.service';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'view';
-type FormStep = 'basic' | 'items';
+type FormStep = 'basic' | 'items' | 'options';
 type FormLanguage = 'ar' | 'en';
 type ToastType = 'success' | 'error' | 'info' | 'warning';
 
@@ -92,16 +92,18 @@ export class RFQsComponent implements OnInit, OnDestroy {
   
   // Form data
   rfqForm: CreateRFQData = {
-    date: this.getTodayDate(),
-    time: this.getCurrentTime(),
-    requester: '',
-    production: '',
-    supplier: '',
-    supplierAddress: '',
-    urgent: false,
-    items: [],
-    notes: ''
-  };
+  date: this.getTodayDate(),
+  time: this.getCurrentTime(),
+  requester: '',
+  production: '',
+  supplier: '',
+  supplierAddress: '',
+  urgent: false,
+  items: [],
+  notes: '',
+  includeStaticFile: false  // ✅ ADD THIS LINE
+};
+
   
   // PDF generation
   showPDFModal: boolean = false;
@@ -265,15 +267,16 @@ export class RFQsComponent implements OnInit, OnDestroy {
 
     // Populate form with duplicated data
     this.rfqForm = {
-      date: this.getTodayDate(), // Use today's date for new RFQ
-      time: this.getCurrentTime(), // Use current time for new RFQ
+      date: this.getTodayDate(),
+      time: this.getCurrentTime(),
       requester: rfq.requester || '',
       production: rfq.production || '',
       supplier: rfq.supplier || '',
       supplierAddress: rfq.supplierAddress || '',
       urgent: rfq.urgent || false,
-      items: JSON.parse(JSON.stringify(rfq.items || [])), // Deep clone items
-      notes: rfq.notes || ''
+      items: JSON.parse(JSON.stringify(rfq.items || [])),
+      notes: rfq.notes || '',
+      includeStaticFile: false  // ✅ ADD THIS LINE (always false for duplicates)
     };
 
     // Set view to CREATE (not edit)
@@ -641,7 +644,8 @@ export class RFQsComponent implements OnInit, OnDestroy {
           supplierAddress: freshRFQ.supplierAddress || '',
           urgent: freshRFQ.urgent || false,
           items: JSON.parse(JSON.stringify(freshRFQ.items || [])),
-          notes: freshRFQ.notes || ''
+          notes: freshRFQ.notes || '',
+          includeStaticFile: freshRFQ.includeStaticFile || false  // ✅ ADD THIS LINE
         };
       },
       error: (error: any) => {
@@ -691,7 +695,8 @@ export class RFQsComponent implements OnInit, OnDestroy {
       supplierAddress: this.rfqForm.supplierAddress,
       urgent: this.rfqForm.urgent,
       items: this.rfqForm.items,
-      notes: this.rfqForm.notes
+      notes: this.rfqForm.notes,
+      includeStaticFile: this.rfqForm.includeStaticFile  // ✅ ADD THIS LINE
     };
 
     if (this.currentView === 'create') {
@@ -816,14 +821,17 @@ export class RFQsComponent implements OnInit, OnDestroy {
 
   nextStep(): void {
     if (this.currentStep === 'basic') {
-      // ✅ NO VALIDATION - Just move to next step
       this.currentStep = 'items';
+    } else if (this.currentStep === 'items') {
+      this.currentStep = 'options';
     }
   }
 
   previousStep(): void {
     if (this.currentStep === 'items') {
       this.currentStep = 'basic';
+    } else if (this.currentStep === 'options') {
+      this.currentStep = 'items';
     }
   }
 
@@ -865,7 +873,8 @@ export class RFQsComponent implements OnInit, OnDestroy {
       supplierAddress: '',
       urgent: false,
       items: [],
-      notes: ''
+      notes: '',
+      includeStaticFile: false  // ✅ ADD THIS LINE
     };
     this.formPdfAttachment = null;
     this.clearErrors();

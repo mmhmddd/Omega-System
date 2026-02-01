@@ -323,6 +323,12 @@
           </span>
           <span class="item-count" [class.error-count]="fieldErrors['items']">{{ getItemsCount() }}</span>
         </button>
+        <button
+          class="sidebar-step"
+          [class.active]="currentStep === 'options'"
+          (click)="currentStep = 'options'">
+          {{ formLanguage === 'ar' ? 'الشروط والأحكام' : 'Terms & Conditions' }}
+        </button>
       </div>
 
       <!-- Form Fields -->
@@ -738,6 +744,83 @@
           </div>
         </div>
 
+        <!-- STEP 3: Terms & Conditions -->
+         <!-- ✅ NEW: STEP 3 - Terms & Conditions -->
+<div *ngIf="currentStep === 'options'" class="step-content">
+  <h2 class="step-title">
+    {{ formLanguage === 'ar' ? 'الشروط والأحكام' : 'Terms & Conditions' }}
+  </h2>
+
+  <div class="info-alert">
+    <i class="bi bi-info-circle"></i>
+    <div style="flex: 1;">
+      <p>
+        {{ formLanguage === 'ar'
+          ? 'يمكنك اختيار إضافة الشروط والأحكام إلى طلب التسعير الخاص بك. سيتم إضافتها في نهاية المستند.'
+          : 'You can choose to include terms and conditions with your RFQ. They will be added at the end of the document.'
+        }}
+      </p>
+    </div>
+  </div>
+
+  <div class="static-pdf-option">
+    <div class="checkbox-container">
+      <input
+        type="checkbox"
+        id="includeStaticFile"
+        [(ngModel)]="rfqForm.includeStaticFile"
+        class="checkbox-input"
+      />
+      <label for="includeStaticFile" class="checkbox-label">
+        <span class="checkbox-custom">
+          <i class="bi bi-check"></i>
+        </span>
+        <span class="checkbox-text">
+          <i class="bi bi-file-earmark-text"></i>
+          {{ formLanguage === 'ar'
+            ? 'إضافة الشروط والأحكام إلى طلب التسعير'
+            : 'Include terms and conditions with RFQ'
+          }}
+        </span>
+      </label>
+    </div>
+
+    <small class="help-text">
+      {{ formLanguage === 'ar'
+        ? 'عند تفعيل هذا الخيار، سيتم إضافة صفحة الشروط والأحكام إلى نهاية طلب التسعير الخاص بك.'
+        : 'When enabled, the terms and conditions page will be appended to the end of your RFQ.'
+      }}
+    </small>
+  </div>
+
+  <div class="form-navigation">
+    <button class="btn-secondary btn-back" (click)="previousStep()" type="button">
+      <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
+      {{ formLanguage === 'ar' ? 'السابق' : 'Back' }}
+    </button>
+  </div>
+
+  <!-- ✅ NEW: Save button at bottom of final step -->
+  <div class="final-save-section">
+    <button
+      class="btn-primary btn-save-final"
+      (click)="saveRFQ()"
+      [disabled]="savingRFQ">
+      <i class="bi bi-save"></i>
+      {{ savingRFQ
+        ? (formLanguage === 'ar' ? 'جاري الحفظ...' : 'Saving...')
+        : (formLanguage === 'ar' ? 'حفظ طلب التسعير' : 'Save RFQ')
+      }}
+    </button>
+    <p class="save-info-text">
+      {{ formLanguage === 'ar'
+        ? 'سيتم إنشاء ملف PDF تلقائياً بعد الحفظ'
+        : 'A PDF file will be generated automatically after saving'
+      }}{{ rfqForm.includeStaticFile ? (formLanguage === 'ar' ? ' مع الشروط والأحكام.' : ' with terms and conditions.') : '.' }}
+    </p>
+  </div>
+
+</div>
       </div>
     </div>
   </div>

@@ -1,4 +1,4 @@
-<!-- receipts.component.html - ALL FIELDS OPTIONAL -->
+<!-- receipts.component.html - WITH STATIC PDF TOGGLE AND FINAL SAVE BUTTON -->
 
 <div class="receipts-container">
 
@@ -301,8 +301,8 @@
     </div>
 
     <!-- Form Content -->
-    <div class="form-content">
-      <!-- ✅ UPDATED: Sidebar Navigation -->
+<div class="form-content">
+      <!-- ✅ UPDATED: Sidebar Navigation with new Options step -->
       <div class="form-sidebar">
         <button
           class="sidebar-step"
@@ -321,6 +321,14 @@
             {{ formLanguage === 'ar' ? 'العناصر (اختياري)' : 'Items (Optional)' }}
           </span>
           <span class="item-count">{{ getItemsCount() }}</span>
+        </button>
+
+        <!-- ✅ NEW: Options step -->
+        <button
+          class="sidebar-step"
+          [class.active]="currentStep === 'options'"
+          (click)="currentStep = 'options'">
+          {{ formLanguage === 'ar' ? 'الشروط والأحكام' : 'Terms & Conditions' }}
         </button>
       </div>
 
@@ -519,6 +527,7 @@
         </div>
 
         <!-- ✅ STEP 2 - Items (OPTIONAL) -->
+        
         <div *ngIf="currentStep === 'items'" class="step-content">
           <h2 class="step-title">
             {{ formLanguage === 'ar' ? 'عناصر الإشعار (اختياري)' : 'Receipt Items (Optional)' }}
@@ -629,9 +638,78 @@
               <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
               {{ formLanguage === 'ar' ? 'السابق' : 'Back' }}
             </button>
+            <button class="btn-primary btn-next" (click)="nextStep()">
+              {{ formLanguage === 'ar' ? 'التالي' : 'Next' }}
+              <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-left' : 'bi-arrow-right'"></i>
+            </button>
           </div>
 
         </div>
+
+        <!-- ✅ NEW: STEP 3 - PDF Options -->
+<!-- ✅ NEW: STEP 3 - Terms & Conditions -->
+<div *ngIf="currentStep === 'options'" class="step-content">
+  <h2 class="step-title">
+    {{ formLanguage === 'ar' ? 'الشروط والأحكام' : 'Terms & Conditions' }}
+  </h2>
+
+  <div class="info-alert">
+    <i class="bi bi-info-circle"></i>
+    <div style="flex: 1;">
+      <p>
+        {{ formLanguage === 'ar'
+          ? 'يمكنك اختيار إضافة الشروط والأحكام إلى الإشعار الخاص بك. سيتم إضافتها في نهاية المستند.'
+          : 'You can choose to include terms and conditions with your receipt. They will be added at the end of the document.'
+        }}
+      </p>
+    </div>
+  </div>
+
+  <div class="static-pdf-option">
+    <div class="checkbox-container">
+      <input
+        type="checkbox"
+        id="includeStaticFile"
+        [(ngModel)]="receiptForm.includeStaticFile"
+        class="checkbox-input"
+      />
+      <label for="includeStaticFile" class="checkbox-label">
+        <i class="bi bi-file-earmark-text"></i>
+        <span>
+          {{ formLanguage === 'ar'
+            ? 'إضافة الشروط والأحكام إلى الإشعار'
+            : 'Include terms and conditions with receipt'
+          }}
+        </span>
+      </label>
+    </div>
+
+    <small class="help-text">
+      {{ formLanguage === 'ar'
+        ? 'عند تفعيل هذا الخيار، سيتم إضافة صفحة الشروط والأحكام إلى نهاية الإشعار الخاص بك.'
+        : 'When enabled, the terms and conditions page will be appended to the end of your receipt.'
+      }}
+    </small>
+  </div>
+
+          <div class="final-save-section">
+            <button
+              class="btn-primary btn-save-final"
+              (click)="saveReceipt()"
+              [disabled]="savingReceipt">
+              <i class="bi bi-save"></i>
+              {{ savingReceipt
+                ? (formLanguage === 'ar' ? 'جاري الحفظ...' : 'Saving...')
+                : (formLanguage === 'ar' ? 'حفظ الإشعار' : 'Save Receipt')
+              }}
+            </button>
+            <p class="save-info-text">
+              {{ formLanguage === 'ar'
+                ? 'سيتم إنشاء ملف PDF تلقائياً بعد الحفظ.'
+                : 'A PDF file will be generated automatically after saving.'
+              }}
+            </p>
+          </div>
 
       </div>
     </div>

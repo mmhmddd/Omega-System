@@ -2610,3 +2610,170 @@
     }
   }
 }
+.save-section {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 2px solid #e2e8f0;
+  text-align: center;
+
+  .btn-save-quote {
+    width: 100%;
+    max-width: 500px;
+    padding: 1.25rem 2rem;
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.125rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 16px rgba(5, 150, 105, 0.3);
+
+    &:hover:not(:disabled) {
+      background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(5, 150, 105, 0.4);
+    }
+
+    &:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    i {
+      font-size: 1.5rem;
+    }
+  }
+
+  .save-hint {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: #64748b;
+    font-style: italic;
+  }
+
+  @media (max-width: 768px) {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+
+    .btn-save-quote {
+      max-width: 100%;
+      padding: 1rem 1.5rem;
+      font-size: 1rem;
+
+      i {
+        font-size: 1.25rem;
+      }
+    }
+
+    .save-hint {
+      font-size: 0.8125rem;
+    }
+  }
+}
+// Static PDF Option Container
+.static-pdf-option {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+
+  .checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+
+    .checkbox-input {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+      accent-color: #1565C0;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: #334155;
+      cursor: pointer;
+      user-select: none;
+
+      i {
+        font-size: 1.125rem;
+        color: #1565C0;
+      }
+    }
+  }
+
+  .help-text {
+    display: block;
+    margin-top: 0.5rem;
+    color: #64748b;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+  }
+}
+
+// Final Save Section (at bottom of final step)
+.final-save-section {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 2px solid #e2e8f0;
+  text-align: center;
+
+  .btn-save-final {
+    padding: 0.875rem 2rem;
+    background: #1565C0;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+
+    &:hover:not(:disabled) {
+      background: #0D47A1;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(21, 101, 192, 0.3);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    i {
+      font-size: 1rem;
+    }
+  }
+
+  .save-info-text {
+    margin-top: 1rem;
+    color: #64748b;
+    font-size: 0.875rem;
+    font-style: italic;
+  }
+}
+
+// RTL Support for new elements
+[dir="rtl"] {
+  .static-pdf-option {
+    .checkbox-container {
+      flex-direction: row-reverse;
+    }
+  }
+}

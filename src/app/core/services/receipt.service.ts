@@ -1,4 +1,4 @@
-// src/core/services/receipt.service.ts - UPDATED WITH VEHICLE NUMBER
+// src/core/services/receipt.service.ts - UPDATED WITH VEHICLE NUMBER AND INCLUDE STATIC FILE
 
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
@@ -15,7 +15,7 @@ export interface ReceiptItem {
 }
 
 /**
- * Receipt Interface - UPDATED WITH VEHICLE NUMBER
+ * Receipt Interface - UPDATED WITH VEHICLE NUMBER AND INCLUDE STATIC FILE
  */
 export interface Receipt {
   id: string;
@@ -28,7 +28,7 @@ export interface Receipt {
   projectCode?: string;
   workLocation?: string;
   companyNumber?: string;
-  vehicleNumber?: string; // NEW FIELD
+  vehicleNumber?: string;
   additionalText?: string;
   items: ReceiptItem[];
   notes?: string;
@@ -46,6 +46,7 @@ export interface Receipt {
   createdByRole: string;
   createdAt: string;
   updatedAt: string;
+  includeStaticFile?: boolean; // ✅ NEW FIELD
 }
 
 /**
@@ -72,7 +73,7 @@ export interface SingleReceiptResponse {
 }
 
 /**
- * Create Receipt Data Interface - UPDATED WITH VEHICLE NUMBER
+ * Create Receipt Data Interface - UPDATED WITH VEHICLE NUMBER AND INCLUDE STATIC FILE
  */
 export interface CreateReceiptData {
   to: string;
@@ -83,10 +84,11 @@ export interface CreateReceiptData {
   projectCode?: string;
   workLocation?: string;
   companyNumber?: string;
-  vehicleNumber?: string; // NEW FIELD
+  vehicleNumber?: string;
   additionalText?: string;
   items: ReceiptItem[];
   notes?: string;
+  includeStaticFile?: boolean; // ✅ NEW FIELD
 }
 
 /**

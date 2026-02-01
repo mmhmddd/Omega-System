@@ -33,6 +33,7 @@ export interface RFQ {
   urgent: boolean;
   items: RFQItem[];
   notes?: string;
+  includeStaticFile?: boolean;  // ✅ ADD THIS LINE
   language?: string;
   status: 'pending' | 'approved' | 'rejected';
   pdfFilename?: string;
@@ -87,6 +88,7 @@ export interface CreateRFQData {
   urgent: boolean;
   items: RFQItem[];
   notes?: string;
+  includeStaticFile?: boolean;  // ✅ ADD THIS LINE
 }
 
 /**

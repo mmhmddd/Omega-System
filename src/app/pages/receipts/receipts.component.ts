@@ -1,4 +1,4 @@
-// receipts.component.ts - WITH ALL FIELDS OPTIONAL
+// receipts.component.ts - WITH STATIC PDF TOGGLE AND FINAL SAVE BUTTON
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -11,7 +11,7 @@ import { ReceiptService, Receipt, ReceiptItem, CreateReceiptData } from '../../c
 import { AuthService } from '../../core/services/auth.service';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'view';
-type FormStep = 'basic' | 'items';
+type FormStep = 'basic' | 'items' | 'options';
 type FormLanguage = 'ar' | 'en';
 type ToastType = 'success' | 'error' | 'info' | 'warning';
 
@@ -78,7 +78,8 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     vehicleNumber: '',
     additionalText: '',
     items: [],
-    notes: ''
+    notes: '',
+    includeStaticFile: false
   };
 
   // PDF generation
@@ -313,7 +314,8 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
       vehicleNumber: receipt.companyNumber || '',
       additionalText: receipt.additionalText || '',
       items: JSON.parse(JSON.stringify(receipt.items || [])), // Deep clone items
-      notes: receipt.notes || ''
+      notes: receipt.notes || '',
+      includeStaticFile: false
     };
 
     // Set view to CREATE (not edit)
@@ -580,7 +582,8 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
           vehicleNumber: freshReceipt.companyNumber || '',
           additionalText: freshReceipt.additionalText || '',
           items: JSON.parse(JSON.stringify(freshReceipt.items || [])),
-          notes: freshReceipt.notes || ''
+          notes: freshReceipt.notes || '',
+          includeStaticFile: freshReceipt.includeStaticFile || false
         };
       },
       error: (error: any) => {
@@ -612,7 +615,7 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ✅ UPDATED: Save receipt with optional fields
+  // ✅ UPDATED: Save receipt with optional fields and includeStaticFile
   saveReceipt(): void {
     if (!this.validateForm()) {
       // If there are item-related errors, switch to items step
@@ -644,7 +647,8 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
       companyNumber: this.receiptForm.vehicleNumber,
       additionalText: this.receiptForm.additionalText,
       items: filteredItems, // ✅ Only send non-empty items
-      notes: this.receiptForm.notes
+      notes: this.receiptForm.notes,
+      includeStaticFile: this.receiptForm.includeStaticFile
     };
 
     if (this.currentView === 'create') {
@@ -777,11 +781,15 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
 
       // ✅ No validation for basic fields - just move to next step
       this.currentStep = 'items';
+    } else if (this.currentStep === 'items') {
+      this.currentStep = 'options';
     }
   }
 
   previousStep(): void {
-    if (this.currentStep === 'items') {
+    if (this.currentStep === 'options') {
+      this.currentStep = 'items';
+    } else if (this.currentStep === 'items') {
       this.currentStep = 'basic';
     }
   }
@@ -825,7 +833,8 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
       vehicleNumber: '',
       additionalText: '',
       items: [],
-      notes: ''
+      notes: '',
+      includeStaticFile: false
     };
     this.formPdfAttachment = null;
     this.clearErrors();
