@@ -1,0 +1,982 @@
+<div class="proforma-invoices-container" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
+
+  <!-- TOAST NOTIFICATIONS CONTAINER -->
+  <div class="toast-container" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
+    <div
+      *ngFor="let toast of toasts"
+      class="toast"
+      [class.toast-success]="toast.type === 'success'"
+      [class.toast-error]="toast.type === 'error'"
+      [class.toast-info]="toast.type === 'info'"
+      [class.toast-warning]="toast.type === 'warning'">
+
+      <div class="toast-icon">
+        <i class="bi"
+           [ngClass]="{
+             'bi-check-circle-fill': toast.type === 'success',
+             'bi-x-circle-fill': toast.type === 'error',
+             'bi-info-circle-fill': toast.type === 'info',
+             'bi-exclamation-triangle-fill': toast.type === 'warning'
+           }"></i>
+      </div>
+
+      <div class="toast-content">
+        <p class="toast-message">{{ toast.message }}</p>
+      </div>
+
+      <button class="toast-close" (click)="removeToast(toast.id)">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- LIST VIEW -->
+  <!-- ============================================ -->
+  <div *ngIf="currentView === 'list'" class="list-view">
+    <!-- Header -->
+    <div class="page-header">
+      <h1 class="page-title">{{ formLanguage === 'ar' ? 'الفواتير الأولية' : 'Proforma Invoices' }}</h1>
+      <div class="header-actions">
+        <!-- LANGUAGE TOGGLE - ENHANCED -->
+        <div class="language-toggle">
+          <button
+            type="button"
+            class="lang-btn"
+            [class.active]="formLanguage === 'ar'"
+            (click)="toggleFormLanguage('ar')">
+            <i class="bi bi-translate"></i>
+            عربي
+          </button>
+          <button
+            type="button"
+            class="lang-btn"
+            [class.active]="formLanguage === 'en'"
+            (click)="toggleFormLanguage('en')">
+            <i class="bi bi-translate"></i>
+            English
+          </button>
+        </div>
+
+
+
+        <!-- ALTERNATIVE: Language Toggle as Radio Buttons (optional)
+        <div class="language-selection-group">
+          <label class="language-option">
+            <input
+              type="radio"
+              name="invoiceLanguage"
+              value="ar"
+              [checked]="formLanguage === 'ar'"
+              (change)="toggleFormLanguage('ar')"
+            />
+            <span class="language-label">
+              <i class="bi bi-translate"></i>
+              عربي (Arabic)
+            </span>
+          </label>
+
+          <label class="language-option">
+            <input
+              type="radio"
+              name="invoiceLanguage"
+              value="en"
+              [checked]="formLanguage === 'en'"
+              (change)="toggleFormLanguage('en')"
+            />
+            <span class="language-label">
+              <i class="bi bi-translate"></i>
+              English
+            </span>
+          </label>
+        </div>
+        -->
+
+        <button class="btn-primary" (click)="createInvoice()">
+          <i class="bi bi-plus-lg"></i>
+          {{ formLanguage === 'ar' ? 'إنشاء فاتورة أولية' : 'Create Invoice' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="search-filter-section" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
+      <div class="search-box main-search">
+        <i class="bi bi-search"></i>
+        <input
+          type="text"
+          [placeholder]="formLanguage === 'ar' ? 'بحث برقم الفاتورة، اسم العميل، اسم المشروع...' : 'Search by invoice number, client name, project name...'"
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="onSearchChange()"
+          (keyup.enter)="onSearch()"
+        />
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-container">
+      <table class="invoices-table">
+        <thead>
+          <tr>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'رقم الفاتورة' : 'Invoice #' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'اسم العميل' : 'Client Name' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'الهاتف' : 'Phone' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'التاريخ' : 'Date' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'المنشئ' : 'Created By' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'اللغة' : 'Language' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'الإجراءات' : 'Actions' }}</th>
+          </tr>
+        </thead>
+        <tbody *ngIf="!loading && invoices.length > 0">
+          <tr *ngFor="let invoice of invoices">
+            <td class="invoice-number text-center">{{ invoice.invoiceNumber }}</td>
+            <td class="text-center">{{ invoice.clientName }}</td>
+            <td class="text-center">{{ invoice.clientPhone }}</td>
+            <td class="text-center">{{ formatDate(invoice.date) }}</td>
+            <td class="text-center">
+              <span class="user-name">
+                {{ getCreatorName(invoice) }}
+              </span>
+            </td>
+            <td class="text-center">
+              <span class="language-badge" [class.lang-ar]="invoice.language === 'arabic'" [class.lang-en]="invoice.language === 'english'">
+                {{ getLanguageLabel(invoice.language) }}
+              </span>
+            </td>
+            <td class="actions-cell text-center">
+              <button
+                class="btn-icon btn-view"
+                (click)="viewPDF(invoice)"
+                [title]="formLanguage === 'ar' ? 'عرض PDF' : 'View PDF'">
+                <i class="bi bi-eye"></i>
+              </button>
+              <button
+                class="btn-icon btn-print"
+                (click)="printPDF(invoice)"
+                [title]="formLanguage === 'ar' ? 'طباعة' : 'Print'">
+                <i class="bi bi-printer"></i>
+              </button>
+              <button
+                class="btn-icon btn-download"
+                (click)="downloadPDF(invoice)"
+                [title]="formLanguage === 'ar' ? 'تحميل PDF' : 'Download PDF'">
+                <i class="bi bi-download"></i>
+              </button>
+
+              <button
+                class="btn-icon btn-duplicate"
+                (click)="openDuplicateModal(invoice)"
+                [title]="formLanguage === 'ar' ? 'نسخ وإعادة استخدام' : 'Duplicate & Reuse'">
+                <i class="bi bi-files"></i>
+              </button>
+              <button
+                *ngIf="canEditInvoice(invoice)"
+                class="btn-icon btn-edit"
+                (click)="editInvoice(invoice)"
+                [title]="formLanguage === 'ar' ? 'تعديل' : 'Edit'">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button
+                *ngIf="isSuperAdmin()"
+                class="btn-icon btn-delete"
+                (click)="openDeleteModal(invoice)"
+                [title]="formLanguage === 'ar' ? 'حذف' : 'Delete'">
+                <i class="bi bi-trash"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+        <tbody *ngIf="loading">
+          <tr>
+            <td colspan="7" class="text-center loading-cell">
+              <i class="bi bi-arrow-clockwise spin"></i> {{ formLanguage === 'ar' ? 'جاري التحميل...' : 'Loading...' }}
+            </td>
+          </tr>
+        </tbody>
+        <tbody *ngIf="!loading && invoices.length === 0">
+          <tr>
+            <td colspan="7" class="text-center empty-cell">
+              {{ formLanguage === 'ar' ? 'لا توجد فواتير أولية' : 'No proforma invoices found' }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button
+        class="btn-page"
+        [disabled]="currentPage === 1"
+        (click)="goToPage(currentPage - 1)">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+
+      <span class="page-info">
+        {{ formLanguage === 'ar' ? 'صفحة' : 'Page' }} {{ currentPage }} {{ formLanguage === 'ar' ? 'من' : 'of' }} {{ totalPages }}
+      </span>
+
+      <button
+        class="btn-page"
+        [disabled]="currentPage === totalPages"
+        (click)="goToPage(currentPage + 1)">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- CREATE/EDIT VIEW -->
+  <!-- ============================================ -->
+  <div
+    *ngIf="currentView === 'create' || currentView === 'edit'"
+    class="form-view"
+    [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
+    <!-- Header -->
+    <div class="form-header">
+      <h1 class="form-title">
+        {{ currentView === 'create'
+          ? (formLanguage === 'ar' ? 'إنشاء فاتورة أولية جديدة' : 'Create New Proforma Invoice')
+          : (formLanguage === 'ar' ? 'تعديل الفاتورة الأولية' : 'Edit Proforma Invoice')
+        }}
+      </h1>
+      <div class="form-header-actions">
+        <div class="form-actions">
+          <button class="btn-secondary" (click)="backToList()">
+            {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
+          </button>
+          <button
+            class="btn-primary"
+            (click)="saveInvoice()"
+            [disabled]="savingInvoice">
+            <i class="bi bi-save"></i>
+            {{ savingInvoice
+              ? (formLanguage === 'ar' ? 'جاري الحفظ...' : 'Saving...')
+              : (formLanguage === 'ar' ? 'حفظ' : 'Save')
+            }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Alert -->
+    <div class="error-alert" *ngIf="formError">
+      <i class="bi bi-exclamation-circle"></i>
+      <span>{{ formError }}</span>
+    </div>
+
+    <!-- Form Content -->
+    <div class="form-content">
+      <!-- Sidebar Navigation -->
+      <div class="form-sidebar">
+        <button
+          class="sidebar-step"
+          [class.active]="currentStep === 'basic'"
+          (click)="currentStep = 'basic'">
+          {{ formLanguage === 'ar' ? 'المعلومات الأساسية' : 'Basic Info' }}
+        </button>
+
+        <button
+          class="sidebar-step"
+          [class.active]="currentStep === 'items'"
+          (click)="currentStep = 'items'">
+          <span>
+            {{ formLanguage === 'ar' ? 'العناصر (اختياري)' : 'Items (Optional)' }}
+          </span>
+          <span class="item-count">{{ getItemsCount() }}</span>
+        </button>
+
+        <button
+          class="sidebar-step"
+          [class.active]="currentStep === 'tax'"
+          (click)="currentStep = 'tax'">
+          {{ formLanguage === 'ar' ? 'الضريبة والإجمالي' : 'Tax & Total' }}
+        </button>
+
+        <button
+          class="sidebar-step"
+          [class.active]="currentStep === 'options'"
+          (click)="currentStep = 'options'">
+          {{ formLanguage === 'ar' ? 'الشروط والأحكام' : 'Terms & Conditions' }}
+        </button>
+      </div>
+
+      <!-- Form Fields -->
+      <div class="form-fields">
+
+        <!-- STEP 1: Basic Info -->
+        <div *ngIf="currentStep === 'basic'" class="step-content">
+          <h2 class="step-title">{{ formLanguage === 'ar' ? 'المعلومات الأساسية' : 'Basic Information' }}</h2>
+
+          <!-- Client Name -->
+          <div class="form-group">
+            <label>
+              <i class="bi bi-person"></i>
+              {{ formLanguage === 'ar' ? 'اسم العميل' : 'Client Name' }}
+              <span class="required">*</span>
+            </label>
+            <input
+              type="text"
+              [(ngModel)]="invoiceForm.clientName"
+              [placeholder]="formLanguage === 'ar' ? 'أدخل اسم العميل' : 'Enter client name'"
+              class="form-control"
+              [class.error]="fieldErrors['clientName']"
+              required
+            />
+            <small class="error-message" *ngIf="fieldErrors['clientName']">
+              <i class="bi bi-exclamation-circle"></i>
+              {{ fieldErrors['clientName'] }}
+            </small>
+          </div>
+
+          <!-- Phone and Date Row -->
+          <div class="form-row">
+            <div class="form-group">
+              <label>
+                <i class="bi bi-telephone"></i>
+                {{ formLanguage === 'ar' ? 'رقم الهاتف' : 'Phone Number' }}
+                <span class="required">*</span>
+              </label>
+              <input
+                type="tel"
+                [(ngModel)]="invoiceForm.clientPhone"
+                [placeholder]="formLanguage === 'ar' ? '+962791234567' : '+962791234567'"
+                class="form-control"
+                [class.error]="fieldErrors['clientPhone']"
+                required
+              />
+              <small class="error-message" *ngIf="fieldErrors['clientPhone']">
+                <i class="bi bi-exclamation-circle"></i>
+                {{ fieldErrors['clientPhone'] }}
+              </small>
+            </div>
+
+            <div class="form-group">
+              <label>
+                <i class="bi bi-calendar"></i>
+                {{ formLanguage === 'ar' ? 'التاريخ' : 'Date' }}
+                <span class="required">*</span>
+              </label>
+              <input
+                type="date"
+                [(ngModel)]="invoiceForm.date"
+                class="form-control"
+                [class.error]="fieldErrors['date']"
+                required
+              />
+              <small class="error-message" *ngIf="fieldErrors['date']">
+                <i class="bi bi-exclamation-circle"></i>
+                {{ fieldErrors['date'] }}
+              </small>
+            </div>
+          </div>
+
+          <!-- Address -->
+          <div class="form-group">
+            <label>
+              <i class="bi bi-geo-alt"></i>
+              {{ formLanguage === 'ar' ? 'العنوان' : 'Address' }}
+            </label>
+            <input
+              type="text"
+              [(ngModel)]="invoiceForm.clientAddress"
+              [placeholder]="formLanguage === 'ar' ? 'أدخل العنوان (اختياري)' : 'Enter address (optional)'"
+              class="form-control"
+            />
+          </div>
+
+          <!-- Project Name -->
+          <div class="form-group">
+            <label>
+              <i class="bi bi-folder"></i>
+              {{ formLanguage === 'ar' ? 'اسم المشروع' : 'Project Name' }}
+              <span class="optional-label">({{ formLanguage === 'ar' ? 'اختياري' : 'Optional' }})</span>
+            </label>
+            <input
+              type="text"
+              [(ngModel)]="invoiceForm.projectName"
+              [placeholder]="formLanguage === 'ar' ? 'أدخل اسم المشروع' : 'Enter project name'"
+              class="form-control"
+            />
+          </div>
+
+          <!-- City and Rev Number Row -->
+          <div class="form-row">
+            <div class="form-group">
+              <label>
+                <i class="bi bi-pin-map"></i>
+                {{ formLanguage === 'ar' ? 'المدينة' : 'City' }}
+              </label>
+              <input
+                type="text"
+                [(ngModel)]="invoiceForm.clientCity"
+                [placeholder]="formLanguage === 'ar' ? 'أدخل المدينة' : 'Enter city'"
+                class="form-control"
+              />
+            </div>
+
+            <div class="form-group">
+              <label>
+                <i class="bi bi-hash"></i>
+                {{ formLanguage === 'ar' ? 'رقم المراجعة' : 'Revision Number' }}
+              </label>
+              <input
+                type="text"
+                [(ngModel)]="invoiceForm.revNumber"
+                placeholder="00"
+                class="form-control"
+              />
+            </div>
+          </div>
+
+          <!-- Valid For Days -->
+          <div class="form-group">
+            <label>
+              <i class="bi bi-clock-history"></i>
+              {{ formLanguage === 'ar' ? 'صالح لمدة (بالأيام)' : 'Valid For (Days)' }}
+            </label>
+            <input
+              type="number"
+              [(ngModel)]="invoiceForm.validForDays"
+              [placeholder]="formLanguage === 'ar' ? '30' : '30'"
+              class="form-control"
+              min="1"
+            />
+          </div>
+
+          <!-- Custom Notes -->
+          <div class="form-group">
+            <label>
+              <i class="bi bi-chat-left-text"></i>
+              {{ formLanguage === 'ar' ? 'ملاحظات إضافية' : 'Custom Notes' }}
+            </label>
+            <textarea
+              [(ngModel)]="invoiceForm.customNotes"
+              [placeholder]="formLanguage === 'ar' ? 'ملاحظات أو شروط إضافية...' : 'Additional notes or terms...'"
+              class="form-control"
+              rows="4"
+            ></textarea>
+          </div>
+
+          <!-- PDF Attachment -->
+          <div class="form-group">
+            <label>
+              <i class="bi bi-paperclip"></i>
+              {{ formLanguage === 'ar' ? 'إرفاق ملف PDF (اختياري)' : 'Attach PDF File (Optional)' }}
+            </label>
+
+            <div class="file-upload-wrapper">
+              <input
+                type="file"
+                id="pdf-attachment-input"
+                accept=".pdf"
+                (change)="onPdfAttachmentSelected($event)"
+                class="file-input"
+              />
+              <label for="pdf-attachment-input" class="file-upload-label">
+                <i class="bi bi-cloud-upload"></i>
+                <span>{{ formLanguage === 'ar' ? 'اختر ملف PDF' : 'Choose PDF File' }}</span>
+              </label>
+            </div>
+
+            <div *ngIf="pdfAttachment" class="file-selected">
+              <i class="bi bi-check-circle-fill"></i>
+              <span class="file-name">{{ pdfAttachment.name }}</span>
+              <button class="btn-remove-file" (click)="removePdfAttachment()" type="button">
+                <i class="bi bi-x"></i>
+              </button>
+            </div>
+
+            <small class="help-text">
+              {{ formLanguage === 'ar'
+                ? 'الحد الأقصى لحجم الملف: 10 ميجابايت. سيتم دمج الملف المرفق مع الفاتورة الأولية.'
+                : 'Maximum file size: 10MB. The attached file will be merged with the proforma invoice.'
+              }}
+            </small>
+          </div>
+
+          <div class="form-navigation">
+            <button class="btn-primary btn-next" (click)="nextStep()">
+              {{ formLanguage === 'ar' ? 'التالي' : 'Next' }}
+              <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-left' : 'bi-arrow-right'"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 2 - Items (OPTIONAL) -->
+        <div *ngIf="currentStep === 'items'" class="step-content">
+          <h2 class="step-title">
+            {{ formLanguage === 'ar' ? 'عناصر الفاتورة (اختياري)' : 'Invoice Items (Optional)' }}
+            <span class="optional-badge">{{ formLanguage === 'ar' ? 'اختياري' : 'Optional' }}</span>
+          </h2>
+
+          <!-- Info Message -->
+          <div class="info-alert">
+            <i class="bi bi-info-circle"></i>
+            <div style="flex: 1;">
+              <p>
+                {{ formLanguage === 'ar'
+                  ? 'إضافة العناصر اختيارية. إذا كنت قد أرفقت ملف PDF، يمكنك تخطي هذه الخطوة. لن يظهر جدول العناصر في حال عدم إضافة أي عنصر.'
+                  : 'Adding items is optional. If you have attached a PDF file, you can skip this step. The items table will not appear if no items are added.'
+                }}
+              </p>
+            </div>
+          </div>
+
+          <div class="items-section">
+            <div class="items-header">
+              <div class="header-cell">{{ formLanguage === 'ar' ? '#' : '#' }}</div>
+              <div class="header-cell">
+                {{ formLanguage === 'ar' ? 'الوصف' : 'Description' }}
+              </div>
+              <div class="header-cell">
+                {{ formLanguage === 'ar' ? 'الوحدة' : 'Unit' }}
+              </div>
+              <div class="header-cell">
+                {{ formLanguage === 'ar' ? 'الكمية' : 'Quantity' }}
+              </div>
+              <div class="header-cell">
+                {{ formLanguage === 'ar' ? 'سعر الوحدة' : 'Unit Price' }}
+              </div>
+              <div class="header-cell">{{ formLanguage === 'ar' ? 'المجموع' : 'Total' }}</div>
+              <div class="header-cell-action"></div>
+            </div>
+
+            <div class="items-body" *ngIf="invoiceForm.items.length > 0">
+              <ng-container *ngFor="let item of invoiceForm.items; let i = index">
+                <div class="item-row">
+                  <div class="item-field index-field">
+                    <span class="item-index">{{ i + 1 }}</span>
+                  </div>
+
+                  <div class="item-field">
+                    <input
+                      type="text"
+                      [(ngModel)]="item.description"
+                      class="item-input"
+                      [class.error]="fieldErrors['item_' + i + '_description']"
+                      [placeholder]="formLanguage === 'ar' ? 'الوصف' : 'Description'"
+                      required
+                    />
+                    <small class="error-message" *ngIf="fieldErrors['item_' + i + '_description']">
+                      <i class="bi bi-exclamation-circle"></i>
+                      {{ fieldErrors['item_' + i + '_description'] }}
+                    </small>
+                  </div>
+
+                  <div class="item-field">
+                    <input
+                      type="text"
+                      [(ngModel)]="item.unit"
+                      class="item-input small"
+                      [class.error]="fieldErrors['item_' + i + '_unit']"
+                      [placeholder]="formLanguage === 'ar' ? 'قطعة' : 'pcs'"
+                      required
+                    />
+                    <small class="error-message" *ngIf="fieldErrors['item_' + i + '_unit']">
+                      <i class="bi bi-exclamation-circle"></i>
+                      {{ fieldErrors['item_' + i + '_unit'] }}
+                    </small>
+                  </div>
+
+                  <div class="item-field">
+                    <input
+                      type="number"
+                      [(ngModel)]="item.quantity"
+                      class="item-input small"
+                      [class.error]="fieldErrors['item_' + i + '_quantity']"
+                      placeholder="0"
+                      min="0"
+                      step="0.01"
+                      required
+                    />
+                    <small class="error-message" *ngIf="fieldErrors['item_' + i + '_quantity']">
+                      <i class="bi bi-exclamation-circle"></i>
+                      {{ fieldErrors['item_' + i + '_quantity'] }}
+                    </small>
+                  </div>
+
+                  <div class="item-field">
+                    <input
+                      type="number"
+                      [(ngModel)]="item.unitPrice"
+                      class="item-input small"
+                      [class.error]="fieldErrors['item_' + i + '_unitPrice']"
+                      placeholder="0.00"
+                      min="0"
+                      step="0.01"
+                      required
+                    />
+                    <small class="error-message" *ngIf="fieldErrors['item_' + i + '_unitPrice']">
+                      <i class="bi bi-exclamation-circle"></i>
+                      {{ fieldErrors['item_' + i + '_unitPrice'] }}
+                    </small>
+                  </div>
+
+                  <div class="item-field total-field">
+                    <span class="item-total">JOD {{ calculateItemTotal(item).toFixed(2) }}</span>
+                  </div>
+
+                  <button class="btn-remove" (click)="removeItem(i)" type="button">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </ng-container>
+            </div>
+
+            <div class="items-empty" *ngIf="invoiceForm.items.length === 0">
+              <i class="bi bi-inbox"></i>
+              <p class="empty-title">
+                {{ formLanguage === 'ar' ? 'لم يتم إضافة عناصر' : 'No items added' }}
+              </p>
+              <p class="empty-subtitle">
+                {{ formLanguage === 'ar'
+                  ? 'يمكنك إضافة عناصر أو تخطي هذه الخطوة إذا كان لديك مرفق PDF'
+                  : 'You can add items or skip this step if you have a PDF attachment'
+                }}
+              </p>
+            </div>
+
+            <button class="btn-add-item" (click)="addItem()" type="button">
+              <i class="bi bi-plus-lg"></i>
+              {{ formLanguage === 'ar' ? 'إضافة عنصر' : 'Add Item' }}
+            </button>
+          </div>
+
+          <div class="form-navigation">
+            <button class="btn-secondary btn-back" (click)="previousStep()" type="button">
+              <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
+              {{ formLanguage === 'ar' ? 'السابق' : 'Back' }}
+            </button>
+            <button class="btn-primary btn-next" (click)="nextStep()">
+              {{ formLanguage === 'ar' ? 'التالي' : 'Next' }}
+              <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-left' : 'bi-arrow-right'"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 3 - Tax & Total (Conditional Display) -->
+        <div *ngIf="currentStep === 'tax'" class="step-content">
+          <h2 class="step-title">{{ formLanguage === 'ar' ? 'الضريبة والإجمالي' : 'Tax & Total' }}</h2>
+
+          <!-- Show message if no items added -->
+          <div *ngIf="invoiceForm.items.length === 0" class="info-alert" style="margin-bottom: 1.5rem;">
+            <i class="bi bi-info-circle"></i>
+            <div style="flex: 1;">
+              <p>
+                {{ formLanguage === 'ar'
+                  ? 'لم يتم إضافة عناصر. لن يظهر جدول العناصر والإجماليات في ملف PDF. يمكنك المتابعة لحفظ الفاتورة مع المرفق فقط.'
+                  : 'No items added. The items table and totals will not appear in the PDF. You can proceed to save the invoice with attachment only.'
+                }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Only show tax settings and totals if items exist -->
+          <div *ngIf="invoiceForm.items.length > 0">
+            <!-- Include Tax Toggle -->
+            <div class="form-group">
+              <label class="checkbox-label large">
+                <input
+                  type="checkbox"
+                  [(ngModel)]="invoiceForm.includeTax"
+                  (ngModelChange)="toggleTax($event)"
+                />
+                <div class="checkbox-info">
+                  <span class="checkbox-title">{{ formLanguage === 'ar' ? 'تضمين الضريبة' : 'Include Tax' }}</span>
+                  <span class="checkbox-description">{{ formLanguage === 'ar' ? 'إضافة ضريبة على الإجمالي الفرعي' : 'Add tax to the subtotal' }}</span>
+                </div>
+              </label>
+            </div>
+
+            <!-- Tax Rate (if tax is included) -->
+            <div class="form-group" *ngIf="invoiceForm.includeTax">
+              <label>
+                <i class="bi bi-percent"></i>
+                {{ formLanguage === 'ar' ? 'نسبة الضريبة' : 'Tax Rate' }}
+                <span class="required">*</span>
+              </label>
+              <input
+                type="number"
+                [(ngModel)]="invoiceForm.taxRate"
+                [placeholder]="formLanguage === 'ar' ? '16' : '16'"
+                class="form-control"
+                [class.error]="fieldErrors['taxRate']"
+                min="0"
+                max="100"
+                step="0.01"
+              />
+              <small class="error-message" *ngIf="fieldErrors['taxRate']">
+                <i class="bi bi-exclamation-circle"></i>
+                {{ fieldErrors['taxRate'] }}
+              </small>
+            </div>
+
+            <!-- Totals Summary -->
+            <div class="totals-summary">
+              <div class="total-row">
+                <span class="total-label">{{ formLanguage === 'ar' ? 'المجموع الفرعي:' : 'Subtotal:' }}</span>
+                <span class="total-value">{{ formatCurrency(calculatedTotals.subtotal) }}</span>
+              </div>
+              <div class="total-row" *ngIf="invoiceForm.includeTax">
+                <span class="total-label">{{ formLanguage === 'ar' ? 'الضريبة' : 'Tax' }} ({{ invoiceForm.taxRate }}%):</span>
+                <span class="total-value">{{ formatCurrency(calculatedTotals.taxAmount) }}</span>
+              </div>
+              <div class="total-row final-total">
+                <span class="total-label">{{ formLanguage === 'ar' ? 'المجموع الإجمالي:' : 'Total:' }}</span>
+                <span class="total-value">{{ formatCurrency(calculatedTotals.total) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- No Items Message -->
+          <div *ngIf="invoiceForm.items.length === 0" class="no-items-message">
+            <i class="bi bi-calculator"></i>
+            <p class="no-items-title">
+              {{ formLanguage === 'ar' ? 'لا توجد إجماليات للحساب' : 'No totals to calculate' }}
+            </p>
+            <p class="no-items-subtitle">
+              {{ formLanguage === 'ar'
+                ? 'لم يتم إضافة أي عناصر. يمكنك حفظ الفاتورة مع معلومات العميل والمرفق فقط.'
+                : 'No items added. You can save the invoice with client information and attachment only.'
+              }}
+            </p>
+          </div>
+
+          <div class="form-navigation">
+            <button class="btn-secondary btn-back" (click)="previousStep()" type="button">
+              <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
+              {{ formLanguage === 'ar' ? 'السابق' : 'Back' }}
+            </button>
+            <button class="btn-primary btn-next" (click)="nextStep()">
+              {{ formLanguage === 'ar' ? 'التالي' : 'Next' }}
+              <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-left' : 'bi-arrow-right'"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 4: Terms & Conditions Options -->
+        <div *ngIf="currentStep === 'options'" class="step-content">
+          <h2 class="step-title">
+            {{ formLanguage === 'ar' ? 'الشروط والأحكام' : 'Terms & Conditions' }}
+          </h2>
+
+          <!-- Info Alert -->
+          <div class="info-alert">
+            <i class="bi bi-info-circle"></i>
+            <div style="flex: 1;">
+              <p>
+                {{ formLanguage === 'ar'
+                  ? 'يمكنك اختيار إضافة ملف PDF ثابت (الشروط والأحكام) إلى الفاتورة الأولية الخاصة بك. سيتم دمج الملف تلقائياً في نهاية المستند عند تفعيل هذا الخيار.'
+                  : 'You can choose to include a static PDF file (Terms and Conditions) with your proforma invoice. The file will be automatically merged at the end of the document when this option is enabled.'
+                }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Static PDF Checkbox -->
+          <div class="static-pdf-option">
+            <div class="checkbox-container">
+              <input
+                type="checkbox"
+                id="includeStaticFile"
+                [(ngModel)]="invoiceForm.includeStaticFile"
+                class="checkbox-input"
+              />
+              <label for="includeStaticFile" class="checkbox-label">
+                <i class="bi bi-file-earmark-pdf"></i>
+                <span>
+                  {{ formLanguage === 'ar'
+                    ? 'إضافة ملف الشروط والأحكام إلى الفاتورة الأولية'
+                    : 'Include Terms and Conditions with Proforma Invoice'
+                  }}
+                </span>
+              </label>
+            </div>
+
+            <small class="help-text">
+              {{ formLanguage === 'ar'
+                ? 'عند تفعيل هذا الخيار، سيتم إضافة ملف الشروط والأحكام الثابت تلقائياً في نهاية ملف PDF الخاص بالفاتورة الأولية.'
+                : 'When enabled, the static Terms and Conditions file will be automatically added to the end of the proforma invoice PDF.'
+              }}
+            </small>
+          </div>
+
+          <!-- Navigation Buttons -->
+          <div class="form-navigation">
+            <button class="btn-secondary btn-back" (click)="previousStep()" type="button">
+              <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
+              {{ formLanguage === 'ar' ? 'السابق' : 'Back' }}
+            </button>
+          </div>
+
+          <!-- Final Save Section -->
+          <div class="final-save-section">
+            <button
+              class="btn-primary btn-save-final"
+              (click)="saveInvoice()"
+              [disabled]="savingInvoice"
+              type="button">
+              <i class="bi bi-save"></i>
+              {{ savingInvoice
+                ? (formLanguage === 'ar' ? 'جاري الحفظ...' : 'Saving...')
+                : (formLanguage === 'ar' ? 'حفظ الفاتورة الأولية' : 'Save Proforma Invoice')
+              }}
+            </button>
+
+            <p class="save-info-text">
+              {{ formLanguage === 'ar'
+                ? 'سيتم إنشاء ملف PDF تلقائياً بعد الحفظ.'
+                : 'A PDF file will be generated automatically after saving.'
+              }}
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SUCCESS MODAL (PDF Generated) -->
+  <!-- ============================================ -->
+  <div class="modal-overlay" *ngIf="showSuccessModal" (click)="closeSuccessModal()">
+    <div class="modal-content modal-success" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title">
+          <i class="bi bi-check-circle-fill text-success"></i>
+          {{ formLanguage === 'ar' ? 'تم إنشاء الفاتورة الأولية بنجاح!' : 'Proforma Invoice Created Successfully!' }}
+        </h2>
+        <button class="modal-close" (click)="closeSuccessModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="success-icon">
+          <i class="bi bi-file-earmark-pdf-fill"></i>
+        </div>
+        <p class="success-message">
+          {{ formLanguage === 'ar'
+            ? 'تم إنشاء ملف PDF بنجاح. ماذا تريد أن تفعل؟'
+            : 'PDF has been generated successfully. What would you like to do?'
+          }}
+        </p>
+
+        <div class="action-buttons">
+          <button class="btn-action btn-view" (click)="viewGeneratedPDF(); closeSuccessModal()">
+            <i class="bi bi-eye-fill"></i>
+            <span>{{ formLanguage === 'ar' ? 'عرض PDF' : 'View PDF' }}</span>
+          </button>
+
+          <button class="btn-action btn-print" (click)="printGeneratedPDF(); closeSuccessModal()">
+            <i class="bi bi-printer-fill"></i>
+            <span>{{ formLanguage === 'ar' ? 'طباعة' : 'Print' }}</span>
+          </button>
+
+          <button class="btn-action btn-download" (click)="downloadGeneratedPDF(); closeSuccessModal()">
+            <i class="bi bi-download"></i>
+            <span>{{ formLanguage === 'ar' ? 'تحميل' : 'Download' }}</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-done" (click)="closeSuccessModal()">
+          <i class="bi bi-check-lg"></i>
+          {{ formLanguage === 'ar' ? 'تم' : 'Done' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- DELETE CONFIRMATION MODAL -->
+  <!-- ============================================ -->
+  <div class="modal-overlay" *ngIf="showDeleteModal" (click)="closeDeleteModal()">
+    <div class="modal-content modal-small" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title">
+          <i class="bi bi-exclamation-triangle text-danger"></i>
+          {{ formLanguage === 'ar' ? 'تأكيد الحذف' : 'Confirm Delete' }}
+        </h2>
+        <button class="modal-close" (click)="closeDeleteModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p class="delete-message">
+          {{ formLanguage === 'ar'
+            ? 'هل أنت متأكد من حذف الفاتورة الأولية'
+            : 'Are you sure you want to delete proforma invoice'
+          }}
+          <strong>{{ selectedInvoice?.invoiceNumber }}</strong>؟
+          <br>
+          <span class="text-warning">
+            {{ formLanguage === 'ar' ? 'لا يمكن التراجع عن هذا الإجراء!' : 'This action cannot be undone!' }}
+          </span>
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeDeleteModal()" [disabled]="deletingInvoice">
+          {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
+        </button>
+        <button type="button" class="btn-danger" (click)="confirmDelete()" [disabled]="deletingInvoice">
+          <i class="bi bi-trash" *ngIf="!deletingInvoice"></i>
+          <i class="bi bi-arrow-clockwise spin" *ngIf="deletingInvoice"></i>
+          {{ deletingInvoice
+            ? (formLanguage === 'ar' ? 'جاري الحذف...' : 'Deleting...')
+            : (formLanguage === 'ar' ? 'حذف' : 'Delete')
+          }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- DUPLICATE CONFIRMATION MODAL -->
+  <!-- ============================================ -->
+  <div class="modal-overlay" *ngIf="showDuplicateModal" (click)="closeDuplicateModal()">
+    <div class="modal-content modal-small" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title">
+          <i class="bi bi-files text-warning"></i>
+          {{ formLanguage === 'ar' ? 'نسخ الفاتورة الأولية' : 'Duplicate Proforma Invoice' }}
+        </h2>
+        <button class="modal-close" (click)="closeDuplicateModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p class="delete-message">
+          {{ formLanguage === 'ar'
+            ? 'هل تريد نسخ بيانات الفاتورة الأولية'
+            : 'Do you want to duplicate proforma invoice'
+          }}
+          <strong>{{ invoiceToDuplicate?.invoiceNumber }}</strong>؟
+          <br><br>
+          <span style="color: #d97706; font-weight: 500;">
+            {{ formLanguage === 'ar'
+              ? 'سيتم إنشاء فاتورة أولية جديدة بنفس البيانات مع إمكانية التعديل.'
+              : 'A new proforma invoice will be created with the same data that you can modify.'
+            }}
+          </span>
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeDuplicateModal()">
+          {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
+        </button>
+        <button type="button" class="btn-duplicate" (click)="confirmDuplicate()">
+          <i class="bi bi-files"></i>
+          {{ formLanguage === 'ar' ? 'نسخ' : 'Duplicate' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>

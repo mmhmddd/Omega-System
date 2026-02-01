@@ -1,3 +1,4 @@
+// users.service.ts (FIXED VERSION)
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -17,7 +18,7 @@ export interface User {
   systemAccess: {
     laserCuttingManagement?: boolean;
   };
-  routeAccess?: string[];
+  routeAccess?: string[]; // ✅ Always optional but defaults to empty array
   createdAt: string;
   updatedAt: string;
 }
@@ -62,10 +63,12 @@ export interface UserResponse {
   data: User;
 }
 
+// ✅ ENHANCED: Added category field to AvailableRoute
 export interface AvailableRoute {
   key: string;
   label: string;
   path: string;
+  category: 'management' | 'procurement' | 'inventory' | 'operations' | 'reports';
 }
 
 export interface AvailableRoutesResponse {
@@ -130,6 +133,11 @@ export class UsersService {
    * Create a new user
    */
   createUser(userData: CreateUserData): Observable<UserResponse> {
+    // ✅ Validate routeAccess before sending
+    if (userData.role === 'employee' && !userData.routeAccess) {
+      userData.routeAccess = [];
+    }
+
     return this.http.post<UserResponse>(
       API_ENDPOINTS.USERS.CREATE,
       userData,
@@ -241,12 +249,26 @@ export class UsersService {
   }
 
   /**
-   * Update employee route access permissions
+   * ✅ FIXED: Update employee route access permissions
    */
   updateRouteAccess(id: string, routeAccess: string[]): Observable<UserResponse> {
+    // ✅ Validate input
+    if (!Array.isArray(routeAccess)) {
+      console.error('❌ Route access must be an array, received:', routeAccess);
+      throw new Error('Route access must be an array');
+    }
+
+    // ✅ Remove duplicates
+    const uniqueRoutes = [...new Set(routeAccess)];
+
+    console.log('✅ Sending route access update:', {
+      userId: id,
+      routeAccess: uniqueRoutes
+    });
+
     return this.http.patch<UserResponse>(
       API_ENDPOINTS.USERS.UPDATE_ROUTE_ACCESS(id),
-      { routeAccess },
+      { routeAccess: uniqueRoutes },
       { headers: this.getAuthHeaders() }
     );
   }
@@ -336,5 +358,25 @@ export class UsersService {
       .split(/\s+/)
       .filter(word => word.length > 0)
       .join('.');
+  }
+
+  /**
+   * ✅ NEW: Validate route access keys
+   */
+  validateRouteKeys(routeKeys: string[], availableRoutes: AvailableRoute[]): { valid: boolean; invalidKeys: string[] } {
+    const validKeys = availableRoutes.map(r => r.key);
+    const invalidKeys = routeKeys.filter(key => !validKeys.includes(key));
+
+    return {
+      valid: invalidKeys.length === 0,
+      invalidKeys
+    };
+  }
+
+  /**
+   * ✅ NEW: Get routes by category
+   */
+  getRoutesByCategory(routes: AvailableRoute[], category: string): AvailableRoute[] {
+    return routes.filter(route => route.category === category);
   }
 }

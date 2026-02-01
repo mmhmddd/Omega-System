@@ -1,7 +1,5 @@
 <div class="users-control-container">
-  <!-- ============================================ -->
   <!-- TOAST NOTIFICATIONS CONTAINER -->
-  <!-- ============================================ -->
   <div class="toast-container">
     <div
       *ngFor="let toast of toasts"
@@ -31,9 +29,7 @@
     </div>
   </div>
 
-  <!-- ============================================ -->
   <!-- HEADER SECTION -->
-  <!-- ============================================ -->
   <div class="page-header">
     <div class="header-content">
       <div class="header-left">
@@ -55,9 +51,7 @@
     </div>
   </div>
 
-  <!-- ============================================ -->
   <!-- FILTERS SECTION -->
-  <!-- ============================================ -->
   <div class="filters-section">
     <div class="filters-grid">
       <!-- Search -->
@@ -75,7 +69,7 @@
         />
       </div>
 
-      <!-- ✅ Role Filter - Updated with unique roles -->
+      <!-- Role Filter -->
       <div class="filter-group">
         <label class="filter-label">
           <i class="bi bi-person-badge"></i>
@@ -119,9 +113,7 @@
     </div>
   </div>
 
-  <!-- ============================================ -->
   <!-- STATISTICS BAR -->
-  <!-- ============================================ -->
   <div class="statistics-bar">
     <div class="stat-item">
       <i class="bi bi-people"></i>
@@ -146,9 +138,7 @@
     </div>
   </div>
 
-  <!-- ============================================ -->
   <!-- TABLE SECTION -->
-  <!-- ============================================ -->
   <div class="table-container">
     <!-- Loading State -->
     <div class="loading-overlay" *ngIf="loading">
@@ -198,7 +188,7 @@
             <span class="username-badge" [class.inactive-badge]="!user.active">{{ user.username }}</span>
           </td>
 
-          <!-- ✅ Role - Updated to show Arabic label -->
+          <!-- Role -->
           <td>
             <span class="role-badge" [style.background-color]="getRoleColor(user.role)">
               {{ getRoleLabel(user.role) }}
@@ -221,7 +211,7 @@
             <span class="date-text">{{ user.createdAt | date:'dd/MM/yyyy' }}</span>
           </td>
 
-          <!-- Actions Dropdown Menu - ALWAYS ACTIVE -->
+          <!-- Actions Dropdown Menu -->
           <td>
             <div class="actions-dropdown" (click)="$event.stopPropagation()">
               <button
@@ -319,14 +309,10 @@
   </div>
 </div>
 
-<!-- ============================================ -->
-<!-- MENU BACKDROP (Click Outside to Close) -->
-<!-- ============================================ -->
+<!-- MENU BACKDROP -->
 <div class="menu-backdrop" *ngIf="activeActionsMenu" (click)="closeActionsMenu()"></div>
 
-<!-- ============================================ -->
 <!-- CREATE USER MODAL -->
-<!-- ============================================ -->
 <div class="modal-overlay" *ngIf="showCreateModal" >
   <div class="modal-container" (click)="$event.stopPropagation()">
     <div class="modal-header">
@@ -398,7 +384,7 @@
           </small>
         </div>
 
-        <!-- ✅ Role - Updated dropdown with all role options -->
+        <!-- Role -->
         <div class="form-group">
           <label class="form-label">
             <i class="bi bi-person-badge"></i>
@@ -471,9 +457,7 @@
   </div>
 </div>
 
-<!-- ============================================ -->
 <!-- EDIT USER MODAL -->
-<!-- ============================================ -->
 <div class="modal-overlay" *ngIf="showEditModal">
   <div class="modal-container" (click)="$event.stopPropagation()">
     <div class="modal-header">
@@ -538,7 +522,7 @@
           />
         </div>
 
-        <!-- ✅ Role - Updated dropdown with all role options -->
+        <!-- Role -->
         <div class="form-group">
           <label class="form-label">
             <i class="bi bi-person-badge"></i>
@@ -587,9 +571,7 @@
   </div>
 </div>
 
-<!-- ============================================ -->
 <!-- DELETE CONFIRMATION MODAL -->
-<!-- ============================================ -->
 <div class="modal-overlay" *ngIf="showDeleteModal">
   <div class="modal-container modal-small" (click)="$event.stopPropagation()">
     <div class="modal-header">
@@ -623,11 +605,9 @@
   </div>
 </div>
 
-<!-- ============================================ -->
-<!-- ROUTE ACCESS MODAL -->
-<!-- ============================================ -->
+<!-- ✅ UPDATED ROUTE ACCESS MODAL -->
 <div class="modal-overlay" *ngIf="showRouteAccessModal" (click)="closeRouteAccessModal()">
-  <div class="modal-container" (click)="$event.stopPropagation()">
+  <div class="modal-container modal-large" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h2 class="modal-title">
         <i class="bi bi-diagram-3"></i>
@@ -639,25 +619,70 @@
     </div>
 
     <div class="modal-body">
-      <p class="modal-description">اختر المسارات التي يمكن للموظف الوصول إليها:</p>
+      <div class="modal-info-box">
+        <i class="bi bi-info-circle"></i>
+        <span>اختر المسارات التي يمكن للموظف الوصول إليها في النظام</span>
+      </div>
 
-      <div class="routes-grid">
-        <label class="route-checkbox" *ngFor="let route of availableRoutes">
-          <input
-            type="checkbox"
-            [checked]="isRouteSelected(route.key)"
-            (change)="toggleRouteAccess(route.key)"
-          />
-          <div class="route-info">
-            <span class="route-label">{{ route.label }}</span>
-            <span class="route-path">{{ route.path }}</span>
-          </div>
-        </label>
+      <!-- Loading State -->
+      <div class="loading-routes" *ngIf="loadingRoutes">
+        <i class="bi bi-arrow-clockwise spin"></i>
+        <span>جاري تحميل المسارات...</span>
+      </div>
+
+      <!-- Routes Grid by Category -->
+      <div class="routes-categories" *ngIf="!loadingRoutes">
+        <div class="route-category" *ngFor="let category of routeCategories">
+          <ng-container *ngIf="getRoutesByCategory(category.key).length > 0">
+            <h3 class="category-title">
+              <i class="bi" [ngClass]="category.icon"></i>
+              {{ category.name }}
+            </h3>
+
+            <div class="category-routes">
+              <label
+                class="route-checkbox-card"
+                *ngFor="let route of getRoutesByCategory(category.key)"
+                [class.selected]="isRouteSelected(route.key)">
+
+                <input
+                  type="checkbox"
+                  [checked]="isRouteSelected(route.key)"
+                  (change)="toggleRouteAccess(route.key)"
+                />
+
+                <div class="route-content">
+                  <div class="route-header">
+                    <i class="bi bi-chevron-left route-icon"></i>
+                    <span class="route-label">{{ route.label }}</span>
+                  </div>
+                  <div class="route-path">
+                    <i class="bi bi-link-45deg"></i>
+                    <span>{{ route.path }}</span>
+                  </div>
+                </div>
+              </label>
+            </div>
+          </ng-container>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-routes" *ngIf="availableRoutes.length === 0">
+          <i class="bi bi-folder-x"></i>
+          <p>لا توجد مسارات متاحة</p>
+        </div>
+      </div>
+
+      <!-- Selected Routes Summary -->
+      <div class="routes-summary" *ngIf="!loadingRoutes && availableRoutes.length > 0">
+        <i class="bi bi-check-circle"></i>
+        <span>المسارات المختارة: <strong>{{ routeAccessForm.length }}</strong> من أصل <strong>{{ availableRoutes.length }}</strong></span>
       </div>
     </div>
 
     <div class="modal-footer">
       <button type="button" class="btn btn-secondary" (click)="closeRouteAccessModal()" [disabled]="savingUser">
+        <i class="bi bi-x-lg"></i>
         إلغاء
       </button>
       <button type="button" class="btn btn-primary" (click)="saveRouteAccess()" [disabled]="savingUser">
@@ -669,9 +694,7 @@
   </div>
 </div>
 
-<!-- ============================================ -->
 <!-- SYSTEM ACCESS MODAL -->
-<!-- ============================================ -->
 <div class="modal-overlay" *ngIf="showSystemAccessModal" (click)="closeSystemAccessModal()">
   <div class="modal-container modal-small" (click)="$event.stopPropagation()">
     <div class="modal-header">

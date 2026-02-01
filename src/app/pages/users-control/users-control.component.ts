@@ -1,3 +1,4 @@
+// users-control.component.ts (FIXED VERSION)
 import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -17,12 +18,17 @@ interface Toast {
   message: string;
 }
 
-// ✅ واجهة لتعريف الأدوار
 interface UserRole {
   value: string;
   label: string;
   color: string;
-  displayName?: string; // للعرض في الجدول
+  displayName?: string;
+}
+
+interface RouteCategory {
+  key: string;
+  name: string;
+  icon: string;
 }
 
 @Component({
@@ -33,52 +39,51 @@ interface UserRole {
   styleUrl: './users-control.component.scss'
 })
 export class UsersControlComponent implements OnInit, OnDestroy {
-  // Users data
   users: UserTableData[] = [];
   filteredUsers: UserTableData[] = [];
   selectedUser: User | null = null;
 
-  // Available routes for employees
   availableRoutes: AvailableRoute[] = [];
 
-  // Pagination
+  routeCategories: RouteCategory[] = [
+    { key: 'management', name: 'إدارة النظام', icon: 'bi-gear-fill' },
+    { key: 'procurement', name: 'المشتريات والموردين', icon: 'bi-cart-fill' },
+    { key: 'inventory', name: 'المخزون والمواد', icon: 'bi-box-seam' },
+    { key: 'operations', name: 'العمليات التشغيلية', icon: 'bi-diagram-3-fill' },
+    { key: 'reports', name: 'التقارير والتحليلات', icon: 'bi-graph-up' }
+  ];
+
   currentPage: number = 1;
   totalPages: number = 1;
   totalUsers: number = 0;
   pageSize: number = 10;
   pageSizeOptions: number[] = [5, 10, 20, 50];
 
-  // Loading states
   loading: boolean = false;
   loadingRoutes: boolean = false;
   savingUser: boolean = false;
   deletingUser: boolean = false;
 
-  // Filter & Search
   searchTerm: string = '';
   selectedRole: string = '';
   selectedStatus: string = '';
 
-  // Modals
   showCreateModal: boolean = false;
   showEditModal: boolean = false;
   showDeleteModal: boolean = false;
   showRouteAccessModal: boolean = false;
   showSystemAccessModal: boolean = false;
 
-  // Forms
   createUserForm!: FormGroup;
   editUserForm!: FormGroup;
-  routeAccessForm: string[] = [];
+  routeAccessForm: string[] = []; // ✅ Initialized as empty array
   systemAccessForm: { laserCuttingManagement: boolean } = {
     laserCuttingManagement: false
   };
 
-  // Toast notifications
   toasts: Toast[] = [];
   private toastTimeouts: Map<string, any> = new Map();
 
-  // ✅ User roles - عرض الأسماء العربية لكن حفظ القيم الإنجليزية
   userRoles: UserRole[] = [
     { value: 'super_admin', label: 'IT', color: '#dc2626', displayName: 'IT' },
     { value: 'admin', label: 'المدير', color: '#ea580c', displayName: 'المدير' },
@@ -90,18 +95,15 @@ export class UsersControlComponent implements OnInit, OnDestroy {
     { value: 'employee', label: 'مسؤول مستودع', color: '#0891b2', displayName: 'مسؤول مستودع' }
   ];
 
-  // Status filters
   statusFilters = [
     { value: '', label: 'الكل' },
     { value: 'active', label: 'نشط' },
     { value: 'inactive', label: 'غير نشط' }
   ];
 
-  // Actions menu
   activeActionsMenu: string | null = null;
   menuShouldOpenUp: { [userId: string]: boolean } = {};
 
-  // Make Math available to template
   get Math() {
     return Math;
   }
@@ -112,15 +114,12 @@ export class UsersControlComponent implements OnInit, OnDestroy {
     private fb: FormBuilder
   ) {}
 
-  // Close menu when clicking outside
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     const target = event.target as HTMLElement;
-
     if (target.closest('.actions-menu') || target.closest('.actions-trigger')) {
       return;
     }
-
     this.closeActionsMenu();
   }
 
@@ -143,8 +142,6 @@ export class UsersControlComponent implements OnInit, OnDestroy {
     const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const toast: Toast = { id, type, message };
 
-    console.log('🎯 Showing toast:', toast);
-
     this.toasts.push(toast);
 
     if (duration > 0) {
@@ -158,8 +155,6 @@ export class UsersControlComponent implements OnInit, OnDestroy {
       const oldestToast = this.toasts[0];
       this.removeToast(oldestToast.id);
     }
-
-    console.log('📋 Current toasts:', this.toasts);
   }
 
   removeToast(id: string): void {
@@ -220,7 +215,7 @@ export class UsersControlComponent implements OnInit, OnDestroy {
       systemAccess: this.fb.group({
         laserCuttingManagement: [false]
       }),
-      routeAccess: [[]]
+      routeAccess: [[]] // ✅ Initialize as empty array
     });
 
     this.editUserForm = this.fb.group({
@@ -248,7 +243,11 @@ export class UsersControlComponent implements OnInit, OnDestroy {
 
     this.usersService.getAllUsers(filters).subscribe({
       next: (response) => {
-        this.users = response.data.map(user => ({ ...user, selected: false }));
+        this.users = response.data.map(user => ({
+          ...user,
+          selected: false,
+          routeAccess: user.routeAccess || [] // ✅ Ensure routeAccess is always an array
+        }));
         this.applyFilters();
 
         this.totalUsers = response.pagination.totalUsers;
@@ -265,20 +264,32 @@ export class UsersControlComponent implements OnInit, OnDestroy {
     });
   }
 
-  loadAvailableRoutes(): void {
-    this.loadingRoutes = true;
+loadAvailableRoutes(): void {
+  this.loadingRoutes = true;
 
-    this.usersService.getAvailableRoutes().subscribe({
-      next: (response) => {
-        this.availableRoutes = response.data;
-        this.loadingRoutes = false;
-      },
-      error: (error) => {
-        console.error('Error loading routes:', error);
-        this.loadingRoutes = false;
-      }
-    });
-  }
+  this.usersService.getAvailableRoutes().subscribe({
+    next: (response) => {
+      this.availableRoutes = response.data;
+
+      console.log('==========================================');
+      console.log('✅ LOADED AVAILABLE ROUTES');
+      console.log('✅ Total routes:', this.availableRoutes.length);
+      console.log('✅ Routes:', this.availableRoutes.map(r => ({
+        key: r.key,
+        label: r.label,
+        category: (r as any).category
+      })));
+      console.log('==========================================');
+
+      this.loadingRoutes = false;
+    },
+    error: (error) => {
+      console.error('❌ Error loading available routes:', error);
+      this.showToast('error', 'حدث خطأ في تحميل المسارات المتاحة');
+      this.loadingRoutes = false;
+    }
+  });
+}
 
   // ============================================
   // FILTERING & SEARCH
@@ -542,58 +553,158 @@ export class UsersControlComponent implements OnInit, OnDestroy {
   }
 
   // ============================================
-  // ROUTE ACCESS MANAGEMENT
+  // ✅ ROUTE ACCESS MANAGEMENT (FIXED)
   // ============================================
 
-  openRouteAccessModal(user: User): void {
-    if (user.role !== 'employee') {
-      this.showToast('warning', 'صلاحيات المسارات متاحة للموظفين فقط');
-      return;
+openRouteAccessModal(user: User): void {
+  if (user.role !== 'employee') {
+    this.showToast('warning', 'صلاحيات المسارات متاحة للموظفين فقط');
+    return;
+  }
+
+  this.selectedUser = user;
+
+  // ✅ CRITICAL FIX: Ensure we always have a valid array
+  this.routeAccessForm = [];
+
+  if (user.routeAccess && Array.isArray(user.routeAccess)) {
+    // ✅ IMPORTANT: Create a new copy of the array
+    this.routeAccessForm = [...user.routeAccess];
+  }
+
+  console.log('==========================================');
+  console.log('✅ Opening route access modal');
+  console.log('✅ User:', user.name, '(', user.id, ')');
+  console.log('✅ User routeAccess from backend:', user.routeAccess);
+  console.log('✅ Initialized routeAccessForm:', this.routeAccessForm);
+  console.log('✅ Available routes count:', this.availableRoutes.length);
+  console.log('==========================================');
+
+  this.showRouteAccessModal = true;
+}
+
+/**
+ * Close the route access modal
+ */
+closeRouteAccessModal(): void {
+  console.log('✅ Closing route access modal');
+  this.showRouteAccessModal = false;
+  this.selectedUser = null;
+  this.routeAccessForm = [];
+}
+
+
+toggleRouteAccess(routeKey: string): void {
+  console.log('==========================================');
+  console.log('✅ Toggle route called with key:', routeKey);
+  console.log('✅ Current form state BEFORE toggle:', [...this.routeAccessForm]);
+
+  const index = this.routeAccessForm.indexOf(routeKey);
+
+  if (index > -1) {
+    // Remove from array
+    this.routeAccessForm.splice(index, 1);
+    console.log('✅ REMOVED route:', routeKey);
+  } else {
+    // Add to array
+    this.routeAccessForm.push(routeKey);
+    console.log('✅ ADDED route:', routeKey);
+  }
+
+  console.log('✅ Current form state AFTER toggle:', [...this.routeAccessForm]);
+  console.log('==========================================');
+}
+
+isRouteSelected(routeKey: string): boolean {
+  const isSelected = this.routeAccessForm.includes(routeKey);
+  return isSelected;
+}
+
+/**
+ * Save the route access changes
+ */
+saveRouteAccess(): void {
+  if (!this.selectedUser) {
+    console.error('❌ No user selected!');
+    this.showToast('error', 'لم يتم تحديد مستخدم');
+    return;
+  }
+
+  // ✅ Validate that we have an array
+  if (!Array.isArray(this.routeAccessForm)) {
+    console.error('❌ routeAccessForm is not an array!', this.routeAccessForm);
+    this.showToast('error', 'خطأ في البيانات - الرجاء المحاولة مرة أخرى');
+    return;
+  }
+
+  console.log('==========================================');
+  console.log('✅ SAVING ROUTE ACCESS');
+  console.log('✅ User ID:', this.selectedUser.id);
+  console.log('✅ User Name:', this.selectedUser.name);
+  console.log('✅ Route access form (SENDING TO BACKEND):', this.routeAccessForm);
+  console.log('✅ Route access count:', this.routeAccessForm.length);
+  console.log('==========================================');
+
+  // ✅ Create a clean copy to send
+  const cleanRouteAccess = [...this.routeAccessForm];
+
+  // ✅ Log what we're actually sending
+  console.log('✅ Final payload being sent:', {
+    userId: this.selectedUser.id,
+    routeAccess: cleanRouteAccess
+  });
+
+  this.savingUser = true;
+
+  this.usersService.updateRouteAccess(this.selectedUser.id, cleanRouteAccess).subscribe({
+    next: (response) => {
+      console.log('==========================================');
+      console.log('✅ SUCCESS! Route access saved');
+      console.log('✅ Response from backend:', response.data);
+      console.log('✅ Updated routeAccess:', response.data.routeAccess);
+      console.log('==========================================');
+
+      this.showToast('success', 'تم تحديث صلاحيات المسارات بنجاح');
+      this.savingUser = false;
+      this.closeRouteAccessModal();
+      this.loadUsers();
+    },
+    error: (error) => {
+      console.log('==========================================');
+      console.error('❌ ERROR updating route access!');
+      console.error('❌ Error object:', error);
+      console.error('❌ Error status:', error.status);
+      console.error('❌ Error message:', error.error?.message);
+      console.error('❌ Full error response:', error.error);
+      console.log('==========================================');
+
+      const errorMessage = error.error?.message || 'حدث خطأ أثناء تحديث الصلاحيات';
+      this.showToast('error', errorMessage);
+      this.savingUser = false;
     }
+  });
+}
 
-    this.selectedUser = user;
-    this.routeAccessForm = [...(user.routeAccess || [])];
-    this.showRouteAccessModal = true;
+getRoutesByCategory(categoryKey: string): AvailableRoute[] {
+  if (!this.availableRoutes || this.availableRoutes.length === 0) {
+    console.warn('⚠️ No available routes loaded yet');
+    return [];
   }
 
-  closeRouteAccessModal(): void {
-    this.showRouteAccessModal = false;
-    this.selectedUser = null;
-    this.routeAccessForm = [];
-  }
+  // ✅ Filter routes based on category property
+  const filteredRoutes = this.availableRoutes.filter(route => {
+    // Cast to any to access category property
+    const routeWithCategory = route as any;
+    const routeCategory = routeWithCategory.category || 'other';
+    return routeCategory === categoryKey;
+  });
 
-  toggleRouteAccess(routeKey: string): void {
-    const index = this.routeAccessForm.indexOf(routeKey);
-    if (index > -1) {
-      this.routeAccessForm.splice(index, 1);
-    } else {
-      this.routeAccessForm.push(routeKey);
-    }
-  }
+  console.log(`✅ Category: ${categoryKey} has ${filteredRoutes.length} routes:`,
+    filteredRoutes.map(r => r.key)
+  );
 
-  isRouteSelected(routeKey: string): boolean {
-    return this.routeAccessForm.includes(routeKey);
-  }
-
-  saveRouteAccess(): void {
-    if (!this.selectedUser) return;
-
-    this.savingUser = true;
-
-    this.usersService.updateRouteAccess(this.selectedUser.id, this.routeAccessForm).subscribe({
-      next: (response) => {
-        this.showToast('success', 'تم تحديث صلاحيات المسارات بنجاح');
-        this.savingUser = false;
-        this.closeRouteAccessModal();
-        this.loadUsers();
-      },
-      error: (error) => {
-        console.error('Error updating route access:', error);
-        this.showToast('error', error.error?.message || 'حدث خطأ أثناء تحديث الصلاحيات');
-        this.savingUser = false;
-      }
-    });
-  }
+  return filteredRoutes;
+}
 
   // ============================================
   // SYSTEM ACCESS MANAGEMENT
@@ -633,22 +744,16 @@ export class UsersControlComponent implements OnInit, OnDestroy {
   }
 
   // ============================================
-  // ✅ HELPER METHODS - UPDATED
+  // HELPER METHODS
   // ============================================
 
-  /**
-   * ✅ الحصول على التسمية العربية للدور بناءً على القيمة المحفوظة
-   * يدعم عرض جميع التسميات العربية المختلفة لنفس الدور
-   */
   getRoleLabel(role: string): string {
-    // البحث عن أول تسمية متطابقة
     const foundRole = this.userRoles.find(r => r.value === role);
 
     if (foundRole) {
       return foundRole.label;
     }
 
-    // قيم احتياطية في حالة عدم العثور
     const roleMap: { [key: string]: string } = {
       'super_admin': 'IT',
       'admin': 'المدير',
@@ -663,10 +768,6 @@ export class UsersControlComponent implements OnInit, OnDestroy {
     return this.usersService.getRoleColor(role);
   }
 
-  /**
-   * ✅ الحصول على قائمة الأدوار الفريدة للفلتر
-   * تجمع الأدوار المكررة (admin له 3 تسميات مثلاً)
-   */
   getUniqueRolesForFilter(): Array<{value: string, label: string}> {
     const uniqueRoles = new Map<string, string>();
 

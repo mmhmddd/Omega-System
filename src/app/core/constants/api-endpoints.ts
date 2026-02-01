@@ -201,7 +201,16 @@ export const API_ENDPOINTS = {
     DELETE: (id: string) => `${environment.apiUrl}/file-management/${id}`,
     BULK_DELETE: `${environment.apiUrl}/file-management/bulk-delete`,
     EXPORT_LIST: `${environment.apiUrl}/file-management/export/list`
-  }
+  },
+  PROFORMA_INVOICES: {
+  GET_ALL: `${environment.apiUrl}/proforma-invoices`,
+  GET_BY_ID: (id: string) => `${environment.apiUrl}/proforma-invoices/${id}`,
+  CREATE: `${environment.apiUrl}/proforma-invoices`,
+  UPDATE: (id: string) => `${environment.apiUrl}/proforma-invoices/${id}`,
+  DELETE: (id: string) => `${environment.apiUrl}/proforma-invoices/${id}`,
+  GET_MY_LATEST: `${environment.apiUrl}/proforma-invoices/my-latest`,
+  DOWNLOAD_PDF: (id: string) => `${environment.apiUrl}/proforma-invoices/${id}/pdf`
+},
 };
 
 // ============================================

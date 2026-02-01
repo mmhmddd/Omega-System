@@ -37,6 +37,12 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/items-control/items-control.component').then(m => m.ItemsControlComponent),
     data: { title: 'إدارة الأصناف' }
   },
+  
+  {
+    path: 'Proforma-invoice',
+    loadComponent: () => import('./pages/proforma-invoice/proforma-invoice.component').then(m => m.ProformaInvoiceComponent),
+    data: { title: 'فاتورة مُقدمة' }
+  },
 
   {
     path: 'suppliers',
