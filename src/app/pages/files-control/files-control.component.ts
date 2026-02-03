@@ -1,4 +1,4 @@
-// src/app/pages/files-control/files-control.component.ts
+// src/app/pages/files-control/files-control.component.ts - FINAL VERSION WITH DATABASE IDs
 import { Component, OnInit, HostListener, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -16,6 +16,7 @@ import { AuthService } from '../../core/services/auth.service';
 
 interface FileTableData extends FileRecord {
   selected?: boolean;
+  databaseId?: string; // ✅ Added for proper deletion
 }
 
 type ToastType = 'success' | 'error' | 'info' | 'warning';
@@ -37,7 +38,7 @@ export class FilesControlComponent implements OnInit, OnDestroy {
   // Files data
   files: FileTableData[] = [];
   filteredFiles: FileTableData[] = [];
-  selectedFile: FileRecord | null = null;
+  selectedFile: FileTableData | null = null;
 
   // File types and categories
   fileTypes: FileType[] = [];
@@ -84,11 +85,9 @@ export class FilesControlComponent implements OnInit, OnDestroy {
     private authService: AuthService
   ) {}
 
-  // Close menu when clicking outside
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     const target = event.target as HTMLElement;
-
     if (!target.closest('.actions-dropdown')) {
       this.closeActionsMenu();
     }
@@ -179,7 +178,6 @@ export class FilesControlComponent implements OnInit, OnDestroy {
         this.totalFiles = response.pagination.totalFiles;
         this.totalPages = response.pagination.totalPages;
         this.currentPage = response.pagination.currentPage;
-
         this.loading = false;
       },
       error: (error) => {
@@ -291,7 +289,7 @@ export class FilesControlComponent implements OnInit, OnDestroy {
   // ACTION HANDLERS
   // ============================================
 
-  handleViewDetails(file: FileRecord, event: MouseEvent): void {
+  handleViewDetails(file: FileTableData, event: MouseEvent): void {
     event.stopPropagation();
     event.preventDefault();
     this.closeActionsMenu();
@@ -300,15 +298,48 @@ export class FilesControlComponent implements OnInit, OnDestroy {
     }, 100);
   }
 
-  handleDownload(file: FileRecord, event: MouseEvent): void {
+  // ✅ UPDATED: Smart download handling using database ID or specialized endpoints
+  handleDownload(file: FileTableData, event: MouseEvent): void {
     event.stopPropagation();
     event.preventDefault();
     this.closeActionsMenu();
-    this.fileService.downloadFile(file.id);
+    
+    // Use type-specific download methods
+    switch (file.type) {
+      case 'emptyReceipts':
+        if (file.databaseId) {
+          this.fileService.downloadEmptyReceiptById(file.databaseId);
+        } else {
+          this.fileService.downloadEmptyReceipt(file.name);
+        }
+        break;
+      
+      case 'proformaInvoices':
+        if (file.databaseId) {
+          this.fileService.downloadProformaInvoice(file.databaseId);
+        } else {
+          this.fileService.downloadFile(file.id);
+        }
+        break;
+      
+      case 'costingSheets':
+        if (file.databaseId) {
+          this.fileService.downloadCostingSheet(file.databaseId);
+        } else {
+          this.fileService.downloadFile(file.id);
+        }
+        break;
+      
+      default:
+        // Use file management download for other types
+        this.fileService.downloadFile(file.id);
+        break;
+    }
+    
     this.showToast('success', 'جاري تحميل الملف...');
   }
 
-  handlePreview(file: FileRecord, event: MouseEvent): void {
+  handlePreview(file: FileTableData, event: MouseEvent): void {
     event.stopPropagation();
     event.preventDefault();
     this.closeActionsMenu();
@@ -320,7 +351,7 @@ export class FilesControlComponent implements OnInit, OnDestroy {
     }
   }
 
-  handleDelete(file: FileRecord, event: MouseEvent): void {
+  handleDelete(file: FileTableData, event: MouseEvent): void {
     event.stopPropagation();
     event.preventDefault();
     this.closeActionsMenu();
@@ -333,7 +364,7 @@ export class FilesControlComponent implements OnInit, OnDestroy {
   // FILE DETAILS MODAL
   // ============================================
 
-  openFileDetailsModal(file: FileRecord): void {
+  openFileDetailsModal(file: FileTableData): void {
     this.selectedFile = file;
     this.showFileDetailsModal = true;
   }
@@ -347,7 +378,7 @@ export class FilesControlComponent implements OnInit, OnDestroy {
   // DELETE FILE
   // ============================================
 
-  openDeleteModal(file: FileRecord): void {
+  openDeleteModal(file: FileTableData): void {
     this.selectedFile = file;
     this.showDeleteModal = true;
   }
@@ -357,11 +388,13 @@ export class FilesControlComponent implements OnInit, OnDestroy {
     this.selectedFile = null;
   }
 
-  confirmDelete(): void {
+  // ✅ CRITICAL FIX: Smart deletion using database ID or type-specific endpoint
+confirmDelete(): void {
     if (!this.selectedFile) return;
 
     this.deletingFile = true;
 
+    // Simply delete via file management - the backend will handle the synchronization
     this.fileService.deleteFile(this.selectedFile.id).subscribe({
       next: (response) => {
         this.showToast('success', response.message || 'تم حذف الملف بنجاح');
@@ -376,6 +409,127 @@ export class FilesControlComponent implements OnInit, OnDestroy {
         this.deletingFile = false;
       }
     });
+  }
+
+  /**
+   * ✅ NEW: Get deletion strategies based on file type
+   */
+  private getDeleteStrategy(file: FileTableData): (() => void)[] {
+    const strategies: (() => void)[] = [];
+
+    // Strategy 1: Use database ID with type-specific endpoint
+    if (file.databaseId) {
+      switch (file.type) {
+        case 'emptyReceipts':
+          strategies.push(() => this.deleteViaTypeEndpoint('emptyReceipts', file.databaseId!));
+          break;
+        case 'proformaInvoices':
+          strategies.push(() => this.deleteViaTypeEndpoint('proformaInvoices', file.databaseId!));
+          break;
+        case 'costingSheets':
+          strategies.push(() => this.deleteViaTypeEndpoint('costingSheets', file.databaseId!));
+          break;
+        case 'receipts':
+          strategies.push(() => this.deleteViaTypeEndpoint('receipts', file.databaseId!));
+          break;
+        case 'quotations':
+          strategies.push(() => this.deleteViaTypeEndpoint('quotations', file.databaseId!));
+          break;
+        case 'secretariatForms':
+          strategies.push(() => this.deleteViaTypeEndpoint('secretariatForms', file.databaseId!));
+          break;
+        case 'rfqs':
+          strategies.push(() => this.deleteViaTypeEndpoint('rfqs', file.databaseId!));
+          break;
+        case 'purchases':
+          strategies.push(() => this.deleteViaTypeEndpoint('purchases', file.databaseId!));
+          break;
+        case 'materials':
+          strategies.push(() => this.deleteViaTypeEndpoint('materials', file.databaseId!));
+          break;
+      }
+    }
+
+    // Strategy 2: Use file management deletion (always available as fallback)
+    strategies.push(() => this.deleteViaFileManagement(file.id));
+
+    return strategies;
+  }
+
+  /**
+   * ✅ NEW: Execute delete strategies with fallback
+   */
+  private executeDeleteStrategy(strategies: (() => void)[], index: number): void {
+    if (index >= strategies.length) {
+      this.showToast('error', 'فشل حذف الملف. الرجاء المحاولة مرة أخرى.');
+      this.deletingFile = false;
+      return;
+    }
+
+    try {
+      strategies[index]();
+    } catch (error) {
+      console.error(`Strategy ${index} failed:`, error);
+      this.executeDeleteStrategy(strategies, index + 1);
+    }
+  }
+
+  /**
+   * ✅ NEW: Delete via type-specific endpoint
+   */
+  private deleteViaTypeEndpoint(type: string, databaseId: string): void {
+    const deleteMethod = this.getTypeDeleteMethod(type);
+    
+    if (!deleteMethod) {
+      throw new Error(`No delete method for type: ${type}`);
+    }
+
+    deleteMethod(databaseId).subscribe({
+      next: (response: any) => {
+        this.showToast('success', response.message || 'تم حذف الملف بنجاح');
+        this.deletingFile = false;
+        this.closeDeleteModal();
+        this.loadFiles();
+        this.loadStatistics();
+      },
+      error: (error: any) => {
+        console.error(`Error deleting via ${type} endpoint:`, error);
+        // Try file management deletion as fallback
+        this.deleteViaFileManagement(this.selectedFile!.id);
+      }
+    });
+  }
+
+  /**
+   * ✅ NEW: Delete via file management
+   */
+  private deleteViaFileManagement(fileId: string): void {
+    this.fileService.deleteFile(fileId).subscribe({
+      next: (response) => {
+        this.showToast('success', response.message || 'تم حذف الملف بنجاح');
+        this.deletingFile = false;
+        this.closeDeleteModal();
+        this.loadFiles();
+        this.loadStatistics();
+      },
+      error: (error) => {
+        console.error('Error deleting via file management:', error);
+        this.showToast('error', error.error?.message || 'حدث خطأ أثناء حذف الملف');
+        this.deletingFile = false;
+      }
+    });
+  }
+
+  /**
+   * ✅ NEW: Get type-specific delete method
+   */
+  private getTypeDeleteMethod(type: string): ((id: string) => any) | null {
+    const methods: { [key: string]: (id: string) => any } = {
+      emptyReceipts: (id) => this.fileService.deleteEmptyReceipt(id),
+      // Add other types as needed when their services are available
+    };
+
+    return methods[type] || null;
   }
 
   // ============================================
@@ -425,6 +579,8 @@ export class FilesControlComponent implements OnInit, OnDestroy {
   }
 
   formatDate(date: string): string {
+    if (!date) return 'غير متوفر';
+    
     return new Date(date).toLocaleDateString('ar-EG', {
       year: 'numeric',
       month: 'short',
@@ -438,18 +594,19 @@ export class FilesControlComponent implements OnInit, OnDestroy {
     return obj ? Object.keys(obj) : [];
   }
 
-  canPreviewFile(file: FileRecord): boolean {
+  canPreviewFile(file: FileTableData): boolean {
     return file.category === 'pdf' || file.category === 'image';
   }
 
-  getUserDisplayName(file: FileRecord): string {
-    // If there's a real name available, use it, otherwise use createdBy
-    // You can customize this logic based on your data structure
+  getUserDisplayName(file: FileTableData): string {
     return file.createdByName || file.createdBy || 'غير معروف';
   }
 
-  getUserIdentifier(file: FileRecord): string {
-    // This shows the username/identifier (like USER-0010)
+  getUserIdentifier(file: FileTableData): string {
     return file.createdByRole || '';
+  }
+
+  getTypeIcon(type: string): string {
+    return this.fileService.getTypeIcon(type);
   }
 }

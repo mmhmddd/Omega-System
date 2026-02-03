@@ -74,6 +74,19 @@ export const API_ENDPOINTS = {
   },
 
   // ============================================
+  // COSTING_SHEETS ENDPOINTS
+  // ============================================
+  COSTING_SHEETS: {
+    CREATE: '/api/costing-sheets',
+    GET_ALL: '/api/costing-sheets',
+    GET_MY_LATEST: '/api/costing-sheets/my-latest',
+    GET_BY_ID: (id: string) => `/api/costing-sheets/${id}`,
+    UPDATE: (id: string) => `/api/costing-sheets/${id}`,
+    DELETE: (id: string) => `/api/costing-sheets/${id}`,
+    DOWNLOAD_PDF: (id: string) => `/api/costing-sheets/${id}/pdf`
+  },
+
+  // ============================================
   // MATERIAL REQUEST ENDPOINTS
   // ============================================
   MATERIAL_REQUESTS: {
@@ -132,6 +145,28 @@ export const API_ENDPOINTS = {
     RESET_COUNTER: `${environment.apiUrl}/receipts/reset-counter`,
     GENERATE_PDF: (id: string) => `${environment.apiUrl}/receipts/${id}/generate-pdf`,
     DOWNLOAD_PDF: (id: string) => `${environment.apiUrl}/receipts/${id}/download-pdf`
+  },
+
+  // ============================================
+  // EMPTY_RECEIPTS ENDPOINTS
+  // ============================================
+  EMPTY_RECEIPTS: {
+    // EXISTING endpoints (keep these)
+    GENERATE: `${environment.apiUrl}/empty-receipts/generate`, // ✅ Keep existing
+    DOWNLOAD: (filename: string) => `${environment.apiUrl}/empty-receipts/download/${filename}`, // ✅ Keep existing
+    VIEW: (filename: string) => `${environment.apiUrl}/empty-receipts/view/${filename}`, // ✅ Keep existing (if you have it)
+    
+    // ✅ NEW endpoints (add these)
+    GET_ALL: `${environment.apiUrl}/empty-receipts`,
+    GET_BY_ID: (id: string) => `${environment.apiUrl}/empty-receipts/${id}`,
+    GET_BY_NUMBER: (receiptNumber: string) => `${environment.apiUrl}/empty-receipts/number/${receiptNumber}`,
+    CREATE: `${environment.apiUrl}/empty-receipts`,
+    UPDATE: (id: string) => `${environment.apiUrl}/empty-receipts/${id}`,
+    DELETE: (id: string) => `${environment.apiUrl}/empty-receipts/${id}`,
+    GET_STATS: `${environment.apiUrl}/empty-receipts/stats`,
+    RESET_COUNTER: `${environment.apiUrl}/empty-receipts/reset-counter`,
+    GENERATE_PDF: (id: string) => `${environment.apiUrl}/empty-receipts/${id}/generate-pdf`,
+    DOWNLOAD_PDF: (id: string) => `${environment.apiUrl}/empty-receipts/${id}/download-pdf`
   },
 
   // ============================================

@@ -314,7 +314,7 @@
   }
 
   // ============================================
-  // OVERVIEW GRID - MINIMIZED
+  // OVERVIEW GRID - IMPROVED WITH FIXED OVERFLOW
   // ============================================
   .overview-grid {
     display: grid;
@@ -327,6 +327,7 @@
       padding: 1.5rem;
       box-shadow: 0 3px 16px rgba(0, 0, 0, 0.06);
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden; // ✅ CRITICAL: Prevent content from overflowing
 
       &:hover {
         transform: translateY(-4px);
@@ -400,11 +401,17 @@
       }
 
       .category-chart {
+        // ✅ FIXED: Added proper container constraints
+        width: 100%;
+        overflow: hidden; // Prevent overflow
+
         .chart-bars {
           display: flex;
           flex-direction: column;
           gap: 0.625rem;
           margin-bottom: 1rem;
+          width: 100%; // ✅ Ensure bars container respects parent width
+          padding: 0; // ✅ Remove any default padding
 
           .chart-bar {
             height: 30px;
@@ -415,6 +422,7 @@
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             min-width: 70px;
+            max-width: 100%; // ✅ CRITICAL: Prevent bar from exceeding container
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 
             &:hover {
@@ -426,6 +434,7 @@
               color: white;
               font-weight: 800;
               font-size: 0.8125rem;
+              white-space: nowrap; // ✅ Prevent text wrapping
             }
           }
         }
@@ -434,6 +443,7 @@
           display: flex;
           flex-wrap: wrap;
           gap: 0.75rem;
+          padding: 0.5rem 0; // ✅ Added padding for better spacing
 
           .chart-label {
             display: flex;
@@ -448,6 +458,7 @@
               height: 10px;
               border-radius: 50%;
               box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+              flex-shrink: 0; // ✅ Prevent dot from shrinking
             }
           }
         }

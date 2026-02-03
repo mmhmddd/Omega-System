@@ -18,6 +18,9 @@ import { SecretariatService, FormsResponse } from '../../core/services/secretari
 import { SecretariatUserService } from '../../core/services/secretariat-user.service';
 import { SupplierService, StatisticsResponse as SupplierStatsResponse } from '../../core/services/supplier.service';
 import { UsersService } from '../../core/services/users.service';
+import { CostingSheetService } from '../../core/services/costing-sheet.service';
+import { EmptyReceiptService } from '../../core/services/empty-receipt.service';
+import { ProformaInvoiceService } from '../../core/services/proforma-invoice.service';
 
 // ============================================
 // INTERFACES
@@ -46,6 +49,9 @@ interface SystemOverview {
   totalRFQs: number;
   totalSecretariatForms: number;
   totalSuppliers: number;
+  totalCostingSheets: number;
+  totalEmptyReceipts: number;
+  totalProformaInvoices: number;
 }
 
 interface CategoryAnalysis {
@@ -84,7 +90,10 @@ export class AnalysisPageComponent implements OnInit, OnDestroy {
     totalReceipts: 0,
     totalRFQs: 0,
     totalSecretariatForms: 0,
-    totalSuppliers: 0
+    totalSuppliers: 0,
+    totalCostingSheets: 0,
+    totalEmptyReceipts: 0,
+    totalProformaInvoices: 0
   };
 
   // Statistics Cards
@@ -125,7 +134,10 @@ export class AnalysisPageComponent implements OnInit, OnDestroy {
     private secretariatService: SecretariatService,
     private secretariatUserService: SecretariatUserService,
     private supplierService: SupplierService,
-    private usersService: UsersService
+    private usersService: UsersService,
+    private costingSheetService: CostingSheetService,
+    private emptyReceiptService: EmptyReceiptService,
+    private proformaInvoiceService: ProformaInvoiceService
   ) {}
 
   ngOnInit(): void {
@@ -217,9 +229,69 @@ export class AnalysisPageComponent implements OnInit, OnDestroy {
             }
           });
         })
+      ),
+      costingSheets: this.costingSheetService.getAllCostingSheets({ limit: 1 }).pipe(
+        catchError(error => {
+          console.error('❌ Costing Sheets Error:', error);
+          console.log('   - Status:', error.status);
+          console.log('   - URL:', error.url);
+          console.log('   - Message:', error.message);
+          // Return structure matching expected successful response
+          return of({ 
+            success: false,
+            data: [], 
+            pagination: { 
+              total: 0, 
+              currentPage: 1, 
+              totalPages: 0, 
+              limit: 1 
+            } 
+          });
+        })
+      ),
+      emptyReceipts: this.emptyReceiptService.getAllEmptyReceipts({ limit: 1 }).pipe(
+        catchError(error => {
+          console.error('❌ Empty Receipts Error:', error);
+          console.log('   - Status:', error.status);
+          console.log('   - URL:', error.url);
+          console.log('   - Message:', error.message);
+          return of({ 
+            success: false,
+            data: [], 
+            pagination: { 
+              total: 0, 
+              currentPage: 1, 
+              totalPages: 0, 
+              limit: 1 
+            } 
+          });
+        })
+      ),
+      proformaInvoices: this.proformaInvoiceService.getAllProformaInvoices({ limit: 1 }).pipe(
+        catchError(error => {
+          console.error('❌ Proforma Invoices Error:', error);
+          console.log('   - Status:', error.status);
+          console.log('   - URL:', error.url);
+          console.log('   - Message:', error.message);
+          return of({ 
+            success: false, 
+            data: [], 
+            pagination: { 
+              totalInvoices: 0, 
+              currentPage: 1, 
+              totalPages: 0, 
+              limit: 1 
+            } 
+          });
+        })
       )
     }).subscribe({
       next: (results) => {
+        console.log('✅ All Analytics Loaded Successfully');
+        console.log('📊 Costing Sheets Full Response:', results.costingSheets);
+        console.log('📊 Empty Receipts Full Response:', results.emptyReceipts);
+        console.log('📊 Proforma Invoices Full Response:', results.proformaInvoices);
+        
         this.processAnalyticsData(results);
         this.isLoading = false;
         // Create charts after data is loaded
@@ -235,6 +307,53 @@ export class AnalysisPageComponent implements OnInit, OnDestroy {
   }
 
   processAnalyticsData(results: any): void {
+    // Debug logging for new services
+    console.log('📊 Full Analytics Results:', results);
+    console.log('📊 Costing Sheets Response:', results.costingSheets);
+    console.log('📊 Costing Sheets Pagination:', results.costingSheets?.pagination);
+    console.log('📊 Costing Sheets Data:', results.costingSheets?.data);
+    console.log('📊 Empty Receipts Response:', results.emptyReceipts);
+    console.log('📊 Proforma Invoices Response:', results.proformaInvoices);
+
+    // Helper function to safely extract count from different response structures
+    const extractCount = (result: any, paths: string[], serviceName: string = ''): number => {
+      console.log(`🔍 Extracting count for ${serviceName}:`, result);
+      
+      for (const path of paths) {
+        const keys = path.split('.');
+        let value = result;
+        let found = true;
+        
+        for (const key of keys) {
+          if (value && value[key] !== undefined) {
+            value = value[key];
+          } else {
+            found = false;
+            break;
+          }
+        }
+        
+        if (found && typeof value === 'number') {
+          console.log(`✅ Found count at path "${path}":`, value);
+          return value;
+        }
+      }
+      
+      // Fallback: If no number found, try to get length of data array
+      if (result?.data && Array.isArray(result.data)) {
+        const arrayLength = result.data.length;
+        console.log(`⚠️ Using data array length as fallback for ${serviceName}:`, arrayLength);
+        // If we got an array with limit=1, this is not the total count
+        // We need to check if there's any count in the response
+        if (arrayLength > 0) {
+          console.log(`⚠️ Warning: Using array length (${arrayLength}) but this may not be the total count!`);
+        }
+      }
+      
+      console.log(`❌ No valid count found for ${serviceName} in paths:`, paths);
+      return 0;
+    };
+
     // System Overview
     this.systemOverview = {
       totalUsers: results.users.pagination?.totalUsers || 0,
@@ -244,8 +363,38 @@ export class AnalysisPageComponent implements OnInit, OnDestroy {
       totalReceipts: results.receipts.pagination?.totalReceipts || 0,
       totalRFQs: results.rfqs.data?.totalRFQs || 0,
       totalSecretariatForms: results.secretariat.pagination?.totalForms || 0,
-      totalSuppliers: results.suppliers.data?.total || 0
+      totalSuppliers: results.suppliers.data?.total || 0,
+      // Try ALL possible paths for Costing Sheets
+      totalCostingSheets: extractCount(results.costingSheets, [
+        'pagination.total',
+        'pagination.totalSheets',
+        'pagination.totalCostingSheets',
+        'data.total',
+        'total',
+        'count',
+        'totalCount'
+      ], 'Costing Sheets'),
+      // Try multiple possible paths for Empty Receipts
+      totalEmptyReceipts: extractCount(results.emptyReceipts, [
+        'pagination.total',
+        'pagination.totalReceipts',
+        'pagination.totalEmptyReceipts',
+        'data.total',
+        'total',
+        'count'
+      ], 'Empty Receipts'),
+      // Try multiple possible paths for Proforma Invoices
+      totalProformaInvoices: extractCount(results.proformaInvoices, [
+        'pagination.totalInvoices',
+        'pagination.total',
+        'data.total',
+        'total',
+        'count'
+      ], 'Proforma Invoices')
     };
+
+    console.log('📊 Final System Overview:', this.systemOverview);
+    console.log('📊 Costing Sheets Count:', this.systemOverview.totalCostingSheets);
 
     // Build stat cards
     this.buildStatCards();
@@ -323,6 +472,27 @@ export class AnalysisPageComponent implements OnInit, OnDestroy {
         icon: 'bi-truck',
         color: '#ec4899',
         subtitle: 'مورد'
+      },
+      {
+        title: 'كشف التكاليف',
+        value: this.systemOverview.totalCostingSheets,
+        icon: 'bi-calculator',
+        color: '#14b8a6',
+        subtitle: 'كشف التكلفة'
+      },
+      {
+        title: 'إشعارات فارغة',
+        value: this.systemOverview.totalEmptyReceipts,
+        icon: 'bi-receipt',
+        color: '#f97316',
+        subtitle: 'إشعار فارغ'
+      },
+      {
+        title: 'فواتير أولية',
+        value: this.systemOverview.totalProformaInvoices,
+        icon: 'bi-file-earmark-invoice',
+        color: '#a855f7',
+        subtitle: 'فاتورة أولية'
       }
     ];
   }
@@ -435,7 +605,7 @@ export class AnalysisPageComponent implements OnInit, OnDestroy {
         color: '#3b82f6',
         stats: [
           { label: 'عروض الأسعار', value: this.systemOverview.totalPriceQuotes },
-          { label: 'أوامر الشراء', value: this.systemOverview.totalPurchaseOrders },
+          { label: 'طلبات الشراء', value: this.systemOverview.totalPurchaseOrders },
           { label: 'إشعارات الاستلام', value: this.systemOverview.totalReceipts },
           { label: 'طلبات التسعير', value: this.systemOverview.totalRFQs }
         ]
@@ -463,6 +633,17 @@ export class AnalysisPageComponent implements OnInit, OnDestroy {
           { label: 'متوسط التقييم', value: `${this.supplierStats?.averageRating?.toFixed(1) || 0} ⭐` }
         ],
         chartData: this.suppliersByStatus
+      },
+      {
+        name: 'المستندات المالية',
+        icon: 'bi-file-earmark-spreadsheet',
+        color: '#14b8a6',
+        stats: [
+          { label: 'كشف التكاليف', value: this.systemOverview.totalCostingSheets },
+          { label: 'الإشعارات الفارغة', value: this.systemOverview.totalEmptyReceipts },
+          { label: 'الفواتير الأولية', value: this.systemOverview.totalProformaInvoices },
+          { label: 'الإجمالي', value: this.systemOverview.totalCostingSheets + this.systemOverview.totalEmptyReceipts + this.systemOverview.totalProformaInvoices }
+        ]
       }
     ];
   }

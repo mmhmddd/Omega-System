@@ -93,10 +93,13 @@ export class SideBarComponent implements OnInit {
       title: 'العمليات',
       items: [
         { title: 'إشعار استلام', route: '/receipts', icon: 'bi-clipboard-check' },
+        { title: 'إشعار فارغ', route: '/empty-receipt', icon: 'bi-file-earmark' },
         { title: 'طلب تسعير ', route: '/rfqs', icon: 'bi-file-earmark-text' },
         { title: 'طلب شراء', route: '/purchases', icon: 'bi-cart' },
         { title: 'طلب مواد', route: '/material-requests', icon: 'bi-box' },
-        { title: 'عرض سعر', route: '/price-quotes', icon: 'bi-receipt' }
+        { title: 'عرض سعر', route: '/price-quotes', icon: 'bi-receipt' },
+        { title: 'الفواتير الأولية', route: '/Proforma-invoice', icon: 'bi-file-earmark-pdf' },
+        { title: 'كشف التكاليف', route: '/costing-sheet', icon: 'bi-calculator' } // ✅ NEW
       ]
     },
     {

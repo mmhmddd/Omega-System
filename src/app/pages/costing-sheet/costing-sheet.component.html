@@ -1,6 +1,6 @@
-<!-- receipts.component.html - UPDATED WITH OPTIONAL FIELDS LOGIC -->
+<!-- costing-sheet.component.html - WITH UPDATED ARABIC TITLES -->
 
-<div class="receipts-container">
+<div class="costing-sheet-container">
 
   <!-- TOAST NOTIFICATIONS CONTAINER -->
   <div class="toast-container" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
@@ -46,7 +46,7 @@
           <i class="bi bi-check-circle-fill"></i>
         </div>
 
-        <h2>{{ formLanguage === 'ar' ? 'تم إنشاء الإشعار بنجاح' : 'Receipt Created Successfully' }}</h2>
+        <h2>{{ formLanguage === 'ar' ? 'تم إنشاء كشف التكاليف بنجاح' : 'Costing Sheet Created Successfully' }}</h2>
       </div>
 
       <!-- Body -->
@@ -56,7 +56,7 @@
         <div class="pdf-info-box">
           <i class="bi bi-file-earmark-pdf-fill"></i>
           <div class="pdf-details">
-            <p class="pdf-filename">{{ successReceiptNumber }}.pdf</p>
+            <p class="pdf-filename">{{ successCSNumber }}.pdf</p>
             <p class="pdf-status">
               {{ formLanguage === 'ar' ? 'جاهز للعرض والتحميل' : 'Ready to view and download' }}
             </p>
@@ -110,7 +110,7 @@
   <div *ngIf="currentView === 'list'" class="list-view">
     <!-- Header -->
     <div class="page-header">
-      <h1 class="page-title">{{ formLanguage === 'ar' ? 'إشعارات الاستلام' : 'Receipts' }}</h1>
+      <h1 class="page-title">{{ formLanguage === 'ar' ? 'كشف التكاليف' : 'Costing Sheets' }}</h1>
       <div class="header-actions">
         <!-- Language Toggle -->
         <div class="language-toggle">
@@ -131,9 +131,10 @@
             English
           </button>
         </div>
-        <button class="btn-primary" (click)="createReceipt()">
+        
+        <button class="btn-primary" (click)="createCS()">
           <i class="bi bi-plus-lg"></i>
-          {{ formLanguage === 'ar' ? 'إنشاء إشعار' : 'Create Receipt' }}
+          {{ formLanguage === 'ar' ? 'إنشاء كشف تكاليف' : 'Create Costing Sheet' }}
         </button>
       </div>
     </div>
@@ -144,7 +145,7 @@
         <i class="bi bi-search"></i>
         <input
           type="text"
-          [placeholder]="formLanguage === 'ar' ? 'بحث برقم الإشعار، إلى، المشروع ...' : 'Search by number, to, project ...'"
+          [placeholder]="formLanguage === 'ar' ? 'بحث برقم كشف التكاليف، العميل، المشروع...' : 'Search by CS number, client, project...'"
           [(ngModel)]="searchTerm"
           (ngModelChange)="onSearchChange()"
           (keyup.enter)="onSearch()"
@@ -154,70 +155,72 @@
 
     <!-- Table -->
     <div class="table-container">
-      <table class="receipts-table">
+      <table class="css-table">
         <thead>
           <tr>
-            <th class="text-center">{{ formLanguage === 'ar' ? 'رقم الإشعار' : 'Receipt #' }}</th>
-            <th class="text-center">{{ formLanguage === 'ar' ? 'إلى' : 'To' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'رقم كشف التكاليف' : 'CS #' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'العميل' : 'Client' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'المشروع' : 'Project' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'نسبة الربح' : 'Profit %' }}</th>
             <th class="text-center">{{ formLanguage === 'ar' ? 'التاريخ' : 'Date' }}</th>
-            <th class="text-center">{{ formLanguage === 'ar' ? 'رمز المشروع' : 'Project Code' }}</th>
             <th class="text-center">{{ formLanguage === 'ar' ? 'منشئ' : 'Created By' }}</th>
             <th class="text-center">{{ formLanguage === 'ar' ? 'الدور' : 'Role' }}</th>
-            <th class="text-center">{{ formLanguage === 'ar' ? 'الحالة' : 'Status' }}</th>
             <th class="text-center">{{ formLanguage === 'ar' ? 'الإجراءات' : 'Actions' }}</th>
           </tr>
         </thead>
-        <tbody *ngIf="!loading && receipts.length > 0">
-          <tr *ngFor="let receipt of receipts">
-            <td class="receipt-number text-center">{{ receipt.receiptNumber }}</td>
-            <td class="text-center">{{ receipt.to || '-' }}</td>
-            <td class="text-center">{{ receipt.date }}</td>
-            <td class="text-center">{{ receipt.projectCode || '-' }}</td>
-            <td class="text-center">{{ getCreatorName(receipt) }}</td>
+        <tbody *ngIf="!loading && costingSheets.length > 0">
+          <tr *ngFor="let cs of costingSheets">
+            <td class="cs-number text-center">{{ cs.csNumber }}</td>
+            <td class="text-center">{{ cs.client }}</td>
+            <td class="text-center">{{ cs.project }}</td>
             <td class="text-center">
-              <span class="role-badge" [ngClass]="getRoleClass(receipt.createdByRole)">
-                {{ getRoleText(receipt.createdByRole) }}
+              <span class="profit-badge">{{ cs.profitPercentage }}%</span>
+            </td>
+            <td class="text-center">{{ cs.date }}</td>
+            <td class="text-center">{{ getCreatorName(cs) }}</td>
+            <td class="text-center">
+              <span class="role-badge" [ngClass]="getRoleClass(cs.createdByRole)">
+                {{ getRoleText(cs.createdByRole) }}
               </span>
             </td>
-            <td class="text-center">
-              <span class="status-badge" [ngClass]="getStatusClass(receipt)">
-                {{ getStatusText(receipt) }}
-              </span>
-            </td>
+
             <td class="actions-cell text-center">
               <button
                 class="btn-icon btn-view"
-                (click)="viewPDF(receipt)"
+                (click)="viewPDF(cs)"
                 [title]="formLanguage === 'ar' ? 'عرض PDF' : 'View PDF'">
                 <i class="bi bi-eye"></i>
               </button>
               <button
                 class="btn-icon btn-print"
-                (click)="printReceiptPDF(receipt)"
+                (click)="printCSPDF(cs)"
                 [title]="formLanguage === 'ar' ? 'طباعة' : 'Print'">
                 <i class="bi bi-printer"></i>
               </button>
               <button
                 class="btn-icon btn-download"
-                (click)="downloadPDF(receipt)"
+                (click)="downloadPDF(cs)"
                 [title]="formLanguage === 'ar' ? 'تحميل PDF' : 'Download PDF'">
                 <i class="bi bi-download"></i>
               </button>
+
+              <!-- Duplicate Button -->
               <button
                 class="btn-icon btn-duplicate"
-                (click)="openDuplicateModal(receipt)"
+                (click)="openDuplicateModal(cs)"
                 [title]="formLanguage === 'ar' ? 'نسخ وإعادة استخدام' : 'Duplicate & Reuse'">
                 <i class="bi bi-files"></i>
               </button>
+
               <button
                 class="btn-icon btn-edit"
-                (click)="editReceipt(receipt)"
+                (click)="editCS(cs)"
                 [title]="formLanguage === 'ar' ? 'تعديل' : 'Edit'">
                 <i class="bi bi-pencil"></i>
               </button>
               <button
                 class="btn-icon btn-delete"
-                (click)="showDeleteConfirmation(receipt)"
+                (click)="showDeleteConfirmation(cs)"
                 [title]="formLanguage === 'ar' ? 'حذف' : 'Delete'">
                 <i class="bi bi-trash"></i>
               </button>
@@ -231,10 +234,10 @@
             </td>
           </tr>
         </tbody>
-        <tbody *ngIf="!loading && receipts.length === 0">
+        <tbody *ngIf="!loading && costingSheets.length === 0">
           <tr>
             <td colspan="8" class="text-center empty-cell">
-              {{ formLanguage === 'ar' ? 'لا توجد إشعارات' : 'No receipts found' }}
+              {{ formLanguage === 'ar' ? 'لا توجد كشوف تكاليف' : 'No costing sheets found' }}
             </td>
           </tr>
         </tbody>
@@ -272,8 +275,8 @@
     <div class="form-header">
       <h1 class="form-title">
         {{ currentView === 'create'
-          ? (formLanguage === 'ar' ? 'إنشاء إشعار استلام' : 'Create Receipt')
-          : (formLanguage === 'ar' ? 'تعديل إشعار استلام' : 'Edit Receipt')
+          ? (formLanguage === 'ar' ? 'إنشاء كشف تكاليف' : 'Create Costing Sheet')
+          : (formLanguage === 'ar' ? 'تعديل كشف التكاليف' : 'Edit Costing Sheet')
         }}
       </h1>
       <div class="form-header-actions">
@@ -283,10 +286,10 @@
           </button>
           <button
             class="btn-primary"
-            (click)="saveReceipt()"
-            [disabled]="savingReceipt">
+            (click)="saveCS()"
+            [disabled]="savingCS">
             <i class="bi bi-save"></i>
-            {{ savingReceipt
+            {{ savingCS
               ? (formLanguage === 'ar' ? 'جاري الحفظ...' : 'Saving...')
               : (formLanguage === 'ar' ? 'حفظ' : 'Save')
             }}
@@ -311,17 +314,14 @@
           (click)="currentStep = 'basic'">
           {{ formLanguage === 'ar' ? 'المعلومات الأساسية' : 'Basic Info' }}
         </button>
-
         <button
           class="sidebar-step"
           [class.active]="currentStep === 'items'"
+          [class.has-error]="fieldErrors['items']"
           (click)="currentStep = 'items'">
-          <span>
-            {{ formLanguage === 'ar' ? 'العناصر (اختياري)' : 'Items (Optional)' }}
-          </span>
-          <span class="item-count">{{ getItemsCount() }}</span>
+          {{ formLanguage === 'ar' ? 'العناصر (اختياري)' : 'Items (Optional)' }}
+          <span class="item-count" [class.error-count]="fieldErrors['items']">{{ getItemsCount() }}</span>
         </button>
-
         <button
           class="sidebar-step"
           [class.active]="currentStep === 'options'"
@@ -333,10 +333,10 @@
       <!-- Form Fields -->
       <div class="form-fields">
 
-        <!-- STEP 1: Basic Info - ALL OPTIONAL -->
+        <!-- STEP 1: Basic Info -->
         <div *ngIf="currentStep === 'basic'" class="step-content">
           <h2 class="step-title">
-            {{ formLanguage === 'ar' ? 'المعلومات الأساسية (اختيارية)' : 'Basic Info (Optional)' }}
+            {{ formLanguage === 'ar' ? 'المعلومات الأساسية' : 'Basic Information' }}
           </h2>
 
           <!-- Info Alert -->
@@ -352,128 +352,117 @@
             </div>
           </div>
 
-          <!-- Date and Project Code Row -->
-          <div class="form-row">
-            <div class="form-group">
-              <label>
-                <i class="bi bi-calendar"></i>
-                {{ formLanguage === 'ar' ? 'التاريخ' : 'Date' }}
-              </label>
-              <input
-                type="date"
-                [(ngModel)]="receiptForm.date"
-                class="form-control"
-              />
-            </div>
-
-            <div class="form-group">
-              <label>
-                <i class="bi bi-bookmark"></i>
-                {{ formLanguage === 'ar' ? 'رمز المشروع' : 'Project Code' }}
-              </label>
-              <input
-                type="text"
-                [(ngModel)]="receiptForm.projectCode"
-                [placeholder]="formLanguage === 'ar' ? 'مثال: PRJ-2024-001' : 'e.g. PRJ-2024-001'"
-                class="form-control"
-              />
-            </div>
+          <!-- Date Field -->
+          <div class="form-group">
+            <label>
+              <i class="bi bi-calendar"></i>
+              {{ formLanguage === 'ar' ? 'التاريخ' : 'Date' }}
+            </label>
+            <input
+              type="date"
+              [(ngModel)]="csForm.date"
+              class="form-control"
+              [class.error]="fieldErrors['date']"
+              required
+            />
+            <small class="error-message" *ngIf="fieldErrors['date']">
+              <i class="bi bi-exclamation-circle"></i>
+              {{ fieldErrors['date'] }}
+            </small>
           </div>
 
-          <!-- To Field -->
+          <!-- Client -->
           <div class="form-group">
             <label>
               <i class="bi bi-person"></i>
-              {{ formLanguage === 'ar' ? 'إلى' : 'To' }}
+              {{ formLanguage === 'ar' ? 'العميل' : 'Client' }}
             </label>
             <input
               type="text"
-              [(ngModel)]="receiptForm.to"
-              [placeholder]="formLanguage === 'ar' ? 'اسم الشركة أو الشخص' : 'Company or Person Name'"
+              [(ngModel)]="csForm.client"
+              [placeholder]="formLanguage === 'ar' ? 'اسم العميل' : 'Client Name'"
               class="form-control"
+              [class.error]="fieldErrors['client']"
+              required
             />
+            <small class="error-message" *ngIf="fieldErrors['client']">
+              <i class="bi bi-exclamation-circle"></i>
+              {{ fieldErrors['client'] }}
+            </small>
           </div>
 
-          <!-- Address Field -->
+          <!-- Project -->
           <div class="form-group">
             <label>
-              <i class="bi bi-geo-alt"></i>
-              {{ formLanguage === 'ar' ? 'العنوان' : 'Address' }}
-            </label>
-            <textarea
-              [(ngModel)]="receiptForm.address"
-              [placeholder]="formLanguage === 'ar' ? 'أدخل العنوان الكامل' : 'Enter full address'"
-              class="form-control"
-              rows="3"
-            ></textarea>
-          </div>
-
-          <!-- Work Location and Attention Row -->
-          <div class="form-row">
-            <div class="form-group">
-              <label>
-                <i class="bi bi-pin-map"></i>
-                {{ formLanguage === 'ar' ? 'موقع العمل' : 'Work Location' }}
-              </label>
-              <input
-                type="text"
-                [(ngModel)]="receiptForm.workLocation"
-                [placeholder]="formLanguage === 'ar' ? 'موقع تنفيذ العمل' : 'Work execution location'"
-                class="form-control"
-              />
-            </div>
-
-            <div class="form-group">
-              <label>
-                <i class="bi bi-person-badge"></i>
-                {{ formLanguage === 'ar' ? 'عناية' : 'Attention' }}
-              </label>
-              <input
-                type="text"
-                [(ngModel)]="receiptForm.attention"
-                [placeholder]="formLanguage === 'ar' ? 'اسم الشخص المعني' : 'Concerned person name'"
-                class="form-control"
-              />
-            </div>
-          </div>
-
-          <!-- Vehicle Number Field -->
-          <div class="form-group">
-            <label>
-              <i class="bi bi-truck"></i>
-              {{ formLanguage === 'ar' ? 'رقم المركبة' : 'Vehicle Number' }}
+              <i class="bi bi-folder"></i>
+              {{ formLanguage === 'ar' ? 'المشروع' : 'Project' }}
             </label>
             <input
               type="text"
-              [(ngModel)]="receiptForm.vehicleNumber"
-              [placeholder]="formLanguage === 'ar' ? 'مثال: ABC-1234' : 'e.g. ABC-1234'"
+              [(ngModel)]="csForm.project"
+              [placeholder]="formLanguage === 'ar' ? 'اسم المشروع' : 'Project Name'"
               class="form-control"
+              [class.error]="fieldErrors['project']"
+              required
             />
+            <small class="error-message" *ngIf="fieldErrors['project']">
+              <i class="bi bi-exclamation-circle"></i>
+              {{ fieldErrors['project'] }}
+            </small>
           </div>
 
-          <!-- Additional Text Field -->
+          <!-- Profit Percentage -->
           <div class="form-group">
             <label>
-              <i class="bi bi-file-text"></i>
-              {{ formLanguage === 'ar' ? 'نص إضافي (اختياري)' : 'Additional Text (Optional)' }}
+              <i class="bi bi-percent"></i>
+              {{ formLanguage === 'ar' ? 'نسبة الربح' : 'Profit Percentage' }}
             </label>
-            <textarea
-              [(ngModel)]="receiptForm.additionalText"
-              [placeholder]="formLanguage === 'ar' ? 'يرجى استلام ما تم ادراجه ادناه:' : 'Please receive what is listed below:'"
+            <input
+              type="number"
+              [(ngModel)]="csForm.profitPercentage"
+              [placeholder]="formLanguage === 'ar' ? 'أدخل نسبة الربح (%)' : 'Enter profit percentage (%)'"
               class="form-control"
-              rows="3"
-            ></textarea>
+              [class.error]="fieldErrors['profitPercentage']"
+              min="0"
+              max="100"
+              step="0.1"
+              required
+            />
+            <small class="error-message" *ngIf="fieldErrors['profitPercentage']">
+              <i class="bi bi-exclamation-circle"></i>
+              {{ fieldErrors['profitPercentage'] }}
+            </small>
           </div>
 
-          <!-- Notes Field -->
+          <!-- Notes -->
           <div class="form-group">
             <label>
               <i class="bi bi-chat-left-text"></i>
               {{ formLanguage === 'ar' ? 'ملاحظات' : 'Notes' }}
             </label>
             <textarea
-              [(ngModel)]="receiptForm.notes"
-              [placeholder]="formLanguage === 'ar' ? 'ملاحظات إضافية' : 'Additional notes'"
+              [(ngModel)]="csForm.notes"
+              [placeholder]="formLanguage === 'ar' ? 'أدخل أي ملاحظات' : 'Enter any notes'"
+              class="form-control"
+              rows="4"
+              [class.error]="fieldErrors['notes']"
+              required
+            ></textarea>
+            <small class="error-message" *ngIf="fieldErrors['notes']">
+              <i class="bi bi-exclamation-circle"></i>
+              {{ fieldErrors['notes'] }}
+            </small>
+          </div>
+
+          <!-- Additional Notes -->
+          <div class="form-group">
+            <label>
+              <i class="bi bi-sticky"></i>
+              {{ formLanguage === 'ar' ? 'ملاحظات إضافية (اختياري)' : 'Additional Notes (Optional)' }}
+            </label>
+            <textarea
+              [(ngModel)]="csForm.additionalNotes"
+              [placeholder]="formLanguage === 'ar' ? 'أي ملاحظات إضافية' : 'Any additional notes'"
               class="form-control"
               rows="3"
             ></textarea>
@@ -510,24 +499,24 @@
 
             <small class="help-text">
               {{ formLanguage === 'ar'
-                ? 'الحد الأقصى لحجم الملف: 10 ميجابايت. سيتم دمج الملف المرفق مع الإشعار.'
-                : 'Maximum file size: 10MB. The attached file will be merged with the receipt.'
+                ? 'الحد الأقصى لحجم الملف: 10 ميجابايت. سيتم دمج الملف المرفق مع كشف التكاليف.'
+                : 'Maximum file size: 10MB. The attached file will be merged with the costing sheet.'
               }}
             </small>
           </div>
 
           <div class="form-navigation">
-            <button class="btn-primary btn-next" (click)="nextStep()">
+            <button class="btn-primary btn-next" (click)="nextStep()" type="button">
               {{ formLanguage === 'ar' ? 'التالي' : 'Next' }}
               <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-left' : 'bi-arrow-right'"></i>
             </button>
           </div>
         </div>
 
-        <!-- STEP 2: Items (OPTIONAL) -->
+        <!-- STEP 2: Items -->
         <div *ngIf="currentStep === 'items'" class="step-content">
           <h2 class="step-title">
-            {{ formLanguage === 'ar' ? 'عناصر الإشعار (اختياري)' : 'Receipt Items (Optional)' }}
+            {{ formLanguage === 'ar' ? 'العناصر (اختياري)' : 'Items (Optional)' }}
             <span class="optional-badge">{{ formLanguage === 'ar' ? 'اختياري' : 'Optional' }}</span>
           </h2>
 
@@ -537,17 +526,24 @@
             <div style="flex: 1;">
               <p>
                 {{ formLanguage === 'ar'
-                  ? 'إضافة العناصر اختيارية. إذا لم تقم بإضافة أي عناصر، فلن يظهر الجدول في ملف PDF.'
-                  : 'Adding items is optional. If you don\'t add any items, the table won\'t appear in the PDF.'
+                  ? 'يمكنك اختيار صنف من القائمة أو إدخال صنف مخصص. إذا لم تكن الوحدة متوفرة، يمكنك إدخالها يدوياً.'
+                  : 'You can select an item from the list or enter a custom item. If the unit is not available, you can enter it manually.'
                 }}
               </p>
             </div>
           </div>
 
+          <div class="error-alert" *ngIf="fieldErrors['items']" style="margin-bottom: 1.5rem;">
+            <i class="bi bi-exclamation-circle"></i>
+            <span>{{ fieldErrors['items'] }} </span>
+          </div>
+
           <div class="items-section">
-            <div class="items-body" *ngIf="receiptForm.items.length > 0">
-              <ng-container *ngFor="let item of receiptForm.items; let i = index">
+            <!-- Items List - CARD DESIGN -->
+            <div class="items-body" *ngIf="csForm.items.length > 0">
+              <ng-container *ngFor="let item of csForm.items; let i = index">
                 <div class="item-card">
+                  <!-- Card Header -->
                   <div class="item-card-header">
                     <span class="item-number">{{ formLanguage === 'ar' ? 'عنصر' : 'Item' }} #{{ i + 1 }}</span>
                     <button class="btn-remove" (click)="removeItem(i)" type="button">
@@ -556,124 +552,248 @@
                     </button>
                   </div>
 
+                  <!-- Card Body WITH ITEM SELECTION -->
                   <div class="item-card-body">
-                    <!-- Quantity -->
+
+                    <!-- Row 1: Item Selection Dropdown -->
                     <div class="item-field">
                       <label class="field-label">
-                        {{ formLanguage === 'ar' ? 'الكمية' : 'Quantity' }}
+                        <i class="bi bi-box-seam"></i>
+                        {{ formLanguage === 'ar' ? 'الصنف' : 'Item' }}
                       </label>
-                      <input
-                        type="text"
-                        [(ngModel)]="item.quantity"
-                        class="item-input"
-                        [placeholder]="formLanguage === 'ar' ? 'العدد' : 'Qty'"
-                      />
+
+                      <!-- Dropdown to select from Items API -->
+                      <select
+                        [value]="getSelectedItemId(i)"
+                        (change)="onItemSelected(i, $any($event.target).value)"
+                        class="item-input item-select"
+                        [class.error]="fieldErrors['item_' + i + '_description']">
+                        <option value="">
+                          {{ formLanguage === 'ar' ? 'اختر من القائمة أو أدخل يدوياً' : 'Select from list or enter manually' }}
+                        </option>
+                        <optgroup [label]="formLanguage === 'ar' ? '📦 الأصناف المتاحة' : '📦 Available Items'">
+                          <option *ngFor="let availableItem of availableItems" [value]="availableItem.id">
+                            {{ availableItem.name }}
+                            <span *ngIf="availableItem.unit"> ({{ availableItem.unit }})</span>
+                          </option>
+                        </optgroup>
+                      </select>
+
+                      <!-- Loading indicator -->
+                      <div *ngIf="loadingItems" class="loading-items">
+                        <i class="bi bi-arrow-clockwise spin"></i>
+                        {{ formLanguage === 'ar' ? 'جاري تحميل الأصناف...' : 'Loading items...' }}
+                      </div>
+
+                      <small class="error-message" *ngIf="fieldErrors['item_' + i + '_description']">
+                        <i class="bi bi-exclamation-circle"></i>
+                        {{ fieldErrors['item_' + i + '_description'] }}
+                      </small>
                     </div>
 
-                    <!-- Description -->
-                    <div class="item-field">
+                    <!-- Custom Description Input (shows when no item is selected or custom item) -->
+                    <div class="item-field" *ngIf="!getSelectedItemId(i) || isCustomItem(i)">
                       <label class="field-label">
-                        {{ formLanguage === 'ar' ? 'الوصف' : 'Description' }}
+                        <i class="bi bi-pencil"></i>
+                        {{ formLanguage === 'ar' ? 'الوصف (مخصص)' : 'Description (Custom)' }}
                       </label>
                       <input
                         type="text"
                         [(ngModel)]="item.description"
                         class="item-input"
-                        [placeholder]="formLanguage === 'ar' ? 'الوصف' : 'Description'"
+                        [class.error]="fieldErrors['item_' + i + '_description']"
+                        [placeholder]="formLanguage === 'ar' ? 'أدخل وصف الصنف' : 'Enter item description'"
                       />
                     </div>
 
-                    <!-- Element -->
-                    <div class="item-field">
-                      <label class="field-label">
-                        {{ formLanguage === 'ar' ? 'العنصر' : 'Element' }}
-                      </label>
-                      <input
-                        type="text"
-                        [(ngModel)]="item.element"
-                        class="item-input"
-                        [placeholder]="formLanguage === 'ar' ? 'العنصر' : 'Element'"
-                      />
+                    <!-- Row 2: Unit and Quantity (2 Columns) -->
+                    <div class="item-row-fields">
+                      <!-- Unit (Auto-filled or manual) -->
+                      <div class="item-field">
+                        <label class="field-label">
+                          <i class="bi bi-rulers"></i>
+                          {{ formLanguage === 'ar' ? 'الوحدة' : 'Unit' }}
+                          <span *ngIf="hasAutoFilledUnit(i)" class="auto-filled-badge">
+                            {{ formLanguage === 'ar' ? 'تلقائي' : 'Auto' }}
+                          </span>
+                        </label>
+                        <input
+                          type="text"
+                          [(ngModel)]="item.unit"
+                          class="item-input"
+                          [class.error]="fieldErrors['item_' + i + '_unit']"
+                          [class.auto-filled-input]="hasAutoFilledUnit(i)"
+                          [placeholder]="formLanguage === 'ar' ? 'مثال: كجم، قطعة' : 'e.g. kg, piece'"
+                        />
+                        <small class="help-text" *ngIf="getSelectedItemId(i) && !hasAutoFilledUnit(i)">
+                          <i class="bi bi-info-circle"></i>
+                          {{ formLanguage === 'ar'
+                            ? 'الوحدة غير متوفرة. يمكنك إدخالها يدوياً.'
+                            : 'Unit not available. You can enter it manually.'
+                          }}
+                        </small>
+                        <small class="error-message" *ngIf="fieldErrors['item_' + i + '_unit']">
+                          <i class="bi bi-exclamation-circle"></i>
+                          {{ fieldErrors['item_' + i + '_unit'] }}
+                        </small>
+                      </div>
+
+                      <!-- Quantity -->
+                      <div class="item-field">
+                        <label class="field-label">
+                          <i class="bi bi-123"></i>
+                          {{ formLanguage === 'ar' ? 'الكمية' : 'Quantity' }}
+                        </label>
+                        <input
+                          type="number"
+                          [(ngModel)]="item.quantity"
+                          class="item-input"
+                          [class.error]="fieldErrors['item_' + i + '_quantity']"
+                          [placeholder]="formLanguage === 'ar' ? 'الكمية' : 'Qty'"
+                          min="0"
+                          step="1"
+                        />
+                        <small class="error-message" *ngIf="fieldErrors['item_' + i + '_quantity']">
+                          <i class="bi bi-exclamation-circle"></i>
+                          {{ fieldErrors['item_' + i + '_quantity'] }}
+                        </small>
+                      </div>
                     </div>
+
+                    <!-- Row 3: Unit Price and Total (2 Columns) -->
+                    <div class="item-row-fields">
+                      <!-- Unit Price -->
+                      <div class="item-field">
+                        <label class="field-label">
+                          <i class="bi bi-currency-dollar"></i>
+                          {{ formLanguage === 'ar' ? 'سعر الوحدة' : 'Unit Price' }}
+                        </label>
+                        <input
+                          type="number"
+                          [(ngModel)]="item.unitPrice"
+                          class="item-input"
+                          [class.error]="fieldErrors['item_' + i + '_unitPrice']"
+                          [placeholder]="formLanguage === 'ar' ? 'السعر' : 'Price'"
+                          min="0"
+                          step="0.01"
+                        />
+                        <small class="error-message" *ngIf="fieldErrors['item_' + i + '_unitPrice']">
+                          <i class="bi bi-exclamation-circle"></i>
+                          {{ fieldErrors['item_' + i + '_unitPrice'] }}
+                        </small>
+                      </div>
+
+                      <!-- Total (Calculated) -->
+                      <div class="item-field">
+                        <label class="field-label">
+                          <i class="bi bi-calculator"></i>
+                          {{ formLanguage === 'ar' ? 'الإجمالي' : 'Total' }}
+                        </label>
+                        <input
+                          type="text"
+                          [value]="formatCurrency(calculateItemTotal(item))"
+                          class="item-input calculated-field"
+                          readonly
+                        />
+                      </div>
+                    </div>
+
                   </div>
                 </div>
               </ng-container>
             </div>
 
             <!-- Empty State -->
-            <div class="items-empty" *ngIf="receiptForm.items.length === 0">
+            <div class="items-empty" *ngIf="csForm.items.length === 0">
               <i class="bi bi-inbox" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
               <p style="margin: 0; color: #64748b;">
-                {{ formLanguage === 'ar' ? 'لم يتم إضافة عناصر. يمكنك إضافة عناصر أو تخطي هذه الخطوة.' : 'No items added. You can add items or skip this step.' }}
+                {{ formLanguage === 'ar' ? 'لم يتم إضافة عناصر بعد' : 'No items added yet' }}
               </p>
             </div>
 
+            <!-- Add Item Button -->
             <button class="btn-add-item" (click)="addItem()" type="button">
               <i class="bi bi-plus-lg"></i>
               {{ formLanguage === 'ar' ? 'إضافة عنصر' : 'Add Item' }}
             </button>
+
+            <!-- Totals Summary -->
+            <div class="totals-summary" *ngIf="csForm.items.length > 0">
+              <div class="totals-row">
+                <span class="totals-label">{{ formLanguage === 'ar' ? 'المجموع الفرعي:' : 'Subtotal:' }}</span>
+                <span class="totals-value">{{ formatCurrency(calculateSubtotal()) }}</span>
+              </div>
+              <div class="totals-row">
+                <span class="totals-label">{{ formLanguage === 'ar' ? 'الربح' : 'Profit' }} ({{ csForm.profitPercentage }}%):</span>
+                <span class="totals-value">{{ formatCurrency(calculateProfit()) }}</span>
+              </div>
+              <div class="totals-row grand-total">
+                <span class="totals-label">{{ formLanguage === 'ar' ? 'الإجمالي النهائي:' : 'Grand Total:' }}</span>
+                <span class="totals-value">{{ formatCurrency(calculateGrandTotal()) }}</span>
+              </div>
+            </div>
           </div>
 
+          <!-- Navigation Buttons -->
           <div class="form-navigation">
             <button class="btn-secondary btn-back" (click)="previousStep()" type="button">
               <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
               {{ formLanguage === 'ar' ? 'السابق' : 'Back' }}
             </button>
-            <button class="btn-primary btn-next" (click)="nextStep()">
+            <button class="btn-primary btn-next" (click)="nextStep()" type="button">
               {{ formLanguage === 'ar' ? 'التالي' : 'Next' }}
               <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-left' : 'bi-arrow-right'"></i>
             </button>
           </div>
         </div>
 
-        <!-- STEP 3: Terms & Conditions -->
+        <!-- STEP 3: PDF OPTIONS -->
         <div *ngIf="currentStep === 'options'" class="step-content">
           <h2 class="step-title">
             {{ formLanguage === 'ar' ? 'الشروط والأحكام' : 'Terms & Conditions' }}
-          </h2>
-
+          </h2>           
+          <!-- Info Alert -->
           <div class="info-alert">
             <i class="bi bi-info-circle"></i>
             <div style="flex: 1;">
               <p>
                 {{ formLanguage === 'ar'
-                  ? 'يمكنك اختيار إضافة الشروط والأحكام إلى الإشعار الخاص بك. سيتم إضافتها في نهاية المستند.'
-                  : 'You can choose to include terms and conditions with your receipt. They will be added at the end of the document.'
+                  ? 'يمكنك اختيار إضافة ملف PDF ثابت (الشروط والأحكام) إلى كشف التكاليف الخاص بك. سيتم دمج الملف تلقائياً في نهاية المستند عند تفعيل هذا الخيار.'
+                  : 'You can choose to include a static PDF file (Terms and Conditions) with your costing sheet. The file will be automatically merged at the end of the document when this option is enabled.'
                 }}
               </p>
             </div>
           </div>
 
+          <!-- Static PDF Checkbox -->
           <div class="static-pdf-option">
             <div class="checkbox-container">
               <input
                 type="checkbox"
                 id="includeStaticFile"
-                [(ngModel)]="receiptForm.includeStaticFile"
+                [(ngModel)]="csForm.includeStaticFile"
                 class="checkbox-input"
               />
               <label for="includeStaticFile" class="checkbox-label">
-                <span class="checkbox-custom">
-                  <i class="bi bi-check"></i>
-                </span>
-                <span class="checkbox-text">
-                  <i class="bi bi-file-earmark-text"></i>
+                <i class="bi bi-file-earmark-pdf"></i>
+                <span>
                   {{ formLanguage === 'ar'
-                    ? 'إضافة الشروط والأحكام إلى الإشعار'
-                    : 'Include terms and conditions with receipt'
+                    ? 'إضافة ملف الشروط والأحكام إلى كشف التكاليف'
+                    : 'Include Terms and Conditions with Costing Sheet'
                   }}
                 </span>
               </label>
             </div>
-
+            
             <small class="help-text">
               {{ formLanguage === 'ar'
-                ? 'عند تفعيل هذا الخيار، سيتم إضافة صفحة الشروط والأحكام إلى نهاية الإشعار الخاص بك.'
-                : 'When enabled, the terms and conditions page will be appended to the end of your receipt.'
+                ? 'عند تفعيل هذا الخيار، سيتم إضافة ملف الشروط والأحكام الثابت تلقائياً في نهاية ملف PDF الخاص بكشف التكاليف.'
+                : 'When enabled, the static Terms and Conditions file will be automatically added to the end of the costing sheet PDF.'
               }}
             </small>
           </div>
 
+          <!-- Navigation Buttons -->
           <div class="form-navigation">
             <button class="btn-secondary btn-back" (click)="previousStep()" type="button">
               <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
@@ -685,19 +805,21 @@
           <div class="final-save-section">
             <button
               class="btn-primary btn-save-final"
-              (click)="saveReceipt()"
-              [disabled]="savingReceipt">
+              (click)="saveCS()"
+              [disabled]="savingCS"
+              type="button">
               <i class="bi bi-save"></i>
-              {{ savingReceipt
+              {{ savingCS
                 ? (formLanguage === 'ar' ? 'جاري الحفظ...' : 'Saving...')
-                : (formLanguage === 'ar' ? 'حفظ الإشعار' : 'Save Receipt')
+                : (formLanguage === 'ar' ? 'حفظ كشف التكاليف' : 'Save Costing Sheet')
               }}
             </button>
+            
             <p class="save-info-text">
               {{ formLanguage === 'ar'
-                ? 'سيتم إنشاء ملف PDF تلقائياً بعد الحفظ'
-                : 'A PDF file will be generated automatically after saving'
-              }}{{ receiptForm.includeStaticFile ? (formLanguage === 'ar' ? ' مع الشروط والأحكام.' : ' with terms and conditions.') : '.' }}
+                ? 'سيتم إنشاء ملف PDF تلقائياً بعد الحفظ.'
+                : 'A PDF file will be generated automatically after saving.'
+              }}
             </p>
           </div>
         </div>
@@ -706,7 +828,7 @@
     </div>
   </div>
 
-  <!-- INLINE CONFIRMATION MODAL (DELETE) -->
+  <!-- INLINE CONFIRMATION MODAL -->
   <div *ngIf="showConfirmationModal" class="confirmation-overlay" (click)="cancelConfirmation()">
     <div class="confirmation-modal" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'" (click)="$event.stopPropagation()">
       <div class="modal-header danger">
@@ -733,28 +855,28 @@
     </div>
   </div>
 
-  <!-- DUPLICATE CONFIRMATION MODAL -->
+  <!-- DUPLICATE MODAL -->
   <div *ngIf="showDuplicateModal" class="confirmation-overlay" (click)="closeDuplicateModal()">
     <div class="confirmation-modal" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'" (click)="$event.stopPropagation()">
       <div class="modal-header warning">
         <div class="modal-icon">
           <i class="bi bi-files"></i>
         </div>
-        <h3 class="modal-title">{{ formLanguage === 'ar' ? 'نسخ الإشعار' : 'Duplicate Receipt' }}</h3>
+        <h3 class="modal-title">{{ formLanguage === 'ar' ? 'نسخ كشف التكاليف' : 'Duplicate Costing Sheet' }}</h3>
       </div>
 
       <div class="modal-body">
         <p class="modal-message">
           {{ formLanguage === 'ar'
-            ? 'هل تريد نسخ بيانات الإشعار'
-            : 'Do you want to duplicate receipt'
+            ? 'هل تريد نسخ بيانات كشف التكاليف'
+            : 'Do you want to duplicate Costing Sheet'
           }}
-          <strong>{{ receiptToDuplicate?.receiptNumber }}</strong>؟
+          <strong>{{ csToDuplicate?.csNumber }}</strong>؟
           <br><br>
           <span style="color: #d97706; font-weight: 500;">
             {{ formLanguage === 'ar'
-              ? 'سيتم إنشاء إشعار جديد بنفس البيانات مع إمكانية التعديل.'
-              : 'A new receipt will be created with the same data that you can modify.'
+              ? 'سيتم إنشاء كشف تكاليف جديد بنفس البيانات مع إمكانية التعديل.'
+              : 'A new costing sheet will be created with the same data that you can modify.'
             }}
           </span>
         </p>

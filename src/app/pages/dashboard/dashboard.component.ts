@@ -40,16 +40,17 @@ export class DashboardComponent implements OnInit {
       subtitle: 'الأرشيف المركزي للملفات والمخططات',
       icon: 'bi-folder2-open',
       route: '/files-control',
-      color: '#8b5cf6'
+      color: '#f59e0b' // أصفر برتقالي، مختلف تمامًا
     },
-     {
-    title: 'التحليلات والإحصائيات',
-    subtitle: 'تحليل شامل لبيانات النظام والتقارير',
-    icon: 'bi-bar-chart-line',
-    route: '/analysis',
-    color: '#7c3aed'
-  }
+    {
+      title: 'التحليلات والإحصائيات',
+      subtitle: 'تحليل شامل لبيانات النظام والتقارير',
+      icon: 'bi-bar-chart-line',
+      route: '/analysis',
+      color: '#7c3aed' // بنفسجي داكن
+    }
   ];
+
 
   // Procurement & Operations Cards
   procurementCards: DashboardCard[] = [
@@ -58,37 +59,59 @@ export class DashboardComponent implements OnInit {
       subtitle: 'تسجيل استلام المواد والأعمال',
       icon: 'bi-clipboard-check',
       route: '/receipts',
-      color: '#3b82f6'
+      color: '#1E3A8A' // أزرق داكن
+    },
+    {
+      title: 'إشعار استلام فارغ',
+      subtitle: 'إنشاء إشعار استلام فارغ بدون أي بيانات',
+      icon: 'bi-file-earmark',
+      route: '/empty-receipt',
+      color: '#D97706' // برتقالي قوي
     },
     {
       title: 'طلب تسعير',
       subtitle: 'طلبات تسعير من الموردين',
       icon: 'bi-file-earmark-bar-graph',
       route: '/rfqs',
-      color: '#10b981'
+      color: '#059669' // أخضر داكن
     },
     {
       title: 'طلب شراء',
       subtitle: 'أوامر الشراء للموردين',
       icon: 'bi-cart',
       route: '/purchases',
-      color: '#06b6d4'
+      color: '#B91C1C' // أحمر داكن
     },
     {
       title: 'طلب مواد',
       subtitle: 'طلبات المواد الخام للمشاريع',
       icon: 'bi-box',
       route: '/material-requests',
-      color: '#f59e0b'
+      color: '#F59E0B' // أصفر برتقالي
     },
     {
       title: 'عرض سعر',
       subtitle: 'إنشاء وإدارة عروض الأسعار للعملاء',
       icon: 'bi-file-earmark-text',
       route: '/price-quotes',
-      color: '#10b981'
+      color: '#7C3AED' // بنفسجي
+    },
+    {
+      title: 'الفواتير الأولية',
+      subtitle: 'إنشاء وإدارة الفواتير الأولية للعملاء',
+      icon: 'bi-file-earmark-pdf',
+      route: '/Proforma-invoice',
+      color: '#EC4899' // وردي فاقع
+    },
+    {
+      title: 'كشف التكاليف',
+      subtitle: 'حساب وإدارة تكاليف المشاريع والعمليات',
+      icon: 'bi-calculator',
+      route: '/costing-sheet',
+      color: '#0EA5E9' // سماوي صافي
     }
   ];
+
 
   // Laser Cutting Cards
   cuttingCards: DashboardCard[] = [

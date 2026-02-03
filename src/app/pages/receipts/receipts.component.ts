@@ -1,4 +1,4 @@
-// receipts.component.ts - WITH STATIC PDF TOGGLE AND FINAL SAVE BUTTON
+// receipts.component.ts - UPDATED WITH OPTIONAL FIELDS LOGIC (SAME AS RFQS)
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -115,9 +115,6 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
   private translations = {
     ar: {
       errors: {
-        itemQuantityRequired: 'الكمية مطلوبة للعنصر',
-        itemDescriptionRequired: 'الوصف مطلوب للعنصر',
-        itemElementRequired: 'العنصر مطلوب للعنصر',
         loadFailed: 'فشل تحميل البيانات',
         saveFailed: 'فشل حفظ البيانات',
         deleteFailed: 'فشل حذف الإشعار',
@@ -137,16 +134,11 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
         deleted: 'تم حذف الإشعار بنجاح',
         pdfGenerated: 'تم إنشاء ملف PDF بنجاح',
         createdWithPdf: 'تم إنشاء الإشعار وملف PDF بنجاح',
-        updatedWithPdf: 'تم تحديث الإشعار وملف PDF بنجاح',
-        successTitle: 'تم إنشاء السعر بنجاح',
-        successMessage: 'يمكنك ماذا تريد أن تفعل؟ PDF تم إنشاء ملف'
+        updatedWithPdf: 'تم تحديث الإشعار وملف PDF بنجاح'
       }
     },
     en: {
       errors: {
-        itemQuantityRequired: 'Quantity is required for item',
-        itemDescriptionRequired: 'Description is required for item',
-        itemElementRequired: 'Element is required for item',
         loadFailed: 'Failed to load data',
         saveFailed: 'Failed to save data',
         deleteFailed: 'Failed to delete receipt',
@@ -166,9 +158,7 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
         deleted: 'Receipt deleted successfully',
         pdfGenerated: 'PDF generated successfully',
         createdWithPdf: 'Receipt and PDF created successfully',
-        updatedWithPdf: 'Receipt and PDF updated successfully',
-        successTitle: 'Quote Created Successfully',
-        successMessage: 'PDF file has been created. What would you like to do?'
+        updatedWithPdf: 'Receipt and PDF updated successfully'
       }
     }
   };
@@ -202,6 +192,61 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     this.toastTimeouts.clear();
     document.documentElement.setAttribute('dir', 'rtl');
     document.body.setAttribute('dir', 'rtl');
+  }
+
+  // ========================================
+  // DUPLICATE FUNCTIONALITY
+  // ========================================
+
+  openDuplicateModal(receipt: Receipt): void {
+    this.receiptToDuplicate = receipt;
+    this.showDuplicateModal = true;
+  }
+
+  closeDuplicateModal(): void {
+    this.showDuplicateModal = false;
+    this.receiptToDuplicate = null;
+  }
+
+  confirmDuplicate(): void {
+    if (!this.receiptToDuplicate) return;
+
+    const receipt = this.receiptToDuplicate;
+
+    // Reset form first
+    this.resetForm();
+
+    // Populate form with duplicated data
+    this.receiptForm = {
+      to: receipt.to || '',
+      date: this.getTodayDate(),
+      address: receipt.address || '',
+      addressTitle: receipt.addressTitle || '',
+      attention: receipt.attention || '',
+      projectCode: receipt.projectCode || '',
+      workLocation: receipt.workLocation || '',
+      companyNumber: receipt.companyNumber || '',
+      vehicleNumber: receipt.companyNumber || '',
+      additionalText: receipt.additionalText || '',
+      items: JSON.parse(JSON.stringify(receipt.items || [])),
+      notes: receipt.notes || '',
+      includeStaticFile: false
+    };
+
+    // Set view to CREATE (not edit)
+    this.currentView = 'create';
+    this.currentStep = 'basic';
+    this.fieldErrors = {};
+    this.formError = '';
+
+    // Close modal
+    this.closeDuplicateModal();
+
+    // Show success message
+    const successMsg = this.formLanguage === 'ar'
+      ? `تم نسخ بيانات الإشعار ${receipt.receiptNumber}. يمكنك التعديل وحفظ إشعار جديد.`
+      : `Receipt ${receipt.receiptNumber} data copied. You can modify and save as a new receipt.`;
+    this.showToast('info', successMsg, 5000);
   }
 
   // ========================================
@@ -280,61 +325,6 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
   }
 
   // ========================================
-  // DUPLICATE FUNCTIONALITY
-  // ========================================
-
-  openDuplicateModal(receipt: Receipt): void {
-    this.receiptToDuplicate = receipt;
-    this.showDuplicateModal = true;
-  }
-
-  closeDuplicateModal(): void {
-    this.showDuplicateModal = false;
-    this.receiptToDuplicate = null;
-  }
-
-  confirmDuplicate(): void {
-    if (!this.receiptToDuplicate) return;
-
-    const receipt = this.receiptToDuplicate;
-
-    // Reset form first
-    this.resetForm();
-
-    // Populate form with duplicated data
-    this.receiptForm = {
-      to: receipt.to || '',
-      date: this.getTodayDate(), // Use today's date for new receipt
-      address: receipt.address || '',
-      addressTitle: receipt.addressTitle || '',
-      attention: receipt.attention || '',
-      projectCode: receipt.projectCode || '',
-      workLocation: receipt.workLocation || '',
-      companyNumber: receipt.companyNumber || '',
-      vehicleNumber: receipt.companyNumber || '',
-      additionalText: receipt.additionalText || '',
-      items: JSON.parse(JSON.stringify(receipt.items || [])), // Deep clone items
-      notes: receipt.notes || '',
-      includeStaticFile: false
-    };
-
-    // Set view to CREATE (not edit)
-    this.currentView = 'create';
-    this.currentStep = 'basic';
-    this.fieldErrors = {};
-    this.formError = '';
-
-    // Close modal
-    this.closeDuplicateModal();
-
-    // Show success message
-    const successMsg = this.formLanguage === 'ar'
-      ? `تم نسخ بيانات الإشعار ${receipt.receiptNumber}. يمكنك التعديل وحفظ إشعار جديد.`
-      : `Receipt ${receipt.receiptNumber} data copied. You can modify and save as a new receipt.`;
-    this.showToast('info', successMsg, 5000);
-  }
-
-  // ========================================
   // INLINE CONFIRMATION METHODS
   // ========================================
 
@@ -390,41 +380,11 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     return value || key;
   }
 
-  // ✅ UPDATED: Validation only for filled items
+  // ✅ UPDATED: No validation - all fields are optional
   private validateForm(): boolean {
     this.fieldErrors = {};
     this.formError = '';
-    let isValid = true;
-
-    // ✅ NO VALIDATION for basic fields - all optional
-
-    // ✅ UPDATED: Only validate items if they exist AND have ANY field filled
-    if (this.receiptForm.items && this.receiptForm.items.length > 0) {
-      this.receiptForm.items.forEach((item, index) => {
-        // Check if item has any data
-        const hasQuantity = item.quantity && item.quantity.toString().trim() !== '';
-        const hasDescription = item.description && item.description.trim() !== '';
-        const hasElement = item.element && item.element.trim() !== '';
-        
-        // If item has ANY field filled, validate ALL fields
-        if (hasQuantity || hasDescription || hasElement) {
-          if (!hasQuantity) {
-            this.fieldErrors[`item_${index}_quantity`] = this.t('errors.itemQuantityRequired');
-            isValid = false;
-          }
-          if (!hasDescription) {
-            this.fieldErrors[`item_${index}_description`] = this.t('errors.itemDescriptionRequired');
-            isValid = false;
-          }
-          if (!hasElement) {
-            this.fieldErrors[`item_${index}_element`] = this.t('errors.itemElementRequired');
-            isValid = false;
-          }
-        }
-      });
-    }
-
-    return isValid;
+    return true;
   }
 
   private clearErrors(): void {
@@ -578,7 +538,7 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
           attention: freshReceipt.attention || '',
           projectCode: freshReceipt.projectCode || '',
           workLocation: freshReceipt.workLocation || '',
-          companyNumber: '',
+          companyNumber: freshReceipt.companyNumber || '',
           vehicleNumber: freshReceipt.companyNumber || '',
           additionalText: freshReceipt.additionalText || '',
           items: JSON.parse(JSON.stringify(freshReceipt.items || [])),
@@ -615,26 +575,11 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ✅ UPDATED: Save receipt with optional fields and includeStaticFile
+  // ✅ UPDATED: Save without validation - all fields optional
   saveReceipt(): void {
-    if (!this.validateForm()) {
-      // If there are item-related errors, switch to items step
-      if (Object.keys(this.fieldErrors).some(key => key.startsWith('item_'))) {
-        this.currentStep = 'items';
-      }
-      return;
-    }
-
+    // ✅ NO VALIDATION - Save directly
     this.savingReceipt = true;
     this.clearErrors();
-
-    // ✅ Filter out empty items (items where all fields are empty)
-    const filteredItems = this.receiptForm.items.filter(item => {
-      const hasQuantity = item.quantity && item.quantity.toString().trim() !== '';
-      const hasDescription = item.description && item.description.trim() !== '';
-      const hasElement = item.element && item.element.trim() !== '';
-      return hasQuantity || hasDescription || hasElement;
-    });
 
     const receiptData = {
       to: this.receiptForm.to,
@@ -646,7 +591,7 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
       workLocation: this.receiptForm.workLocation,
       companyNumber: this.receiptForm.vehicleNumber,
       additionalText: this.receiptForm.additionalText,
-      items: filteredItems, // ✅ Only send non-empty items
+      items: this.receiptForm.items,
       notes: this.receiptForm.notes,
       includeStaticFile: this.receiptForm.includeStaticFile
     };
@@ -683,7 +628,7 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
           this.receiptService.generatePDF(updatedReceipt.id, this.formPdfAttachment || undefined).subscribe({
             next: () => {
               this.savingReceipt = false;
-              this.showToast('success', this.t('messages.createdWithPdf'));
+              this.showToast('success', this.t('messages.updatedWithPdf'));
               setTimeout(() => {
                 this.openSuccessModal(updatedReceipt.id, updatedReceipt.receiptNumber);
               }, 500);
@@ -773,13 +718,6 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
 
   nextStep(): void {
     if (this.currentStep === 'basic') {
-      // Clear any previous items errors
-      const itemsErrorKeys = Object.keys(this.fieldErrors).filter(key =>
-        key === 'items' || key.startsWith('item_')
-      );
-      itemsErrorKeys.forEach(key => delete this.fieldErrors[key]);
-
-      // ✅ No validation for basic fields - just move to next step
       this.currentStep = 'items';
     } else if (this.currentStep === 'items') {
       this.currentStep = 'options';
@@ -787,10 +725,10 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
   }
 
   previousStep(): void {
-    if (this.currentStep === 'options') {
-      this.currentStep = 'items';
-    } else if (this.currentStep === 'items') {
+    if (this.currentStep === 'items') {
       this.currentStep = 'basic';
+    } else if (this.currentStep === 'options') {
+      this.currentStep = 'items';
     }
   }
 
@@ -804,8 +742,6 @@ export class ReceiptsComponent implements OnInit, OnDestroy {
 
   removeItem(index: number): void {
     this.receiptForm.items.splice(index, 1);
-
-    // Clear errors for this item
     delete this.fieldErrors[`item_${index}_quantity`];
     delete this.fieldErrors[`item_${index}_description`];
     delete this.fieldErrors[`item_${index}_element`];

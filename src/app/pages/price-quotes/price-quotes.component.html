@@ -142,7 +142,6 @@
                 <i class="bi bi-pencil"></i>
               </button>
               <button
-                *ngIf="isSuperAdmin()"
                 class="btn-icon btn-delete"
                 (click)="openDeleteModal(quote)"
                 [title]="formLanguage === 'ar' ? 'حذف' : 'Delete'">

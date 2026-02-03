@@ -1,0 +1,283 @@
+<!-- empty-receipt.component.html - Updated with creator name fallback -->
+
+<div class="empty-receipts-container">
+
+  <!-- TOAST NOTIFICATIONS CONTAINER -->
+  <div class="toast-container" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
+    <div
+      *ngFor="let toast of toasts"
+      class="toast"
+      [class.toast-success]="toast.type === 'success'"
+      [class.toast-error]="toast.type === 'error'"
+      [class.toast-info]="toast.type === 'info'"
+      [class.toast-warning]="toast.type === 'warning'">
+
+      <div class="toast-icon">
+        <i class="bi"
+           [ngClass]="{
+             'bi-check-circle-fill': toast.type === 'success',
+             'bi-x-circle-fill': toast.type === 'error',
+             'bi-info-circle-fill': toast.type === 'info',
+             'bi-exclamation-triangle-fill': toast.type === 'warning'
+           }"></i>
+      </div>
+
+      <div class="toast-content">
+        <p class="toast-message">{{ toast.message }}</p>
+      </div>
+
+      <button class="toast-close" (click)="removeToast(toast.id)">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- SUCCESS MODAL -->
+  <div *ngIf="showSuccessModal" class="success-modal-overlay" (click)="closeSuccessModal()">
+    <div class="success-modal" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'" (click)="$event.stopPropagation()">
+
+      <!-- Header -->
+      <div class="success-header">
+        <button class="close-btn" (click)="closeSuccessModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+
+        <div class="success-icon-wrapper">
+          <i class="bi bi-check-circle-fill"></i>
+        </div>
+
+        <h2>{{ formLanguage === 'ar' ? 'تم إنشاء الإشعار بنجاح' : 'Receipt Created Successfully' }}</h2>
+      </div>
+
+      <!-- Body -->
+      <div class="success-body">
+
+        <!-- PDF Info Box -->
+        <div class="pdf-info-box">
+          <i class="bi bi-file-earmark-pdf-fill"></i>
+          <div class="pdf-details">
+            <p class="pdf-filename">{{ successFilename }}</p>
+            <p class="pdf-status">
+              {{ formLanguage === 'ar' ? 'جاهز للعرض والتحميل' : 'Ready to view and download' }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+          <!-- View PDF -->
+          <button class="action-btn btn-view" (click)="viewPDFFromSuccess()">
+            <div class="btn-icon">
+              <i class="bi bi-eye-fill"></i>
+            </div>
+            <span class="btn-label">
+              {{ formLanguage === 'ar' ? 'عرض PDF' : 'View PDF' }}
+            </span>
+          </button>
+
+          <!-- Print PDF -->
+          <button class="action-btn btn-print" (click)="printPDFFromSuccess()">
+            <div class="btn-icon">
+              <i class="bi bi-printer-fill"></i>
+            </div>
+            <span class="btn-label">
+              {{ formLanguage === 'ar' ? 'طباعة' : 'Print' }}
+            </span>
+          </button>
+
+          <!-- Download PDF -->
+          <button class="action-btn btn-download" (click)="downloadPDFFromSuccess()">
+            <div class="btn-icon">
+              <i class="bi bi-download"></i>
+            </div>
+            <span class="btn-label">
+              {{ formLanguage === 'ar' ? 'تحميل' : 'Download' }}
+            </span>
+          </button>
+        </div>
+
+        <!-- Done Button -->
+        <button class="done-button" (click)="doneSuccess()">
+          <i class="bi bi-check-circle"></i>
+          {{ formLanguage === 'ar' ? 'تم' : 'Done' }}
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MAIN LIST VIEW -->
+  <div class="list-view">
+    <!-- Header -->
+    <div class="page-header">
+      <h1 class="page-title">{{ formLanguage === 'ar' ? 'إشعارات استلام فارغة' : 'Empty Receipts' }}</h1>
+      <div class="header-actions">
+        <!-- Language Toggle -->
+        <div class="language-toggle">
+          <button
+            type="button"
+            class="lang-btn"
+            [class.active]="formLanguage === 'ar'"
+            (click)="toggleFormLanguage('ar')">
+            <i class="bi bi-translate"></i>
+            عربي
+          </button>
+          <button
+            type="button"
+            class="lang-btn"
+            [class.active]="formLanguage === 'en'"
+            (click)="toggleFormLanguage('en')">
+            <i class="bi bi-translate"></i>
+            English
+          </button>
+        </div>
+        <button 
+          class="btn-primary" 
+          (click)="generateEmptyReceipt()"
+          [disabled]="generatingPDF">
+          <i class="bi" [ngClass]="generatingPDF ? 'bi-arrow-clockwise spin' : 'bi-plus-lg'"></i>
+          {{ generatingPDF
+            ? (formLanguage === 'ar' ? 'جاري الإنشاء...' : 'Generating...')
+            : (formLanguage === 'ar' ? 'إنشاء إشعار فارغ' : 'Create Empty Receipt')
+          }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="search-filter-section" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
+      <div class="search-box main-search">
+        <i class="bi bi-search"></i>
+        <input
+          type="text"
+          [placeholder]="formLanguage === 'ar' ? 'بحث باسم الملف، التاريخ ...' : 'Search by filename, date ...'"
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="onSearchChange()"
+          (keyup.enter)="onSearch()"
+        />
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-container">
+      <table class="receipts-table">
+        <thead>
+          <tr>
+            <th class="text-center">{{ formLanguage === 'ar' ? '#' : '#' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'اسم الملف' : 'Filename' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'اللغة' : 'Language' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'تاريخ الإنشاء' : 'Created Date' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'منشئ' : 'Created By' }}</th>
+            <th class="text-center">{{ formLanguage === 'ar' ? 'الإجراءات' : 'Actions' }}</th>
+          </tr>
+        </thead>
+        <tbody *ngIf="!loading && receipts.length > 0">
+          <tr *ngFor="let receipt of receipts; let i = index">
+            <td class="text-center">{{ (currentPage - 1) * limit + i + 1 }}</td>
+            <td class="filename-cell text-center">
+              <i class="bi bi-file-earmark-pdf"></i>
+              {{ receipt.filename }}
+            </td>
+            <td class="text-center">
+              <span class="language-badge" [class.lang-ar]="receipt.language === 'ar'" [class.lang-en]="receipt.language === 'en'">
+                {{ receipt.language === 'ar' ? 'عربي' : 'English' }}
+              </span>
+            </td>
+            <td class="text-center">{{ formatDate(receipt.createdAt) }}</td>
+            <td class="text-center">{{ getCreatorName(receipt) }}</td>
+            <td class="actions-cell text-center">
+              <button
+                class="btn-icon btn-view"
+                (click)="viewPDF(receipt)"
+                [title]="formLanguage === 'ar' ? 'عرض PDF' : 'View PDF'">
+                <i class="bi bi-eye"></i>
+              </button>
+              <button
+                class="btn-icon btn-print"
+                (click)="printPDF(receipt)"
+                [title]="formLanguage === 'ar' ? 'طباعة' : 'Print'">
+                <i class="bi bi-printer"></i>
+              </button>
+              <button
+                class="btn-icon btn-download"
+                (click)="downloadPDF(receipt)"
+                [title]="formLanguage === 'ar' ? 'تحميل PDF' : 'Download PDF'">
+                <i class="bi bi-download"></i>
+              </button>
+              <button
+                class="btn-icon btn-delete"
+                (click)="showDeleteConfirmation(receipt)"
+                [title]="formLanguage === 'ar' ? 'حذف' : 'Delete'">
+                <i class="bi bi-trash"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+        <tbody *ngIf="loading">
+          <tr>
+            <td colspan="6" class="text-center loading-cell">
+              <i class="bi bi-arrow-clockwise spin"></i> {{ formLanguage === 'ar' ? 'جاري التحميل...' : 'Loading...' }}
+            </td>
+          </tr>
+        </tbody>
+        <tbody *ngIf="!loading && receipts.length === 0">
+          <tr>
+            <td colspan="6" class="text-center empty-cell">
+              <i class="bi bi-inbox"></i>
+              <p>{{ formLanguage === 'ar' ? 'لا توجد إشعارات فارغة' : 'No empty receipts found' }}</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button
+        class="btn-page"
+        [disabled]="currentPage === 1"
+        (click)="goToPage(currentPage - 1)">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+
+      <span class="page-info">
+        {{ formLanguage === 'ar' ? 'صفحة' : 'Page' }} {{ currentPage }} {{ formLanguage === 'ar' ? 'من' : 'of' }} {{ totalPages }}
+      </span>
+
+      <button
+        class="btn-page"
+        [disabled]="currentPage === totalPages"
+        (click)="goToPage(currentPage + 1)">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- DELETE CONFIRMATION MODAL -->
+  <div *ngIf="showConfirmationModal" class="confirmation-overlay" (click)="cancelConfirmation()">
+    <div class="confirmation-modal" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'" (click)="$event.stopPropagation()">
+      <div class="modal-header danger">
+        <div class="modal-icon">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+        </div>
+        <h3 class="modal-title">{{ confirmationTitle }}</h3>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-message">{{ confirmationMessage }}</p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="cancelConfirmation()">
+          <i class="bi bi-x-circle"></i>
+          {{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}
+        </button>
+        <button class="btn-confirm danger" (click)="confirmAction()">
+          <i class="bi bi-check-circle"></i>
+          {{ formLanguage === 'ar' ? 'حذف' : 'Delete' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>

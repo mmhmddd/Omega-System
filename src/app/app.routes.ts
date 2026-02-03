@@ -55,6 +55,11 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/price-quotes/price-quotes.component').then(m => m.PriceQuotesComponent),
     data: { title: 'عروض الأسعار' }
   },
+  {
+    path: 'costing-sheet',
+    loadComponent: () => import('./pages/costing-sheet/costing-sheet.component').then(m => m.CostingSheetComponent),
+    data: { title: 'كشف التكاليف' }
+  },
 
   {
     path: 'material-requests',
@@ -78,6 +83,11 @@ export const routes: Routes = [
     path: 'receipts',
     loadComponent: () => import('./pages/receipts/receipts.component').then(m => m.ReceiptsComponent),
     data: { title: 'إيصالات الاستلام' }
+  },
+  {
+    path: 'empty-receipt',
+    loadComponent: () => import('./pages/empty-receipt/empty-receipt.component').then(m => m.EmptyReceiptComponent),
+    data: { title: 'إشعار استلام فارغ' }
   },
 
   {

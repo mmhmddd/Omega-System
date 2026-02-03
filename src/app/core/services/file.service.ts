@@ -1,4 +1,4 @@
-// src/app/core/services/file.service.ts
+// src/app/core/services/file.service.ts - UPDATED WITH EMPTY RECEIPTS INTEGRATION
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -30,6 +30,7 @@ export interface FileRecord {
   recipientName?: string;
   fileStatus?: string;
   subFolder?: string;
+  notes?: string;
 }
 
 export interface FileType {
@@ -88,13 +89,38 @@ export interface FileTypesResponse {
   sortOrders: SortOption[];
 }
 
+// ✅ NEW: Empty Receipt interfaces
+export interface EmptyReceiptRecord {
+  _id: string;
+  receiptNumber: string;
+  to: string;
+  notes?: string;
+  pdfFilename: string;
+  createdBy: string;
+  createdByRole: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EmptyReceiptStats {
+  totalReceipts: number;
+  thisMonth: number;
+  thisYear: number;
+  byMonth: { [key: string]: number };
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class FileService {
   private readonly API_URL = `${environment.apiUrl}/file-management`;
+  private readonly EMPTY_RECEIPTS_URL = `${environment.apiUrl}/empty-receipts`;
 
   constructor(private http: HttpClient) {}
+
+  // ============================================
+  // FILE MANAGEMENT ENDPOINTS
+  // ============================================
 
   /**
    * Get all files with filters and pagination
@@ -148,89 +174,6 @@ export class FileService {
   }
 
   /**
-   * Get download URL for file
-   */
-  getDownloadUrl(id: string): string {
-    return `${this.API_URL}/${id}/download`;
-  }
-
-  /**
-   * Get preview URL for file
-   */
-  getPreviewUrl(id: string): string {
-    return `${this.API_URL}/${id}/preview`;
-  }
-
-  /**
-   * Download file with authentication
-   */
-  downloadFile(id: string): void {
-    const token = localStorage.getItem('token');
-    
-    this.http.get(this.getDownloadUrl(id), {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      },
-      responseType: 'blob',
-      observe: 'response'
-    }).subscribe({
-      next: (response) => {
-        // Extract filename from Content-Disposition header
-        const contentDisposition = response.headers.get('Content-Disposition');
-        let filename = 'download';
-        
-        if (contentDisposition) {
-          const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-          if (filenameMatch && filenameMatch[1]) {
-            filename = filenameMatch[1].replace(/['"]/g, '');
-          }
-        }
-
-        // Create blob and download
-        const blob = response.body;
-        if (blob) {
-          const url = window.URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = filename;
-          link.click();
-          window.URL.revokeObjectURL(url);
-        }
-      },
-      error: (error) => {
-        console.error('Error downloading file:', error);
-      }
-    });
-  }
-
-  /**
-   * Preview file with authentication
-   */
-  previewFile(id: string): void {
-    const token = localStorage.getItem('token');
-    
-    this.http.get(this.getPreviewUrl(id), {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      },
-      responseType: 'blob'
-    }).subscribe({
-      next: (blob) => {
-        const url = window.URL.createObjectURL(blob);
-        window.open(url, '_blank');
-        
-        // Clean up the URL after a delay
-        setTimeout(() => {
-          window.URL.revokeObjectURL(url);
-        }, 100);
-      },
-      error: (error) => {
-        console.error('Error previewing file:', error);
-      }
-    });
-  }
-
-  /**
    * Delete file (Super Admin only)
    */
   deleteFile(id: string): Observable<{ success: boolean; message: string; data: FileRecord }> {
@@ -270,6 +213,352 @@ export class FileService {
   exportFileList(): void {
     window.open(`${this.API_URL}/export/list`, '_blank');
   }
+
+  // ============================================
+  // ✅ NEW: EMPTY RECEIPTS ENDPOINTS
+  // ============================================
+
+  /**
+   * ✅ NEW: Get all empty receipts
+   */
+  getAllEmptyReceipts(filters?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Observable<{
+    success: boolean;
+    data: EmptyReceiptRecord[];
+    pagination: FilePagination;
+  }> {
+    let params = new HttpParams();
+
+    if (filters?.page) params = params.set('page', filters.page.toString());
+    if (filters?.limit) params = params.set('limit', filters.limit.toString());
+    if (filters?.search) params = params.set('search', filters.search);
+    if (filters?.startDate) params = params.set('startDate', filters.startDate);
+    if (filters?.endDate) params = params.set('endDate', filters.endDate);
+
+    return this.http.get<{
+      success: boolean;
+      data: EmptyReceiptRecord[];
+      pagination: FilePagination;
+    }>(this.EMPTY_RECEIPTS_URL, { params });
+  }
+
+  /**
+   * ✅ NEW: Get empty receipt by ID
+   */
+  getEmptyReceiptById(id: string): Observable<{
+    success: boolean;
+    data: EmptyReceiptRecord;
+  }> {
+    return this.http.get<{
+      success: boolean;
+      data: EmptyReceiptRecord;
+    }>(`${this.EMPTY_RECEIPTS_URL}/${id}`);
+  }
+
+  /**
+   * ✅ NEW: Get empty receipt by receipt number
+   */
+  getEmptyReceiptByNumber(receiptNumber: string): Observable<{
+    success: boolean;
+    data: EmptyReceiptRecord;
+  }> {
+    return this.http.get<{
+      success: boolean;
+      data: EmptyReceiptRecord;
+    }>(`${this.EMPTY_RECEIPTS_URL}/number/${receiptNumber}`);
+  }
+
+  /**
+   * ✅ NEW: Create empty receipt
+   */
+  createEmptyReceipt(data: {
+    to: string;
+    notes?: string;
+  }): Observable<{
+    success: boolean;
+    message: string;
+    data: EmptyReceiptRecord;
+  }> {
+    return this.http.post<{
+      success: boolean;
+      message: string;
+      data: EmptyReceiptRecord;
+    }>(this.EMPTY_RECEIPTS_URL, data);
+  }
+
+  /**
+   * ✅ NEW: Update empty receipt
+   */
+  updateEmptyReceipt(id: string, data: {
+    to?: string;
+    notes?: string;
+  }): Observable<{
+    success: boolean;
+    message: string;
+    data: EmptyReceiptRecord;
+  }> {
+    return this.http.put<{
+      success: boolean;
+      message: string;
+      data: EmptyReceiptRecord;
+    }>(`${this.EMPTY_RECEIPTS_URL}/${id}`, data);
+  }
+
+  /**
+   * ✅ NEW: Delete empty receipt
+   */
+  deleteEmptyReceipt(id: string): Observable<{
+    success: boolean;
+    message: string;
+    data: EmptyReceiptRecord;
+  }> {
+    return this.http.delete<{
+      success: boolean;
+      message: string;
+      data: EmptyReceiptRecord;
+    }>(`${this.EMPTY_RECEIPTS_URL}/${id}`);
+  }
+
+  /**
+   * ✅ NEW: Get empty receipts statistics
+   */
+  getEmptyReceiptsStats(): Observable<{
+    success: boolean;
+    data: EmptyReceiptStats;
+  }> {
+    return this.http.get<{
+      success: boolean;
+      data: EmptyReceiptStats;
+    }>(`${this.EMPTY_RECEIPTS_URL}/stats`);
+  }
+
+  /**
+   * ✅ NEW: Generate PDF for empty receipt
+   */
+  generateEmptyReceiptPDF(id: string): Observable<{
+    success: boolean;
+    message: string;
+    data: { pdfFilename: string };
+  }> {
+    return this.http.post<{
+      success: boolean;
+      message: string;
+      data: { pdfFilename: string };
+    }>(`${this.EMPTY_RECEIPTS_URL}/${id}/generate-pdf`, {});
+  }
+
+  /**
+   * ✅ NEW: Download empty receipt PDF by ID
+   */
+  downloadEmptyReceiptById(id: string): void {
+    const token = localStorage.getItem('token');
+    const downloadUrl = `${this.EMPTY_RECEIPTS_URL}/${id}/download-pdf`;
+
+    this.http.get(downloadUrl, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      responseType: 'blob'
+    }).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `empty-receipt-${id}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      },
+      error: (error) => {
+        console.error('Error downloading empty receipt:', error);
+        alert('فشل تحميل الإيصال. الرجاء المحاولة مرة أخرى.');
+      }
+    });
+  }
+
+  // ============================================
+  // DOWNLOAD METHODS FOR FILE TYPES
+  // ============================================
+
+  /**
+   * Get download URL for file
+   */
+  getDownloadUrl(id: string): string {
+    return `${this.API_URL}/${id}/download`;
+  }
+
+  /**
+   * Get preview URL for file
+   */
+  getPreviewUrl(id: string): string {
+    return `${this.API_URL}/${id}/preview`;
+  }
+
+  /**
+   * Download file with authentication
+   */
+  downloadFile(id: string): void {
+    const token = localStorage.getItem('token');
+    
+    this.http.get(this.getDownloadUrl(id), {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      responseType: 'blob',
+      observe: 'response'
+    }).subscribe({
+      next: (response) => {
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = 'download';
+        
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+          if (filenameMatch && filenameMatch[1]) {
+            filename = filenameMatch[1].replace(/['"]/g, '');
+          }
+        }
+
+        const blob = response.body;
+        if (blob) {
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = filename;
+          link.click();
+          window.URL.revokeObjectURL(url);
+        }
+      },
+      error: (error) => {
+        console.error('Error downloading file:', error);
+      }
+    });
+  }
+
+  /**
+   * Preview file with authentication
+   */
+  previewFile(id: string): void {
+    const token = localStorage.getItem('token');
+    
+    this.http.get(this.getPreviewUrl(id), {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      responseType: 'blob'
+    }).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        
+        setTimeout(() => {
+          window.URL.revokeObjectURL(url);
+        }, 100);
+      },
+      error: (error) => {
+        console.error('Error previewing file:', error);
+      }
+    });
+  }
+
+  /**
+   * Download Empty Receipt by filename (legacy support)
+   */
+  downloadEmptyReceipt(filename: string): void {
+    const token = localStorage.getItem('token');
+    const downloadUrl = `${this.EMPTY_RECEIPTS_URL}/download/${filename}`;
+
+    this.http.get(downloadUrl, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      responseType: 'blob'
+    }).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      },
+      error: (error) => {
+        console.error('Error downloading empty receipt:', error);
+        alert('فشل تحميل الإيصال. الرجاء المحاولة مرة أخرى.');
+      }
+    });
+  }
+
+  /**
+   * Download Proforma Invoice PDF
+   */
+  downloadProformaInvoice(id: string): void {
+    const token = localStorage.getItem('token');
+    const downloadUrl = `${environment.apiUrl}/proforma-invoices/${id}/download-pdf`;
+
+    this.http.get(downloadUrl, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      responseType: 'blob'
+    }).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `proforma-invoice-${id}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      },
+      error: (error) => {
+        console.error('Error downloading proforma invoice:', error);
+        alert('فشل تحميل الفاتورة. الرجاء المحاولة مرة أخرى.');
+      }
+    });
+  }
+
+  /**
+   * Download Costing Sheet PDF
+   */
+  downloadCostingSheet(id: string): void {
+    const token = localStorage.getItem('token');
+    const downloadUrl = `${environment.apiUrl}/costing-sheets/${id}/download-pdf`;
+
+    this.http.get(downloadUrl, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      responseType: 'blob'
+    }).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `costing-sheet-${id}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      },
+      error: (error) => {
+        console.error('Error downloading costing sheet:', error);
+        alert('فشل تحميل كشف التكاليف. الرجاء المحاولة مرة أخرى.');
+      }
+    });
+  }
+
+  // ============================================
+  // HELPER METHODS
+  // ============================================
 
   /**
    * Get file icon by extension
@@ -313,20 +602,44 @@ export class FileService {
   }
 
   /**
-   * Get file type label
+   * Get file type label with NEW types
    */
   getTypeLabel(type: string): string {
     const labels: { [key: string]: string } = {
       'cuttingJobs': 'أعمال القص',
       'quotations': 'عروض الأسعار',
-      'receipts': 'إيصالات الاستلام',
+      'receipts': 'إشعارات الاستلام',
       'secretariatForms': 'نماذج السكرتارية',
       'secretariatUserForms': 'نماذج المستخدمين',
       'rfqs': 'طلبات عروض الأسعار',
       'purchases': 'طلبات الشراء',
-      'materials': 'طلبات المواد'
+      'materials': 'طلبات المواد',
+      'emptyReceipts': 'إشعارات فارغة',
+      'proformaInvoices': 'فواتير أولية',
+      'costingSheets': 'كشوف تكاليف'
     };
 
     return labels[type] || type;
+  }
+
+  /**
+   * Get type-specific icon
+   */
+  getTypeIcon(type: string): string {
+    const icons: { [key: string]: string } = {
+      'cuttingJobs': '✂️',
+      'quotations': '📝',
+      'receipts': '🧾',
+      'secretariatForms': '📋',
+      'secretariatUserForms': '📄',
+      'rfqs': '📨',
+      'purchases': '🛒',
+      'materials': '📦',
+      'emptyReceipts': '🧾',
+      'proformaInvoices': '📋',
+      'costingSheets': '📊'
+    };
+
+    return icons[type] || '📎';
   }
 }
