@@ -1,152 +1,165 @@
 <div class="dashboard-container">
-  <!-- Statistics Cards Header -->
-  <div class="stats-section">
-    <div class="stats-grid">
-      <!-- Users Count Card -->
-      <div class="stat-card" [routerLink]="'/users'" [style.background]="'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'">
-        <div class="stat-icon">
-          <i class="bi bi-people-fill"></i>
-        </div>
-        <div class="stat-content">
-          <div class="stat-loading" *ngIf="loadingUsers">
-            <i class="bi bi-arrow-clockwise spin-animation"></i>
+  <!-- Statistics Cards Header - Only visible to super_admin and admin -->
+  @if (canViewStatistics()) {
+    <div class="stats-section">
+      <div class="stats-grid">
+        <!-- Users Count Card -->
+        <div class="stat-card" [routerLink]="'/users'" [style.background]="'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'">
+          <div class="stat-icon">
+            <i class="bi bi-people-fill"></i>
           </div>
-          <h3 class="stat-value" *ngIf="!loadingUsers && !usersError">{{ totalUsers }}</h3>
-          <div class="stat-error" *ngIf="!loadingUsers && usersError">
-            <i class="bi bi-exclamation-triangle"></i>
+          <div class="stat-content">
+            <div class="stat-loading" *ngIf="loadingUsers">
+              <i class="bi bi-arrow-clockwise spin-animation"></i>
+            </div>
+            <h3 class="stat-value" *ngIf="!loadingUsers && !usersError">{{ totalUsers }}</h3>
+            <div class="stat-error" *ngIf="!loadingUsers && usersError">
+              <i class="bi bi-exclamation-triangle"></i>
+            </div>
+            <p class="stat-label">إجمالي المستخدمين</p>
+            <small class="stat-error-text" *ngIf="usersError">{{ usersError }}</small>
           </div>
-          <p class="stat-label">إجمالي المستخدمين</p>
-          <small class="stat-error-text" *ngIf="usersError">{{ usersError }}</small>
         </div>
-      </div>
 
-      <!-- Files Count Card -->
-      <div class="stat-card" [routerLink]="'/files-control'" [style.background]="'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)'">
-        <div class="stat-icon">
-          <i class="bi bi-folder-fill"></i>
-        </div>
-        <div class="stat-content">
-          <div class="stat-loading" *ngIf="loadingFiles">
-            <i class="bi bi-arrow-clockwise spin-animation"></i>
+        <!-- Files Count Card -->
+        <div class="stat-card" [routerLink]="'/files-control'" [style.background]="'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)'">
+          <div class="stat-icon">
+            <i class="bi bi-folder-fill"></i>
           </div>
-          <h3 class="stat-value" *ngIf="!loadingFiles && !filesError">{{ totalFiles }}</h3>
-          <div class="stat-error" *ngIf="!loadingFiles && filesError">
-            <i class="bi bi-exclamation-triangle"></i>
+          <div class="stat-content">
+            <div class="stat-loading" *ngIf="loadingFiles">
+              <i class="bi bi-arrow-clockwise spin-animation"></i>
+            </div>
+            <h3 class="stat-value" *ngIf="!loadingFiles && !filesError">{{ totalFiles }}</h3>
+            <div class="stat-error" *ngIf="!loadingFiles && filesError">
+              <i class="bi bi-exclamation-triangle"></i>
+            </div>
+            <p class="stat-label">إجمالي الملفات</p>
+            <small class="stat-error-text" *ngIf="filesError">{{ filesError }}</small>
           </div>
-          <p class="stat-label">إجمالي الملفات</p>
-          <small class="stat-error-text" *ngIf="filesError">{{ filesError }}</small>
         </div>
-      </div>
 
-      <!-- Statistics Card -->
-      <div class="stat-card" [routerLink]="'/analysis'" [style.background]="'linear-gradient(135deg, #10b981 0%, #059669 100%)'">
-        <div class="stat-icon">
-          <i class="bi bi-graph-up-arrow"></i>
-        </div>
-        <div class="stat-content">
-          <h3 class="stat-value">--</h3>
-          <p class="stat-label">الإحصائيات والتحليلات</p>
+        <!-- Statistics Card -->
+        <div class="stat-card" [routerLink]="'/analysis'" [style.background]="'linear-gradient(135deg, #10b981 0%, #059669 100%)'">
+          <div class="stat-icon">
+            <i class="bi bi-graph-up-arrow"></i>
+          </div>
+          <div class="stat-content">
+            <h3 class="stat-value">--</h3>
+            <p class="stat-label">الإحصائيات والتحليلات</p>
+          </div>
         </div>
       </div>
     </div>
-  </div>
+  }
+
   <!-- Procurement & Operations Section -->
-  <div class="dashboard-section">
-    <div class="section-header">
-      <h2 class="section-title blue-theme">المشتريات والعمليات</h2>
-    </div>
-    <div class="dashboard-content">
-      <div class="cards-grid">
-        <div class="dashboard-card" *ngFor="let card of procurementCards" [routerLink]="card.route">
-          <div class="card-icon" [style.background-color]="card.color">
-            <i class="bi {{ card.icon }}"></i>
-          </div>
-          <div class="card-content">
-            <h3 class="card-title">{{ card.title }}</h3>
-            <p class="card-subtitle">{{ card.subtitle }}</p>
+  @if (showProcurementSection()) {
+    <div class="dashboard-section">
+      <div class="section-header">
+        <h2 class="section-title blue-theme">المشتريات والعمليات</h2>
+      </div>
+      <div class="dashboard-content">
+        <div class="cards-grid">
+          <div class="dashboard-card" *ngFor="let card of procurementCards()" [routerLink]="card.route">
+            <div class="card-icon" [style.background-color]="card.color">
+              <i class="bi {{ card.icon }}"></i>
+            </div>
+            <div class="card-content">
+              <h3 class="card-title">{{ card.title }}</h3>
+              <p class="card-subtitle">{{ card.subtitle }}</p>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-    <!-- File Management Section -->
-  <div class="dashboard-section">
-    <div class="section-header">
-      <h2 class="section-title purple-theme">إدارة الملفات</h2>
-    </div>
-    <div class="dashboard-content">
-      <div class="cards-grid single-card">
-        <div class="dashboard-card" *ngFor="let card of fileManagementCards" [routerLink]="card.route">
-          <div class="card-icon" [style.background-color]="card.color">
-            <i class="bi {{ card.icon }}"></i>
-          </div>
-          <div class="card-content">
-            <h3 class="card-title">{{ card.title }}</h3>
-            <p class="card-subtitle">{{ card.subtitle }}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  }
 
+  <!-- File Management Section -->
+  @if (showFileManagementSection()) {
+    <div class="dashboard-section">
+      <div class="section-header">
+        <h2 class="section-title purple-theme">إدارة الملفات</h2>
+      </div>
+      <div class="dashboard-content">
+        <div class="cards-grid single-card">
+          <div class="dashboard-card" *ngFor="let card of fileManagementCards()" [routerLink]="card.route">
+            <div class="card-icon" [style.background-color]="card.color">
+              <i class="bi {{ card.icon }}"></i>
+            </div>
+            <div class="card-content">
+              <h3 class="card-title">{{ card.title }}</h3>
+              <p class="card-subtitle">{{ card.subtitle }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
 
   <!-- Laser Cutting Section -->
-  <div class="dashboard-section">
-    <div class="section-header">
-      <h2 class="section-title red-theme">نظام القص بالليزر</h2>
-    </div>
-    <div class="dashboard-content">
-      <div class="cards-grid single-card">
-        <div class="dashboard-card" *ngFor="let card of cuttingCards" [routerLink]="card.route">
-          <div class="card-icon" [style.background-color]="card.color">
-            <i class="bi {{ card.icon }}"></i>
-          </div>
-          <div class="card-content">
-            <h3 class="card-title">{{ card.title }}</h3>
-            <p class="card-subtitle">{{ card.subtitle }}</p>
+  @if (showCuttingSection()) {
+    <div class="dashboard-section">
+      <div class="section-header">
+        <h2 class="section-title red-theme">نظام القص بالليزر</h2>
+      </div>
+      <div class="dashboard-content">
+        <div class="cards-grid single-card">
+          <div class="dashboard-card" *ngFor="let card of cuttingCards()" [routerLink]="card.route">
+            <div class="card-icon" [style.background-color]="card.color">
+              <i class="bi {{ card.icon }}"></i>
+            </div>
+            <div class="card-content">
+              <h3 class="card-title">{{ card.title }}</h3>
+              <p class="card-subtitle">{{ card.subtitle }}</p>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
+  }
 
   <!-- Secretariat Section -->
-  <div class="dashboard-section">
-    <div class="section-header">
-      <h2 class="section-title gray-theme">قسم السكرتاريا</h2>
-    </div>
-    <div class="dashboard-content">
-      <div class="cards-grid two-cards">
-        <div class="dashboard-card" *ngFor="let card of secretariatCards" [routerLink]="card.route">
-          <div class="card-icon" [style.background-color]="card.color">
-            <i class="bi {{ card.icon }}"></i>
-          </div>
-          <div class="card-content">
-            <h3 class="card-title">{{ card.title }}</h3>
-            <p class="card-subtitle">{{ card.subtitle }}</p>
+  @if (showSecretariatSection()) {
+    <div class="dashboard-section">
+      <div class="section-header">
+        <h2 class="section-title gray-theme">قسم السكرتاريا</h2>
+      </div>
+      <div class="dashboard-content">
+        <div class="cards-grid two-cards">
+          <div class="dashboard-card" *ngFor="let card of secretariatCards()" [routerLink]="card.route">
+            <div class="card-icon" [style.background-color]="card.color">
+              <i class="bi {{ card.icon }}"></i>
+            </div>
+            <div class="card-content">
+              <h3 class="card-title">{{ card.title }}</h3>
+              <p class="card-subtitle">{{ card.subtitle }}</p>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
+  }
 
   <!-- Management Section -->
-  <div class="dashboard-section">
-    <div class="section-header">
-      <h2 class="section-title">إدارة</h2>
-    </div>
-    <div class="dashboard-content">
-      <div class="cards-grid management-grid">
-        <div class="dashboard-card" *ngFor="let card of managementCards" [routerLink]="card.route">
-          <div class="card-icon" [style.background-color]="card.color">
-            <i class="bi {{ card.icon }}"></i>
-          </div>
-          <div class="card-content">
-            <h3 class="card-title">{{ card.title }}</h3>
-            <p class="card-subtitle">{{ card.subtitle }}</p>
+  @if (showManagementSection()) {
+    <div class="dashboard-section">
+      <div class="section-header">
+        <h2 class="section-title">إدارة</h2>
+      </div>
+      <div class="dashboard-content">
+        <div class="cards-grid management-grid">
+          <div class="dashboard-card" *ngFor="let card of managementCards()" [routerLink]="card.route">
+            <div class="card-icon" [style.background-color]="card.color">
+              <i class="bi {{ card.icon }}"></i>
+            </div>
+            <div class="card-content">
+              <h3 class="card-title">{{ card.title }}</h3>
+              <p class="card-subtitle">{{ card.subtitle }}</p>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
+  }
 </div>

@@ -1,6 +1,6 @@
 import { Component, inject, computed, signal, OnInit, effect, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { SecretariatUserService, Notification } from '../../core/services/secretariat-user.service';
 import { interval, Subscription } from 'rxjs';
@@ -16,6 +16,7 @@ import { switchMap } from 'rxjs/operators';
 export class NavbarComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private secretariatUserService = inject(SecretariatUserService);
+  private router = inject(Router);
 
   // Signals for reactive state
   showLogoutModal = signal<boolean>(false);
@@ -160,6 +161,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   markAsRead(notification: Notification) {
+    // Close the notifications panel first
+    this.closeNotificationsPanel();
+
+    // Mark as read
     if (!notification.isRead) {
       this.secretariatUserService.markNotificationAsRead(notification.id).subscribe({
         next: () => {
@@ -175,6 +180,38 @@ export class NavbarComponent implements OnInit, OnDestroy {
         }
       });
     }
+
+    // Open the PDF directly
+    this.openFormPDF(notification);
+  }
+
+  openFormPDF(notification: Notification) {
+    const formId = notification.formId;
+
+    if (!formId) {
+      console.error('No form ID found in notification');
+      return;
+    }
+
+    // Download and open the PDF
+    this.secretariatUserService.downloadPDF(formId).subscribe({
+      next: (blob) => {
+        // Create a blob URL
+        const url = window.URL.createObjectURL(blob);
+
+        // Open PDF in a new tab
+        window.open(url, '_blank');
+
+        // Clean up the blob URL after a short delay
+        setTimeout(() => {
+          window.URL.revokeObjectURL(url);
+        }, 100);
+      },
+      error: (error) => {
+        console.error('Error opening PDF:', error);
+        alert('حدث خطأ في فتح الملف. يرجى المحاولة مرة أخرى.');
+      }
+    });
   }
 
   markAllAsRead() {

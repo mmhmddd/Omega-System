@@ -22,7 +22,7 @@
     <!-- Navigation Menu with Sections -->
     <nav class="sidebar-nav">
       <ul class="nav-list">
-        <ng-container *ngFor="let section of menuSections">
+        <ng-container *ngFor="let section of menuSections()">
           <!-- Section Title (if exists) -->
           <li *ngIf="section.title" class="nav-section-title">
             {{ section.title }}

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { UsersService } from '../../core/services/users.service';
@@ -11,6 +11,8 @@ interface DashboardCard {
   icon: string;
   route: string;
   color: string;
+  routeKey?: string; // For permission checking
+  requiredRoles?: string[]; // Roles that can see this card
 }
 
 @Component({
@@ -33,146 +35,187 @@ export class DashboardComponent implements OnInit {
   usersError: string = '';
   filesError: string = '';
 
-  // File Management Cards
-  fileManagementCards: DashboardCard[] = [
+  // Current user signal
+  currentUser = signal<any>(null);
+
+  // All dashboard cards with access control
+  private allFileManagementCards: DashboardCard[] = [
     {
       title: 'إدارة الملفات',
       subtitle: 'الأرشيف المركزي للملفات والمخططات',
       icon: 'bi-folder2-open',
       route: '/files-control',
-      color: '#f59e0b' // أصفر برتقالي، مختلف تمامًا
+      color: '#f59e0b',
+      routeKey: 'filesControl',
+      requiredRoles: ['super_admin', 'admin']
     },
     {
       title: 'التحليلات والإحصائيات',
       subtitle: 'تحليل شامل لبيانات النظام والتقارير',
       icon: 'bi-bar-chart-line',
       route: '/analysis',
-      color: '#7c3aed' // بنفسجي داكن
+      color: '#7c3aed',
+      routeKey: 'analysis',
+      requiredRoles: ['super_admin', 'admin']
     }
   ];
 
-
-  // Procurement & Operations Cards
-  procurementCards: DashboardCard[] = [
+  private allProcurementCards: DashboardCard[] = [
     {
       title: 'إشعار استلام',
       subtitle: 'تسجيل استلام المواد والأعمال',
       icon: 'bi-clipboard-check',
       route: '/receipts',
-      color: '#1E3A8A' // أزرق داكن
+      color: '#1E3A8A',
+      routeKey: 'receipts'
     },
     {
       title: 'إشعار استلام فارغ',
       subtitle: 'إنشاء إشعار استلام فارغ بدون أي بيانات',
       icon: 'bi-file-earmark',
       route: '/empty-receipt',
-      color: '#D97706' // برتقالي قوي
+      color: '#D97706',
+      routeKey: 'emptyReceipt'
     },
     {
       title: 'طلب تسعير',
       subtitle: 'طلبات تسعير من الموردين',
       icon: 'bi-file-earmark-bar-graph',
       route: '/rfqs',
-      color: '#059669' // أخضر داكن
+      color: '#059669',
+      routeKey: 'rfqs'
     },
     {
       title: 'طلب شراء',
       subtitle: 'أوامر الشراء للموردين',
       icon: 'bi-cart',
       route: '/purchases',
-      color: '#B91C1C' // أحمر داكن
+      color: '#B91C1C',
+      routeKey: 'purchases'
     },
     {
       title: 'طلب مواد',
       subtitle: 'طلبات المواد الخام للمشاريع',
       icon: 'bi-box',
       route: '/material-requests',
-      color: '#F59E0B' // أصفر برتقالي
+      color: '#F59E0B',
+      routeKey: 'materialRequests'
     },
     {
       title: 'عرض سعر',
       subtitle: 'إنشاء وإدارة عروض الأسعار للعملاء',
       icon: 'bi-file-earmark-text',
       route: '/price-quotes',
-      color: '#7C3AED' // بنفسجي
+      color: '#7C3AED',
+      routeKey: 'priceQuotes'
     },
     {
       title: 'الفواتير الأولية',
       subtitle: 'إنشاء وإدارة الفواتير الأولية للعملاء',
       icon: 'bi-file-earmark-pdf',
       route: '/Proforma-invoice',
-      color: '#EC4899' // وردي فاقع
+      color: '#EC4899',
+      routeKey: 'proformaInvoice'
     },
     {
       title: 'كشف التكاليف',
       subtitle: 'حساب وإدارة تكاليف المشاريع والعمليات',
       icon: 'bi-calculator',
       route: '/costing-sheet',
-      color: '#0EA5E9' // سماوي صافي
+      color: '#0EA5E9',
+      routeKey: 'costingSheet'
     }
   ];
 
-
-  // Laser Cutting Cards
-  cuttingCards: DashboardCard[] = [
+  private allCuttingCards: DashboardCard[] = [
     {
       title: 'نظام إدارة القص',
       subtitle: 'جدولة ومتابعة أوامر القص',
       icon: 'bi-scissors',
       route: '/cutting',
-      color: '#ef4444'
+      color: '#ef4444',
+      routeKey: 'cutting'
     }
   ];
 
-  // Secretariat Cards
-  secretariatCards: DashboardCard[] = [
+  private allSecretariatCards: DashboardCard[] = [
     {
       title: 'قسم السكرتاريا',
       subtitle: 'نماذج الموظفين والإجازات',
       icon: 'bi-people',
       route: '/secretariat',
-      color: '#6b7280'
+      color: '#6b7280',
+      routeKey: 'secretariat'
     },
     {
       title: 'طلبات الموظفين',
       subtitle: 'نماذج المغادرة والسلفات والإجازات وكشف الحساب للموظفين',
       icon: 'bi-person-badge',
       route: '/secretariat-user',
-      color: '#8b5cf6'
+      color: '#8b5cf6',
+      routeKey: 'secretariatUserManagement'
     }
   ];
 
-  // Management Cards
-  managementCards: DashboardCard[] = [
+  private allManagementCards: DashboardCard[] = [
     {
       title: 'إدارة المستخدمين',
       subtitle: 'إضافة وتعديل مستخدمي النظام',
       icon: 'bi-person-gear',
       route: '/users',
-      color: '#112e61'
+      color: '#112e61',
+      routeKey: 'users',
+      requiredRoles: ['super_admin'] // Only super_admin
     },
     {
       title: 'إدارة الملفات',
       subtitle: 'تنظيم الملفات والمستندات',
       icon: 'bi-folder',
       route: '/files-control',
-      color: '#112e61'
+      color: '#112e61',
+      routeKey: 'filesControl',
+      requiredRoles: ['super_admin', 'admin']
     },
     {
       title: 'إدارة الأصناف',
       subtitle: 'إدارة وتنظيم الأصناف والمواد',
       icon: 'bi-box-seam',
       route: '/items-control',
-      color: '#112e61'
+      color: '#112e61',
+      routeKey: 'itemsControl',
+      requiredRoles: ['super_admin', 'admin']
     },
     {
       title: 'الموردين',
       subtitle: 'إدارة الموردين',
       icon: 'bi-truck',
       route: '/suppliers',
-      color: '#112e61'
+      color: '#112e61',
+      routeKey: 'suppliers',
+      requiredRoles: ['super_admin', 'admin']
     }
   ];
+
+  // Computed filtered cards based on user permissions
+  fileManagementCards = computed(() => this.filterCards(this.allFileManagementCards));
+  procurementCards = computed(() => this.filterCards(this.allProcurementCards));
+  cuttingCards = computed(() => this.filterCards(this.allCuttingCards));
+  secretariatCards = computed(() => this.filterCards(this.allSecretariatCards));
+  managementCards = computed(() => this.filterCards(this.allManagementCards));
+
+  // Check if sections should be visible
+  showFileManagementSection = computed(() => this.fileManagementCards().length > 0);
+  showProcurementSection = computed(() => this.procurementCards().length > 0);
+  showCuttingSection = computed(() => this.cuttingCards().length > 0);
+  showSecretariatSection = computed(() => this.secretariatCards().length > 0);
+  showManagementSection = computed(() => this.managementCards().length > 0);
+
+  // Check if statistics should be shown
+  canViewStatistics = computed(() => {
+    const user = this.currentUser();
+    if (!user) return false;
+    return user.role === 'super_admin' || user.role === 'admin';
+  });
 
   constructor(
     private usersService: UsersService,
@@ -181,7 +224,73 @@ export class DashboardComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.loadDashboardStatistics();
+    // Subscribe to current user
+    this.authService.currentUser$.subscribe(user => {
+      this.currentUser.set(user);
+    });
+
+    // Load initial user
+    const storedUser = this.authService.getStoredUser();
+    if (storedUser) {
+      this.currentUser.set(storedUser);
+    }
+
+    // Load statistics only if user can view them
+    if (this.canViewStatistics()) {
+      this.loadDashboardStatistics();
+    }
+  }
+
+  /**
+   * Filter cards based on user permissions
+   */
+  private filterCards(cards: DashboardCard[]): DashboardCard[] {
+    const user = this.currentUser();
+    if (!user) return [];
+
+    return cards.filter(card => this.canAccessCard(card));
+  }
+
+  /**
+   * Check if user can access a card
+   */
+  private canAccessCard(card: DashboardCard): boolean {
+    const user = this.currentUser();
+    if (!user) return false;
+
+    // Super admin has access to everything
+    if (user.role === 'super_admin') {
+      return true;
+    }
+
+    // Admin has access to everything except user management
+    if (user.role === 'admin') {
+      if (card.routeKey === 'users') {
+        return false;
+      }
+      return true;
+    }
+
+    // Check required roles if specified
+    if (card.requiredRoles && !card.requiredRoles.includes(user.role)) {
+      return false;
+    }
+
+    // For secretariat role
+    if (user.role === 'secretariat') {
+      const secretariatRoutes = ['secretariat', 'secretariatUserManagement'];
+      return card.routeKey ? secretariatRoutes.includes(card.routeKey) : false;
+    }
+
+    // For employee role - check routeAccess
+    if (user.role === 'employee') {
+      if (card.routeKey) {
+        return this.authService.hasRouteAccess(card.routeKey);
+      }
+      return false;
+    }
+
+    return false;
   }
 
   /**
@@ -272,6 +381,8 @@ export class DashboardComponent implements OnInit {
    * Refresh dashboard statistics
    */
   refreshStatistics(): void {
-    this.loadDashboardStatistics();
+    if (this.canViewStatistics()) {
+      this.loadDashboardStatistics();
+    }
   }
 }
