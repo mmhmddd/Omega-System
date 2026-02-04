@@ -142,10 +142,10 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
   customEmail: string = '';
   sendingEmail: boolean = false;
 
-  // ✅ Static email addresses - UPDATE THESE WITH YOUR ACTUAL EMAILS
+  // ✅ Static email addresses - UPDATE THESE
   staticEmails = {
-    email1: 'first.email@company.com',
-    email2: 'second.email@company.com'
+    email1: 'alaqtash@gmail.com',
+    email2: 'munther.fayed@gmail.com'
   };
   constructor(
     public priceQuoteService: PriceQuoteService,

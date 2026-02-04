@@ -71,10 +71,10 @@ export class EmptyReceiptComponent implements OnInit, OnDestroy {
     custom: false
   };
 
-  // ✅ Static emails - UPDATE THESE WITH YOUR ACTUAL EMAILS
+  // ✅ Static email addresses - UPDATE THESE
   staticEmails = {
-    email1: 'first.email@company.com',
-    email2: 'second.email@company.com'
+    email1: 'alaqtash@gmail.com',
+    email2: 'munther.fayed@gmail.com'
   };
 
   customEmail: string = '';

@@ -141,11 +141,11 @@ emailSelections = {
 customEmail: string = '';
 sendingEmail: boolean = false;
 
-// ✅ Static email addresses - UPDATE THESE WITH YOUR ACTUAL EMAILS
-staticEmails = {
-  email1: 'first.email@company.com',
-  email2: 'second.email@company.com'
-};
+  // ✅ Static email addresses - UPDATE THESE
+  staticEmails = {
+    email1: 'alaqtash@gmail.com',
+    email2: 'munther.fayed@gmail.com'
+  };
   constructor(
     public proformaInvoiceService: ProformaInvoiceService,
     private authService: AuthService,

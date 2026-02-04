@@ -130,8 +130,8 @@ export class CostingSheetComponent implements OnInit, OnDestroy {
 
   // ✅ Static email addresses - UPDATE THESE
   staticEmails = {
-    email1: 'first.email@company.com',
-    email2: 'second.email@company.com'
+    email1: 'alaqtash@gmail.com',
+    email2: 'munther.fayed@gmail.com'
   };
   // Translations (Updated Arabic: كشف التكاليف)
   private translations = {
