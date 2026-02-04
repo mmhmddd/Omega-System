@@ -19,6 +19,11 @@ export interface MRItem {
   priority?: string;
 }
 
+export interface EmailSendResponse {
+  success: boolean;
+  message: string;
+}
+
 /**
  * Material Request Interface
  */
@@ -180,6 +185,10 @@ export class MaterialService {
    */
   getMaterialRequestById(id: string): Observable<SingleMaterialRequestResponse> {
     return this.http.get<SingleMaterialRequestResponse>(`${this.API_URL}/${id}`);
+  }
+
+  sendMaterialByEmail(id: string, email: string): Observable<EmailSendResponse> {
+    return this.http.post<EmailSendResponse>(`${this.API_URL}/${id}/send-email`, { email });
   }
 
   /**

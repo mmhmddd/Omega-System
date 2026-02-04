@@ -1,4 +1,4 @@
-// src/core/services/empty-receipt.service.ts
+// src/core/services/empty-receipt.service.ts - UPDATED WITH EMAIL SENDING (MATCHING RECEIPTS PATTERN)
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -11,10 +11,38 @@ export interface EmptyReceiptResponse {
   success: boolean;
   message: string;
   data: {
+    id: string;
+    receiptNumber: string;
     filename: string;
     language: string;
     downloadUrl: string;
   };
+}
+
+/**
+ * Empty Receipt Interface
+ */
+export interface EmptyReceipt {
+  id: string;
+  receiptNumber: string;
+  filename: string;
+  pdfFilename: string;
+  language: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  createdByName?: string;
+  createdByRole: string;
+  pdfGenerated: boolean;
+}
+
+/**
+ * Email Send Response Interface
+ */
+export interface EmailSendResponse {
+  success: boolean;
+  message: string;
 }
 
 /**
@@ -36,10 +64,24 @@ export class EmptyReceiptService {
   }
 
   /**
+   * ✅ Send empty receipt PDF by email (MATCHING RECEIPTS PATTERN)
+   */
+  sendReceiptByEmail(receiptId: string, email: string): Observable<EmailSendResponse> {
+    return this.http.post<EmailSendResponse>(`${this.API_URL}/${receiptId}/send-email`, { email });
+  }
+
+  /**
    * Get all empty receipts with pagination
    */
   getAllEmptyReceipts(params?: any): Observable<any> {
     return this.http.get<any>(`${this.API_URL}`, { params });
+  }
+
+  /**
+   * Get empty receipt by ID
+   */
+  getEmptyReceiptById(id: string): Observable<any> {
+    return this.http.get<any>(`${this.API_URL}/${id}`);
   }
 
   /**
@@ -77,7 +119,6 @@ export class EmptyReceiptService {
       const blobUrl = URL.createObjectURL(blob);
       window.open(blobUrl, '_blank');
       
-      // Clean up after a delay
       setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
     })
     .catch(error => {
@@ -110,11 +151,9 @@ export class EmptyReceiptService {
       return response.blob();
     })
     .then((blob) => {
-      // Create blob URL with proper PDF mime type
       const pdfBlob = new Blob([blob], { type: 'application/pdf' });
       const blobUrl = URL.createObjectURL(pdfBlob);
       
-      // Create hidden iframe with proper size for PDF rendering
       const iframe = document.createElement('iframe');
       iframe.style.position = 'absolute';
       iframe.style.width = '0';
@@ -123,22 +162,17 @@ export class EmptyReceiptService {
       iframe.style.visibility = 'hidden';
       iframe.style.opacity = '0';
       
-      // Set src before appending to DOM
       iframe.src = blobUrl;
       document.body.appendChild(iframe);
       
-      // Wait for PDF to load completely
       iframe.onload = () => {
-        // Give extra time for PDF to render in the iframe
         setTimeout(() => {
           try {
-            // Focus and print
             if (iframe.contentWindow) {
               iframe.contentWindow.focus();
               iframe.contentWindow.print();
             }
             
-            // Clean up after print dialog closes (estimated time)
             setTimeout(() => {
               if (document.body.contains(iframe)) {
                 document.body.removeChild(iframe);

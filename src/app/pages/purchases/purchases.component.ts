@@ -118,6 +118,24 @@ export class PurchasesComponent implements OnInit, OnDestroy {
   showDuplicateModal: boolean = false;
   poToDuplicate: PurchaseOrder | null = null;
 
+  // Share/Email Modal State
+showShareModal: boolean = false;
+sharePOId: string = '';
+sharePONumber: string = '';
+emailSelections = {
+  email1: false,
+  email2: false,
+  custom: false
+};
+customEmail: string = '';
+sendingEmail: boolean = false;
+
+// ✅ Static email addresses - UPDATE THESE WITH YOUR ACTUAL EMAILS
+staticEmails = {
+  email1: 'first.email@company.com',
+  email2: 'second.email@company.com'
+};
+
   // Translations
   private translations = {
     ar: {
@@ -142,7 +160,10 @@ export class PurchasesComponent implements OnInit, OnDestroy {
         pdfGenerationWarning: 'تم إنشاء طلب الشراء ولكن فشل إنشاء PDF',
         pdfUpdateWarning: 'تم تحديث طلب الشراء ولكن فشل تحديث PDF',
         suppliersLoadFailed: 'فشل تحميل قائمة الموردين',
-        loadItemsFailed: 'فشل تحميل قائمة العناصر'
+        loadItemsFailed: 'فشل تحميل قائمة العناصر',
+        emailRequired: 'يرجى اختيار بريد إلكتروني أو إدخال بريد مخصص',
+        invalidEmail: 'يرجى إدخال عنوان بريد إلكتروني صالح',
+        emailFailed: 'فشل إرسال البريد الإلكتروني'
       },
       messages: {
         deleteConfirmTitle: 'تأكيد الحذف',
@@ -152,7 +173,9 @@ export class PurchasesComponent implements OnInit, OnDestroy {
         deleted: 'تم حذف طلب الشراء بنجاح',
         pdfGenerated: 'تم إنشاء ملف PDF بنجاح',
         createdWithPdf: 'تم إنشاء طلب الشراء وملف PDF بنجاح',
-        updatedWithPdf: 'تم تحديث طلب الشراء وملف PDF بنجاح'
+        updatedWithPdf: 'تم تحديث طلب الشراء وملف PDF بنجاح',
+        emailSent: 'تم إرسال البريد الإلكتروني بنجاح',
+        emailSending: 'جاري إرسال البريد الإلكتروني...'
       }
     },
     en: {
@@ -176,7 +199,10 @@ export class PurchasesComponent implements OnInit, OnDestroy {
         pdfNotGenerated: 'PDF not generated yet',
         pdfGenerationWarning: 'Purchase Order created but PDF failed',
         pdfUpdateWarning: 'Purchase Order updated but PDF failed',
-        loadItemsFailed: 'Failed to load items list'
+        loadItemsFailed: 'Failed to load items list',
+        emailRequired: 'Please select an email or enter a custom email',
+        invalidEmail: 'Please enter a valid email address',
+        emailFailed: 'Failed to send email',
       },
       messages: {
         deleteConfirmTitle: 'Confirm Delete',
@@ -186,7 +212,9 @@ export class PurchasesComponent implements OnInit, OnDestroy {
         deleted: 'Purchase Order deleted successfully',
         pdfGenerated: 'PDF generated successfully',
         createdWithPdf: 'Purchase Order and PDF created successfully',
-        updatedWithPdf: 'Purchase Order and PDF updated successfully'
+        updatedWithPdf: 'Purchase Order and PDF updated successfully',
+        emailSent: 'Email sent successfully',
+        emailSending: 'Sending email...',
       }
     }
   };
@@ -422,6 +450,184 @@ export class PurchasesComponent implements OnInit, OnDestroy {
     this.closeSuccessModal();
     this.loadPOs();
   }
+
+
+/**
+ * Open share modal
+ */
+openShareModal(po: PurchaseOrder): void {
+  if (!po.pdfFilename) {
+    this.showToast('error', this.t('errors.pdfNotGenerated'));
+    return;
+  }
+  this.sharePOId = po.id;
+  this.sharePONumber = po.poNumber;
+  
+  // Reset selections
+  this.emailSelections = {
+    email1: false,
+    email2: false,
+    custom: false
+  };
+  this.customEmail = '';
+  this.showShareModal = true;
+}
+
+/**
+ * Close share modal
+ */
+closeShareModal(): void {
+  this.showShareModal = false;
+  this.sharePOId = '';
+  this.sharePONumber = '';
+  this.emailSelections = {
+    email1: false,
+    email2: false,
+    custom: false
+  };
+  this.customEmail = '';
+}
+
+/**
+ * Get list of selected emails
+ */
+getSelectedEmailsList(): string[] {
+  const emails: string[] = [];
+  
+  if (this.emailSelections.email1) {
+    emails.push(this.staticEmails.email1);
+  }
+  
+  if (this.emailSelections.email2) {
+    emails.push(this.staticEmails.email2);
+  }
+  
+  if (this.emailSelections.custom && this.customEmail && this.customEmail.trim()) {
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (emailPattern.test(this.customEmail.trim())) {
+      emails.push(this.customEmail.trim());
+    }
+  }
+  
+  return emails;
+}
+
+/**
+ * Validate email selection
+ */
+isEmailValid(): boolean {
+  const selectedEmails = this.getSelectedEmailsList();
+  
+  // Must have at least one valid email selected
+  if (selectedEmails.length === 0) {
+    return false;
+  }
+  
+  // If custom is selected, validate the custom email
+  if (this.emailSelections.custom) {
+    if (!this.customEmail || this.customEmail.trim() === '') {
+      return false;
+    }
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(this.customEmail.trim())) {
+      return false;
+    }
+  }
+  
+  return true;
+}
+
+/**
+ * Send email to selected recipients
+ */
+sendEmailWithPDF(): void {
+  const selectedEmails = this.getSelectedEmailsList();
+  
+  if (selectedEmails.length === 0) {
+    this.showToast('error', this.formLanguage === 'ar' 
+      ? 'يرجى اختيار بريد إلكتروني واحد على الأقل'
+      : 'Please select at least one email address'
+    );
+    return;
+  }
+
+  this.sendingEmail = true;
+  
+  // Send to all selected emails sequentially
+  let completedCount = 0;
+  let failedCount = 0;
+  
+  const sendToNextEmail = (index: number) => {
+    if (index >= selectedEmails.length) {
+      // All emails processed
+      this.sendingEmail = false;
+      this.closeShareModal();
+      
+      if (failedCount === 0) {
+        const successMsg = this.formLanguage === 'ar'
+          ? `تم إرسال طلب الشراء بنجاح إلى ${completedCount} بريد إلكتروني`
+          : `Purchase Order sent successfully to ${completedCount} email${completedCount > 1 ? 's' : ''}`;
+        this.showToast('success', successMsg);
+      } else if (completedCount > 0) {
+        const partialMsg = this.formLanguage === 'ar'
+          ? `تم الإرسال إلى ${completedCount} من أصل ${selectedEmails.length} بريد`
+          : `Sent to ${completedCount} of ${selectedEmails.length} emails`;
+        this.showToast('warning', partialMsg);
+      } else {
+        const errorMsg = this.formLanguage === 'ar'
+          ? 'فشل إرسال البريد الإلكتروني'
+          : 'Failed to send email';
+        this.showToast('error', errorMsg);
+      }
+      return;
+    }
+    
+    const email = selectedEmails[index];
+    
+    this.purchaseService.sendPOByEmail(this.sharePOId, email).subscribe({
+      next: () => {
+        completedCount++;
+        sendToNextEmail(index + 1);
+      },
+      error: (error: any) => {
+        console.error(`Error sending to ${email}:`, error);
+        failedCount++;
+        sendToNextEmail(index + 1);
+      }
+    });
+  };
+  
+  // Start sending
+  sendToNextEmail(0);
+}
+
+/**
+ * Share from success modal
+ */
+shareFromSuccessModal(): void {
+  if (this.successPOId) {
+    this.closeSuccessModal();
+    this.purchaseService.getPOById(this.successPOId).subscribe({
+      next: (response: any) => {
+        this.openShareModal(response.data);
+      },
+      error: () => {
+        this.showToast('error', this.t('errors.loadFailed'));
+      }
+    });
+  }
+}
+
+/**
+ * Validate email format
+ */
+isValidEmail(email: string): boolean {
+  if (!email || email.trim() === '') {
+    return false;
+  }
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailPattern.test(email.trim());
+}
 
   // ========================================
   // CONFIRMATION METHODS

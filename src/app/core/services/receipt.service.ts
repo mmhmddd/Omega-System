@@ -1,4 +1,4 @@
-// src/core/services/receipt.service.ts - UPDATED WITH VEHICLE NUMBER AND INCLUDE STATIC FILE
+// src/core/services/receipt.service.ts - UPDATED WITH EMAIL SENDING
 
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
@@ -15,7 +15,7 @@ export interface ReceiptItem {
 }
 
 /**
- * Receipt Interface - UPDATED WITH VEHICLE NUMBER AND INCLUDE STATIC FILE
+ * Receipt Interface
  */
 export interface Receipt {
   id: string;
@@ -46,7 +46,7 @@ export interface Receipt {
   createdByRole: string;
   createdAt: string;
   updatedAt: string;
-  includeStaticFile?: boolean; // ✅ NEW FIELD
+  includeStaticFile?: boolean;
 }
 
 /**
@@ -73,7 +73,7 @@ export interface SingleReceiptResponse {
 }
 
 /**
- * Create Receipt Data Interface - UPDATED WITH VEHICLE NUMBER AND INCLUDE STATIC FILE
+ * Create Receipt Data Interface
  */
 export interface CreateReceiptData {
   to: string;
@@ -88,7 +88,7 @@ export interface CreateReceiptData {
   additionalText?: string;
   items: ReceiptItem[];
   notes?: string;
-  includeStaticFile?: boolean; // ✅ NEW FIELD
+  includeStaticFile?: boolean;
 }
 
 /**
@@ -115,8 +115,15 @@ export interface PDFGenerateResponse {
 }
 
 /**
+ * Email Send Response Interface
+ */
+export interface EmailSendResponse {
+  success: boolean;
+  message: string;
+}
+
+/**
  * Receipt Service
- * Note: HttpClient automatically uses the auth interceptor to add Authorization header
  */
 @Injectable({
   providedIn: 'root'
@@ -175,7 +182,7 @@ export class ReceiptService {
   }
 
   /**
-   * Delete receipt (super_admin only)
+   * Delete receipt
    */
   deleteReceipt(id: string): Observable<{ success: boolean; message: string }> {
     return this.http.delete<{ success: boolean; message: string }>(`${this.API_URL}/${id}`);
@@ -195,7 +202,14 @@ export class ReceiptService {
   }
 
   /**
-   * Open print dialog for PDF (creates hidden iframe and triggers print)
+   * ✅ Send receipt PDF by email
+   */
+  sendReceiptByEmail(id: string, email: string): Observable<EmailSendResponse> {
+    return this.http.post<EmailSendResponse>(`${this.API_URL}/${id}/send-email`, { email });
+  }
+
+  /**
+   * Open print dialog for PDF
    */
   openPrintDialog(id: string): void {
     const token = localStorage.getItem('token');
@@ -249,7 +263,7 @@ export class ReceiptService {
   }
 
   /**
-   * Get PDF as Blob for viewer (requires token)
+   * Get PDF as Blob for viewer
    */
   getPDFBlob(id: string): Observable<Blob> {
     const url = `${this.API_URL}/${id}/download-pdf`;
@@ -259,7 +273,7 @@ export class ReceiptService {
   }
 
   /**
-   * View PDF in new tab (opens PDF directly in browser)
+   * View PDF in new tab with auto-print option
    */
   viewPDFInNewTab(id: string, autoPrint: boolean = false): void {
     const token = localStorage.getItem('token');
@@ -303,7 +317,7 @@ export class ReceiptService {
   }
 
   /**
-   * View PDF in new tab (requires token)
+   * View PDF in new tab
    */
   viewPDF(id: string): void {
     const token = localStorage.getItem('token');
@@ -339,7 +353,7 @@ export class ReceiptService {
   }
 
   /**
-   * Download PDF (triggers browser download with exact backend filename)
+   * Download PDF
    */
   downloadPDF(id: string, pdfFilename: string): void {
     const token = localStorage.getItem('token');

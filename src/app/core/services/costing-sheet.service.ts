@@ -133,6 +133,18 @@ export class CostingSheetService {
     );
   }
 
+  sendCostingSheetByEmail(id: string, email: string): Observable<{ success: boolean; message: string }> {
+  console.log('📧 Sending costing sheet email:', { id, email });
+  
+  return this.http.post<{ success: boolean; message: string }>(
+    `${this.apiUrl}/${id}/send-email`,
+    { email },
+    { headers: this.getAuthHeaders() }
+  ).pipe(
+    catchError(this.handleError)
+  );
+}
+
   /**
    * Get a specific costing sheet by ID
    */

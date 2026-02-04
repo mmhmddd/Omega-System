@@ -116,6 +116,23 @@ export class CostingSheetComponent implements OnInit, OnDestroy {
   showDuplicateModal: boolean = false;
   csToDuplicate: CostingSheet | null = null;
 
+
+  showShareModal: boolean = false;
+  shareCSId: string = '';
+  shareCSNumber: string = '';
+  emailSelections = {
+    email1: false,
+    email2: false,
+    custom: false
+  };
+  customEmail: string = '';
+  sendingEmail: boolean = false;
+
+  // ✅ Static email addresses - UPDATE THESE
+  staticEmails = {
+    email1: 'first.email@company.com',
+    email2: 'second.email@company.com'
+  };
   // Translations (Updated Arabic: كشف التكاليف)
   private translations = {
     ar: {
@@ -141,7 +158,10 @@ export class CostingSheetComponent implements OnInit, OnDestroy {
         pdfNotGenerated: 'لم يتم إنشاء PDF بعد',
         pdfGenerationWarning: 'تم إنشاء كشف التكاليف ولكن فشل إنشاء PDF',
         pdfUpdateWarning: 'تم تحديث كشف التكاليف ولكن فشل تحديث PDF',
-        loadItemsFailed: 'فشل تحميل قائمة العناصر'
+        loadItemsFailed: 'فشل تحميل قائمة العناصر',
+        invalidEmail: 'يرجى إدخال عنوان بريد إلكتروني صالح',
+        emailRequired: 'يرجى اختيار بريد إلكتروني أو إدخال بريد مخصص',
+        emailFailed: 'فشل إرسال البريد الإلكتروني'
       },
       messages: {
         deleteConfirmTitle: 'تأكيد الحذف',
@@ -153,7 +173,9 @@ export class CostingSheetComponent implements OnInit, OnDestroy {
         createdWithPdf: 'تم إنشاء كشف التكاليف وملف PDF بنجاح',
         updatedWithPdf: 'تم تحديث كشف التكاليف وملف PDF بنجاح',
         duplicateSuccess: 'تم نسخ بيانات كشف التكاليف',
-        duplicateInfo: 'يمكنك التعديل وحفظ كشف جديد'
+        duplicateInfo: 'يمكنك التعديل وحفظ كشف جديد',
+        emailSent: 'تم إرسال البريد الإلكتروني بنجاح',
+        emailSending: 'جاري إرسال البريد الإلكتروني...'
       }
     },
     en: {
@@ -179,7 +201,10 @@ export class CostingSheetComponent implements OnInit, OnDestroy {
         pdfNotGenerated: 'PDF not generated yet',
         pdfGenerationWarning: 'Costing Sheet created but PDF failed',
         pdfUpdateWarning: 'Costing Sheet updated but PDF failed',
-        loadItemsFailed: 'Failed to load items list'
+        loadItemsFailed: 'Failed to load items list',
+        invalidEmail: 'Please enter a valid email address',
+        emailRequired: 'Please select an email or enter a custom email',
+        emailFailed: 'Failed to send email'
       },
       messages: {
         deleteConfirmTitle: 'Confirm Delete',
@@ -191,7 +216,9 @@ export class CostingSheetComponent implements OnInit, OnDestroy {
         createdWithPdf: 'Costing Sheet and PDF created successfully',
         updatedWithPdf: 'Costing Sheet and PDF updated successfully',
         duplicateSuccess: 'Costing Sheet data copied',
-        duplicateInfo: 'You can modify and save as a new sheet'
+        duplicateInfo: 'You can modify and save as a new sheet',
+        emailSent: 'Email sent successfully',
+        emailSending: 'Sending email...'
       }
     }
   };
@@ -903,6 +930,157 @@ ngOnInit(): void {
     });
   }
 
+
+  // ========================================
+// ✅ SHARE/EMAIL FUNCTIONALITY
+// ========================================
+
+openShareModal(cs: CostingSheet): void {
+  if (!cs.pdfFilename) {
+    this.showToast('error', this.t('errors.pdfNotGenerated'));
+    return;
+  }
+  this.shareCSId = cs.id;
+  this.shareCSNumber = cs.csNumber;
+  
+  this.emailSelections = {
+    email1: false,
+    email2: false,
+    custom: false
+  };
+  this.customEmail = '';
+  this.showShareModal = true;
+}
+
+closeShareModal(): void {
+  this.showShareModal = false;
+  this.shareCSId = '';
+  this.shareCSNumber = '';
+  this.emailSelections = {
+    email1: false,
+    email2: false,
+    custom: false
+  };
+  this.customEmail = '';
+}
+
+getSelectedEmailsList(): string[] {
+  const emails: string[] = [];
+  
+  if (this.emailSelections.email1) {
+    emails.push(this.staticEmails.email1);
+  }
+  
+  if (this.emailSelections.email2) {
+    emails.push(this.staticEmails.email2);
+  }
+  
+  if (this.emailSelections.custom && this.customEmail && this.customEmail.trim()) {
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (emailPattern.test(this.customEmail.trim())) {
+      emails.push(this.customEmail.trim());
+    }
+  }
+  
+  return emails;
+}
+
+isEmailValid(): boolean {
+  const selectedEmails = this.getSelectedEmailsList();
+  
+  if (selectedEmails.length === 0) {
+    return false;
+  }
+  
+  if (this.emailSelections.custom) {
+    if (!this.customEmail || this.customEmail.trim() === '') {
+      return false;
+    }
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(this.customEmail.trim())) {
+      return false;
+    }
+  }
+  
+  return true;
+}
+
+sendEmailWithPDF(): void {
+  const selectedEmails = this.getSelectedEmailsList();
+  
+  if (selectedEmails.length === 0) {
+    this.showToast('error', this.formLanguage === 'ar' 
+      ? 'يرجى اختيار بريد إلكتروني واحد على الأقل'
+      : 'Please select at least one email address'
+    );
+    return;
+  }
+
+  this.sendingEmail = true;
+  
+  let completedCount = 0;
+  let failedCount = 0;
+  
+  const sendToNextEmail = (index: number) => {
+    if (index >= selectedEmails.length) {
+      this.sendingEmail = false;
+      this.closeShareModal();
+      
+      if (failedCount === 0) {
+        const successMsg = this.formLanguage === 'ar'
+          ? `تم الإرسال بنجاح إلى ${completedCount} بريد إلكتروني`
+          : `Sent successfully to ${completedCount} email${completedCount > 1 ? 's' : ''}`;
+        this.showToast('success', successMsg);
+      } else if (completedCount > 0) {
+        const partialMsg = this.formLanguage === 'ar'
+          ? `تم الإرسال إلى ${completedCount} من أصل ${selectedEmails.length} بريد`
+          : `Sent to ${completedCount} of ${selectedEmails.length} emails`;
+        this.showToast('warning', partialMsg);
+      } else {
+        this.showToast('error', this.t('errors.emailFailed'));
+      }
+      return;
+    }
+    
+    const email = selectedEmails[index];
+    
+    this.costingSheetService.sendCostingSheetByEmail(this.shareCSId, email).subscribe({
+      next: () => {
+        completedCount++;
+        sendToNextEmail(index + 1);
+      },
+      error: (error: any) => {
+        console.error(`Error sending to ${email}:`, error);
+        failedCount++;
+        sendToNextEmail(index + 1);
+      }
+    });
+  };
+  
+  sendToNextEmail(0);
+}
+
+shareFromSuccessModal(): void {
+  if (this.successCSId) {
+    this.closeSuccessModal();
+    this.costingSheetService.getCostingSheetById(this.successCSId).subscribe({
+      next: (response: any) => {
+        this.openShareModal(response.data);
+      },
+      error: () => {
+        this.showToast('error', this.t('errors.loadFailed'));
+      }
+    });
+  }
+}
+
+isValidEmail(email: string): boolean {
+  if (!email || email.trim() === '') {
+    return false;
+  }
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailPattern.test(email.trim());
+}
   // ========================================
   // FORM NAVIGATION
   // ========================================

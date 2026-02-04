@@ -13,7 +13,10 @@ export interface UserInfo {
   username: string;
   email: string;
 }
-
+export interface EmailSendResponse {
+  success: boolean;
+  message: string;
+}
 export interface PriceQuoteItem {
   description: string;
   unit: string;
@@ -217,6 +220,17 @@ export class PriceQuoteService {
     );
   }
 
+
+    /**
+   * ✅ Send quote PDF by email
+   */
+  sendQuoteByEmail(id: string, email: string): Observable<{success: boolean; message: string}> {
+    return this.http.post<{success: boolean; message: string}>(
+      `${API_ENDPOINTS.PRICE_QUOTES.GET_BY_ID(id)}/send-email`,
+      { email },
+      { headers: this.getAuthHeaders() }
+    );
+  }
   // ============================================
   // GET PRICE QUOTES
   // ============================================

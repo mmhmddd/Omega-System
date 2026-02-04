@@ -18,6 +18,10 @@ export interface RFQItem {
   totalPrice?: number | string | null;
 }
 
+export interface EmailSendResponse {
+  success: boolean;
+  message: string;
+}
 /**
  * RFQ Interface
  */
@@ -395,6 +399,16 @@ export class RfqService {
     });
   }
 
+  /**
+ * ✅ Send RFQ PDF by email
+ */
+  sendRFQByEmail(id: string, email: string): Observable<EmailSendResponse> {
+    return this.http.post<EmailSendResponse>(
+      `${API_ENDPOINTS.RFQ.GET_BY_ID(id)}/send-email`, 
+      { email }
+    );
+  }
+
   getTodayDate(): string {
     const today = new Date();
     const year = today.getFullYear();
@@ -606,4 +620,5 @@ export class RfqService {
       (rfq.notes && rfq.notes.toLowerCase().includes(term))
     );
   }
+  
 }

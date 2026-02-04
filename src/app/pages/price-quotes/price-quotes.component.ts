@@ -131,6 +131,22 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
   generatedQuoteId: string = '';
   quoteToDuplicate: PriceQuote | null = null;
 
+  showShareModal: boolean = false;
+  shareQuoteId: string = '';
+  shareQuoteNumber: string = '';
+  emailSelections = {
+    email1: false,
+    email2: false,
+    custom: false
+  };
+  customEmail: string = '';
+  sendingEmail: boolean = false;
+
+  // ✅ Static email addresses - UPDATE THESE WITH YOUR ACTUAL EMAILS
+  staticEmails = {
+    email1: 'first.email@company.com',
+    email2: 'second.email@company.com'
+  };
   constructor(
     public priceQuoteService: PriceQuoteService,
     private authService: AuthService
@@ -182,7 +198,194 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
       }
     }
   }
+/////////////////////////////////////////
 
+
+
+// ============================================
+// EMAIL SHARING METHODS
+// ============================================
+
+/**
+ * Open share modal for a quote
+ */
+openShareModal(quote: PriceQuote): void {
+  if (!quote.pdfPath) {
+    this.showToast('error', this.formLanguage === 'ar' ? 'لم يتم إنشاء PDF بعد' : 'PDF not generated yet');
+    return;
+  }
+  this.shareQuoteId = quote.id;
+  this.shareQuoteNumber = quote.quoteNumber;
+  
+  // Reset selections
+  this.emailSelections = {
+    email1: false,
+    email2: false,
+    custom: false
+  };
+  this.customEmail = '';
+  this.showShareModal = true;
+}
+
+/**
+ * Close share modal
+ */
+closeShareModal(): void {
+  this.showShareModal = false;
+  this.shareQuoteId = '';
+  this.shareQuoteNumber = '';
+  this.emailSelections = {
+    email1: false,
+    email2: false,
+    custom: false
+  };
+  this.customEmail = '';
+}
+
+/**
+ * Get list of selected emails
+ */
+getSelectedEmailsList(): string[] {
+  const emails: string[] = [];
+  
+  if (this.emailSelections.email1) {
+    emails.push(this.staticEmails.email1);
+  }
+  
+  if (this.emailSelections.email2) {
+    emails.push(this.staticEmails.email2);
+  }
+  
+  if (this.emailSelections.custom && this.customEmail && this.customEmail.trim()) {
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (emailPattern.test(this.customEmail.trim())) {
+      emails.push(this.customEmail.trim());
+    }
+  }
+  
+  return emails;
+}
+
+/**
+ * Validate email selection
+ */
+isEmailValid(): boolean {
+  const selectedEmails = this.getSelectedEmailsList();
+  
+  // Must have at least one valid email selected
+  if (selectedEmails.length === 0) {
+    return false;
+  }
+  
+  // If custom is selected, validate the custom email
+  if (this.emailSelections.custom) {
+    if (!this.customEmail || this.customEmail.trim() === '') {
+      return false;
+    }
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(this.customEmail.trim())) {
+      return false;
+    }
+  }
+  
+  return true;
+}
+
+/**
+ * Send quote PDF to selected emails
+ */
+sendEmailWithPDF(): void {
+  const selectedEmails = this.getSelectedEmailsList();
+  
+  if (selectedEmails.length === 0) {
+    this.showToast('error', this.formLanguage === 'ar' 
+      ? 'يرجى اختيار بريد إلكتروني واحد على الأقل'
+      : 'Please select at least one email address'
+    );
+    return;
+  }
+
+  this.sendingEmail = true;
+  
+  // Send to all selected emails sequentially
+  let completedCount = 0;
+  let failedCount = 0;
+  
+  const sendToNextEmail = (index: number) => {
+    if (index >= selectedEmails.length) {
+      // All emails processed
+      this.sendingEmail = false;
+      this.closeShareModal();
+      
+      if (failedCount === 0) {
+        const successMsg = this.formLanguage === 'ar'
+          ? `تم إرسال عرض السعر بنجاح إلى ${completedCount} بريد إلكتروني`
+          : `Quote sent successfully to ${completedCount} email${completedCount > 1 ? 's' : ''}`;
+        this.showToast('success', successMsg);
+      } else if (completedCount > 0) {
+        const partialMsg = this.formLanguage === 'ar'
+          ? `تم الإرسال إلى ${completedCount} من أصل ${selectedEmails.length} بريد`
+          : `Sent to ${completedCount} of ${selectedEmails.length} emails`;
+        this.showToast('warning', partialMsg);
+      } else {
+        const errorMsg = this.formLanguage === 'ar'
+          ? 'فشل إرسال البريد الإلكتروني'
+          : 'Failed to send email';
+        this.showToast('error', errorMsg);
+      }
+      return;
+    }
+    
+    const email = selectedEmails[index];
+    
+    this.priceQuoteService.sendQuoteByEmail(this.shareQuoteId, email).subscribe({
+      next: () => {
+        completedCount++;
+        sendToNextEmail(index + 1);
+      },
+      error: (error: any) => {
+        console.error(`Error sending to ${email}:`, error);
+        failedCount++;
+        sendToNextEmail(index + 1);
+      }
+    });
+  };
+  
+  // Start sending
+  sendToNextEmail(0);
+}
+
+/**
+ * Share from success modal
+ */
+shareFromSuccessModal(): void {
+  if (this.generatedQuoteId) {
+    this.closeSuccessModal();
+    this.priceQuoteService.getPriceQuoteById(this.generatedQuoteId).subscribe({
+      next: (response: any) => {
+        this.openShareModal(response.data);
+      },
+      error: () => {
+        const errorMsg = this.formLanguage === 'ar'
+          ? 'حدث خطأ في تحميل البيانات'
+          : 'Error loading data';
+        this.showToast('error', errorMsg);
+      }
+    });
+  }
+}
+
+/**
+ * Validate email format
+ */
+isValidEmail(email: string): boolean {
+  if (!email || email.trim() === '') {
+    return false;
+  }
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailPattern.test(email.trim());
+}
+  
   // ============================================
   // DATA LOADING - UPDATED FOR ROLE-BASED ACCESS
   // ============================================

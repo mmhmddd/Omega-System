@@ -94,6 +94,15 @@
               {{ formLanguage === 'ar' ? 'تحميل' : 'Download' }}
             </span>
           </button>
+                    <!-- Share Button -->
+          <button class="action-btn btn-share" (click)="shareFromSuccessModal()">
+            <div class="btn-icon">
+              <i class="bi bi-envelope-fill"></i>
+            </div>
+            <span class="btn-label">
+              {{ formLanguage === 'ar' ? 'مشاركة' : 'Share' }}
+            </span>
+          </button>
         </div>
 
         <!-- Done Button -->
@@ -205,6 +214,12 @@
                 <i class="bi bi-download"></i>
               </button>
               <button
+                class="btn-icon btn-share"
+                (click)="openShareModal(receipt)"
+                [title]="formLanguage === 'ar' ? 'مشاركة' : 'Share'">
+                <i class="bi bi-envelope"></i>
+              </button>
+              <button
                 class="btn-icon btn-delete"
                 (click)="showDeleteConfirmation(receipt)"
                 [title]="formLanguage === 'ar' ? 'حذف' : 'Delete'">
@@ -279,5 +294,155 @@
       </div>
     </div>
   </div>
+
+  <!-- ADD THIS ENTIRE SHARE MODAL (copy from share-modal-styled.html) -->
+<div *ngIf="showShareModal" class="confirmation-overlay" (click)="closeShareModal()">
+  <div class="confirmation-modal share-modal-styled" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'" (click)="$event.stopPropagation()">
+    
+    <!-- Fixed Header (Blue Gradient) -->
+    <div class="modal-header-fixed">
+      <button class="close-btn-fixed" (click)="closeShareModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+      
+      <div class="success-icon-wrapper">
+        <i class="bi bi-envelope-fill"></i>
+      </div>
+      
+      <h2 class="modal-title">
+        {{ formLanguage === 'ar' ? 'مشاركة الإشعار عبر البريد الإلكتروني' : 'Share Receipt via Email' }}
+      </h2>
+    </div>
+
+    <!-- Scrollable Body -->
+    <div class="modal-body-scrollable">
+      
+      <!-- Receipt Info Badge -->
+      <div class="receipt-info-badge">
+        <i class="bi bi-file-earmark-text-fill"></i>
+        <div>
+          <span>{{ formLanguage === 'ar' ? 'ملف:' : 'File:' }}</span>
+          <strong>{{ shareReceiptNumber }}</strong>
+        </div>
+      </div>
+
+      <!-- Section Label -->
+      <div class="section-label">
+        <i class="bi bi-at"></i>
+        <span>{{ formLanguage === 'ar' ? 'اختر المستلمين' : 'Select Recipients' }}</span>
+      </div>
+
+      <!-- Email Selection Group -->
+      <div class="email-selection-group">
+        
+        <!-- Email 1 -->
+        <label class="email-option">
+          <input 
+            type="checkbox" 
+            [(ngModel)]="emailSelections.email1"
+            [disabled]="sendingEmail"
+          />
+          <div class="email-option-content">
+            <span class="checkbox-custom">
+              <i class="bi bi-check"></i>
+            </span>
+            <div class="email-info">
+              <i class="bi bi-envelope"></i>
+              <span class="email-text">{{ staticEmails.email1 }}</span>
+            </div>
+          </div>
+        </label>
+
+        <!-- Email 2 -->
+        <label class="email-option">
+          <input 
+            type="checkbox" 
+            [(ngModel)]="emailSelections.email2"
+            [disabled]="sendingEmail"
+          />
+          <div class="email-option-content">
+            <span class="checkbox-custom">
+              <i class="bi bi-check"></i>
+            </span>
+            <div class="email-info">
+              <i class="bi bi-envelope"></i>
+              <span class="email-text">{{ staticEmails.email2 }}</span>
+            </div>
+          </div>
+        </label>
+
+        <!-- Custom Email -->
+        <label class="email-option">
+          <input 
+            type="checkbox" 
+            [(ngModel)]="emailSelections.custom"
+            [disabled]="sendingEmail"
+          />
+          <div class="email-option-content">
+            <span class="checkbox-custom">
+              <i class="bi bi-check"></i>
+            </span>
+            <div class="email-info">
+              <i class="bi bi-pencil-fill"></i>
+              <span class="email-text">{{ formLanguage === 'ar' ? 'بريد مخصص' : 'Custom Email' }}</span>
+            </div>
+          </div>
+        </label>
+      </div>
+
+      <!-- Custom Email Input -->
+      <div class="custom-email-input-wrapper" *ngIf="emailSelections.custom">
+        <label class="input-label">
+          <i class="bi bi-pencil-square"></i>
+          <span>{{ formLanguage === 'ar' ? 'البريد الإلكتروني المخصص' : 'Custom Email Address' }}</span>
+        </label>
+        <input
+          type="email"
+          [(ngModel)]="customEmail"
+          placeholder="example@domain.com"
+          class="form-control-email"
+          [disabled]="sendingEmail"
+        />
+        <small class="help-text" *ngIf="customEmail && !isValidEmail(customEmail)">
+          <i class="bi bi-exclamation-circle"></i>
+          <span>{{ formLanguage === 'ar' ? 'يرجى إدخال بريد إلكتروني صحيح' : 'Please enter a valid email address' }}</span>
+        </small>
+      </div>
+
+      <!-- Selected Emails Preview -->
+      <div class="selected-emails-preview" *ngIf="getSelectedEmailsList().length > 0">
+        <div class="preview-header">
+          <i class="bi bi-send-check-fill"></i>
+          <span>{{ formLanguage === 'ar' ? 'سيتم الإرسال إلى:' : 'Will be sent to:' }}</span>
+          <span class="email-count">{{ getSelectedEmailsList().length }}</span>
+        </div>
+        <div class="email-chips">
+          <span class="email-chip" *ngFor="let email of getSelectedEmailsList()">
+            <i class="bi bi-check-circle-fill"></i>
+            {{ email }}
+          </span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Fixed Footer -->
+    <div class="modal-footer-fixed">
+      <button class="btn-confirm btn-send" (click)="sendEmailWithPDF()" [disabled]="sendingEmail || !isEmailValid()">
+        <i class="bi" [ngClass]="sendingEmail ? 'bi-hourglass-split spin-icon' : 'bi-send-fill'"></i>
+        <span>{{ sendingEmail 
+          ? (formLanguage === 'ar' ? 'جاري الإرسال...' : 'Sending...') 
+          : (formLanguage === 'ar' ? 'إرسال' : 'Send')
+        }}</span>
+      </button>
+      
+      <button class="btn-cancel" (click)="closeShareModal()" [disabled]="sendingEmail">
+        <i class="bi bi-x-circle"></i>
+        <span>{{ formLanguage === 'ar' ? 'إلغاء' : 'Cancel' }}</span>
+      </button>
+    </div>
+
+  </div>
+</div>
 
 </div>

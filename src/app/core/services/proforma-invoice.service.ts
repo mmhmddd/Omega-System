@@ -14,6 +14,10 @@ export interface UserInfo {
   email: string;
 }
 
+export interface EmailSendResponse {
+  success: boolean;
+  message: string;
+}
 export interface ProformaInvoiceItem {
   description: string;
   unit: string;
@@ -213,6 +217,14 @@ export class ProformaInvoiceService {
       API_ENDPOINTS.PROFORMA_INVOICES.CREATE,
       formData,
       { headers: this.getMultipartHeaders() }
+    );
+  }
+
+  sendInvoiceByEmail(id: string, email: string): Observable<{success: boolean; message: string}> {
+    return this.http.post<{success: boolean; message: string}>(
+      `${API_ENDPOINTS.PROFORMA_INVOICES.GET_BY_ID(id)}/send-email`,
+      { email },
+      { headers: this.getAuthHeaders() }
     );
   }
 

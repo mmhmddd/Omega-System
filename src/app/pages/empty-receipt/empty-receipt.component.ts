@@ -1,31 +1,21 @@
-// empty-receipt.component.ts - UPDATED WITH USER NAME DISPLAY (SAME AS RECEIPTS)
+// empty-receipt.component.ts - UPDATED WITH EMAIL SENDING (MATCHING RECEIPTS PATTERN)
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
-import { EmptyReceiptService } from '../../core/services/empty-receipt.service';
+import { EmptyReceiptService, EmptyReceipt } from '../../core/services/empty-receipt.service';
 import { AuthService } from '../../core/services/auth.service';
 
 type FormLanguage = 'ar' | 'en';
 type ToastType = 'success' | 'error' | 'info' | 'warning';
-type TranslationKey = 'success' | 'error' | 'deleted' | 'deleteFailed' | 'deleteConfirmTitle' | 'deleteConfirmMessage' | 'loadFailed';
+type TranslationKey = 'success' | 'error' | 'deleted' | 'deleteFailed' | 'deleteConfirmTitle' | 'deleteConfirmMessage' | 'loadFailed' | 'emailSent' | 'emailFailed';
 
 interface Toast {
   id: string;
   type: ToastType;
   message: string;
-}
-
-interface EmptyReceipt {
-  id: string;
-  filename: string;
-  language: string;
-  createdAt: string;
-  createdBy: string;
-  createdByName: string;
-  createdByRole: string;
 }
 
 @Component({
@@ -60,12 +50,35 @@ export class EmptyReceiptComponent implements OnInit, OnDestroy {
   // SUCCESS MODAL STATE
   showSuccessModal: boolean = false;
   successFilename: string = '';
+  successReceiptId: string = ''; // ✅ For email sharing from success modal
 
   // CONFIRMATION STATE
   showConfirmationModal: boolean = false;
   confirmationTitle: string = '';
   confirmationMessage: string = '';
   private confirmationCallback: (() => void) | null = null;
+
+  // ✅ SHARE MODAL STATE (MATCHING RECEIPTS PATTERN)
+  showShareModal: boolean = false;
+  shareReceiptId: string = '';
+  shareReceiptNumber: string = '';
+  sendingEmail: boolean = false;
+
+  // ✅ Email selections (MATCHING RECEIPTS PATTERN)
+  emailSelections = {
+    email1: false,
+    email2: false,
+    custom: false
+  };
+
+  // ✅ Static emails - UPDATE THESE WITH YOUR ACTUAL EMAILS
+  staticEmails = {
+    email1: 'first.email@company.com',
+    email2: 'second.email@company.com'
+  };
+
+  customEmail: string = '';
+  currentReceiptForShare: EmptyReceipt | null = null;
 
   // User role
   userRole: string = '';
@@ -79,7 +92,9 @@ export class EmptyReceiptComponent implements OnInit, OnDestroy {
       deleteFailed: 'فشل في حذف الإشعار',
       deleteConfirmTitle: 'تأكيد الحذف',
       deleteConfirmMessage: 'هل أنت متأكد من حذف هذا الإشعار الفارغ؟',
-      loadFailed: 'فشل تحميل البيانات'
+      loadFailed: 'فشل تحميل البيانات',
+      emailSent: 'تم إرسال البريد الإلكتروني بنجاح',
+      emailFailed: 'فشل إرسال البريد الإلكتروني'
     },
     en: {
       success: 'Empty receipt generated successfully',
@@ -88,7 +103,9 @@ export class EmptyReceiptComponent implements OnInit, OnDestroy {
       deleteFailed: 'Failed to delete receipt',
       deleteConfirmTitle: 'Confirm Delete',
       deleteConfirmMessage: 'Are you sure you want to delete this empty receipt?',
-      loadFailed: 'Failed to load data'
+      loadFailed: 'Failed to load data',
+      emailSent: 'Email sent successfully',
+      emailFailed: 'Failed to send email'
     }
   };
 
@@ -122,12 +139,193 @@ export class EmptyReceiptComponent implements OnInit, OnDestroy {
   }
 
   // ========================================
+  // ✅ EMAIL SHARING METHODS (MATCHING RECEIPTS PATTERN)
+  // ========================================
+
+  /**
+   * Open share modal for a receipt
+   */
+  openShareModal(receipt: EmptyReceipt): void {
+    this.currentReceiptForShare = receipt;
+    this.shareReceiptId = receipt.id;
+    this.shareReceiptNumber = receipt.receiptNumber || receipt.filename;
+    this.showShareModal = true;
+    
+    // Reset selections
+    this.emailSelections = {
+      email1: false,
+      email2: false,
+      custom: false
+    };
+    this.customEmail = '';
+  }
+
+  /**
+   * Close share modal
+   */
+  closeShareModal(): void {
+    this.showShareModal = false;
+    this.shareReceiptId = '';
+    this.shareReceiptNumber = '';
+    this.currentReceiptForShare = null;
+    this.sendingEmail = false;
+    this.emailSelections = {
+      email1: false,
+      email2: false,
+      custom: false
+    };
+    this.customEmail = '';
+  }
+
+  /**
+   * Share from success modal
+   */
+  shareFromSuccessModal(): void {
+    if (this.successReceiptId) {
+      this.closeSuccessModal();
+      this.emptyReceiptService.getEmptyReceiptById(this.successReceiptId).subscribe({
+        next: (response: any) => {
+          this.openShareModal(response.data);
+        },
+        error: () => {
+          this.showToast('error', this.t('loadFailed'));
+        }
+      });
+    }
+  }
+
+  /**
+   * Validate email address
+   */
+  isValidEmail(email: string): boolean {
+    if (!email || email.trim() === '') {
+      return false;
+    }
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailPattern.test(email.trim());
+  }
+
+  /**
+   * Get list of selected emails
+   */
+  getSelectedEmailsList(): string[] {
+    const emails: string[] = [];
+    
+    if (this.emailSelections.email1) {
+      emails.push(this.staticEmails.email1);
+    }
+    
+    if (this.emailSelections.email2) {
+      emails.push(this.staticEmails.email2);
+    }
+    
+    if (this.emailSelections.custom && this.customEmail && this.customEmail.trim()) {
+      if (this.isValidEmail(this.customEmail.trim())) {
+        emails.push(this.customEmail.trim());
+      }
+    }
+    
+    return emails;
+  }
+
+  /**
+   * Check if email form is valid
+   */
+  isEmailValid(): boolean {
+    const selectedEmails = this.getSelectedEmailsList();
+    
+    // Must have at least one valid email
+    if (selectedEmails.length === 0) {
+      return false;
+    }
+    
+    // If custom is selected, validate the custom email
+    if (this.emailSelections.custom) {
+      if (!this.customEmail || this.customEmail.trim() === '') {
+        return false;
+      }
+      if (!this.isValidEmail(this.customEmail.trim())) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
+
+  /**
+   * Send email with PDF (MATCHING RECEIPTS PATTERN - Sequential sending)
+   */
+  sendEmailWithPDF(): void {
+    const selectedEmails = this.getSelectedEmailsList();
+    
+    if (selectedEmails.length === 0) {
+      this.showToast('error', this.formLanguage === 'ar' 
+        ? 'يرجى اختيار بريد إلكتروني واحد على الأقل'
+        : 'Please select at least one email address'
+      );
+      return;
+    }
+
+    if (!this.currentReceiptForShare) {
+      return;
+    }
+
+    this.sendingEmail = true;
+    
+    // Send to all selected emails sequentially
+    let completedCount = 0;
+    let failedCount = 0;
+    
+    const sendToNextEmail = (index: number) => {
+      if (index >= selectedEmails.length) {
+        // All emails processed
+        this.sendingEmail = false;
+        this.closeShareModal();
+        
+        if (failedCount === 0) {
+          const successMsg = this.formLanguage === 'ar'
+            ? `تم إرسال الإشعار بنجاح إلى ${completedCount} بريد إلكتروني`
+            : `Receipt sent successfully to ${completedCount} email${completedCount > 1 ? 's' : ''}`;
+          this.showToast('success', successMsg);
+        } else if (completedCount > 0) {
+          const partialMsg = this.formLanguage === 'ar'
+            ? `تم الإرسال إلى ${completedCount} من أصل ${selectedEmails.length} بريد`
+            : `Sent to ${completedCount} of ${selectedEmails.length} emails`;
+          this.showToast('warning', partialMsg);
+        } else {
+          const errorMsg = this.formLanguage === 'ar'
+            ? 'فشل إرسال البريد الإلكتروني'
+            : 'Failed to send email';
+          this.showToast('error', errorMsg);
+        }
+        return;
+      }
+      
+      const email = selectedEmails[index];
+      
+      this.emptyReceiptService.sendReceiptByEmail(this.shareReceiptId, email).subscribe({
+        next: () => {
+          completedCount++;
+          sendToNextEmail(index + 1);
+        },
+        error: (error: any) => {
+          console.error(`Error sending to ${email}:`, error);
+          failedCount++;
+          sendToNextEmail(index + 1);
+        }
+      });
+    };
+    
+    // Start sending
+    sendToNextEmail(0);
+  }
+
+  // ========================================
   // USER NAME DISPLAY (SAME AS RECEIPTS)
   // ========================================
 
   /**
    * Get creator name for display in table
-   * Same logic as receipts.component.ts
    */
   getCreatorName(receipt: EmptyReceipt): string {
     if (receipt.createdByName && receipt.createdByName.trim() !== '') {
@@ -194,14 +392,16 @@ export class EmptyReceiptComponent implements OnInit, OnDestroy {
   // SUCCESS MODAL METHODS
   // ========================================
 
-  openSuccessModal(filename: string): void {
+  openSuccessModal(filename: string, receiptId: string): void {
     this.successFilename = filename;
+    this.successReceiptId = receiptId; // ✅ Store receipt ID for email sharing
     this.showSuccessModal = true;
   }
 
   closeSuccessModal(): void {
     this.showSuccessModal = false;
     this.successFilename = '';
+    this.successReceiptId = '';
     this.loadReceipts();
   }
 
@@ -281,7 +481,6 @@ export class EmptyReceiptComponent implements OnInit, OnDestroy {
         this.totalReceipts = response.pagination.totalReceipts;
         this.loading = false;
         
-        // Log first receipt for debugging
         if (this.receipts.length > 0) {
           console.log('📄 First receipt:', this.receipts[0]);
           console.log('👤 Creator name will show as:', this.getCreatorName(this.receipts[0]));
@@ -330,7 +529,7 @@ export class EmptyReceiptComponent implements OnInit, OnDestroy {
           this.showToast('success', this.t('success'));
           
           setTimeout(() => {
-            this.openSuccessModal(response.data.filename);
+            this.openSuccessModal(response.data.filename, response.data.id);
           }, 300);
         }
       },

@@ -74,6 +74,10 @@ export interface SinglePOResponse {
   success: boolean;
   data: PurchaseOrder;
 }
+export interface EmailSendResponse {
+  success: boolean;
+  message: string;
+}
 
 /**
  * Create Purchase Order Data Interface - UPDATED WITH includeStaticFile
@@ -171,6 +175,12 @@ export class PurchaseService {
     return this.http.post<SinglePOResponse>(this.API_URL, data);
   }
 
+  sendPOByEmail(id: string, email: string): Observable<EmailSendResponse> {
+    return this.http.post<EmailSendResponse>(
+      `${this.API_URL}/${id}/send-email`, 
+      { email }
+    );
+  }
   /**
    * Update existing purchase order
    */
