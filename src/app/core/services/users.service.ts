@@ -1,4 +1,4 @@
-// users.service.ts (FIXED VERSION)
+// src/app/core/services/users.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -18,7 +18,7 @@ export interface User {
   systemAccess: {
     laserCuttingManagement?: boolean;
   };
-  routeAccess?: string[]; // ✅ Always optional but defaults to empty array
+  routeAccess?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -63,7 +63,6 @@ export interface UserResponse {
   data: User;
 }
 
-// ✅ ENHANCED: Added category field to AvailableRoute
 export interface AvailableRoute {
   key: string;
   label: string;
@@ -97,7 +96,7 @@ export class UsersService {
   constructor(private http: HttpClient) { }
 
   // ============================================
-  // PRIVATE: GET AUTH HEADERS
+  // PRIVATE HELPERS
   // ============================================
 
   /**
@@ -112,7 +111,7 @@ export class UsersService {
   }
 
   // ============================================
-  // GET AVAILABLE ROUTES
+  // AVAILABLE ROUTES
   // ============================================
 
   /**
@@ -133,9 +132,18 @@ export class UsersService {
    * Create a new user
    */
   createUser(userData: CreateUserData): Observable<UserResponse> {
-    // ✅ Validate routeAccess before sending
+    // ✅ Ensure routeAccess is initialized for employees
     if (userData.role === 'employee' && !userData.routeAccess) {
       userData.routeAccess = [];
+    }
+
+    // ✅ Validate routeAccess if provided
+    if (userData.routeAccess && userData.routeAccess.length > 0) {
+      console.log('📝 Creating user with route access:', {
+        name: userData.name,
+        role: userData.role,
+        routeAccess: userData.routeAccess
+      });
     }
 
     return this.http.post<UserResponse>(
@@ -249,7 +257,7 @@ export class UsersService {
   }
 
   /**
-   * ✅ FIXED: Update employee route access permissions
+   * ✅ ENHANCED: Update employee route access permissions
    */
   updateRouteAccess(id: string, routeAccess: string[]): Observable<UserResponse> {
     // ✅ Validate input
@@ -261,8 +269,9 @@ export class UsersService {
     // ✅ Remove duplicates
     const uniqueRoutes = [...new Set(routeAccess)];
 
-    console.log('✅ Sending route access update:', {
+    console.log('💾 Sending route access update:', {
       userId: id,
+      routeCount: uniqueRoutes.length,
       routeAccess: uniqueRoutes
     });
 
@@ -310,7 +319,7 @@ export class UsersService {
    */
   getRoleLabel(role: string): string {
     const roles: { [key: string]: string } = {
-      'super_admin': 'مدير عام',
+      'super_admin': 'مدير النظام',
       'admin': 'مدير',
       'employee': 'موظف',
       'secretariat': 'سكرتارية'
@@ -324,9 +333,9 @@ export class UsersService {
   getRoleColor(role: string): string {
     const colors: { [key: string]: string } = {
       'super_admin': '#dc2626', // red
-      'admin': '#ea580c', // orange
-      'employee': '#0891b2', // cyan
-      'secretariat': '#7c3aed' // purple
+      'admin': '#ea580c',       // orange
+      'employee': '#0891b2',     // cyan
+      'secretariat': '#7c3aed'   // purple
     };
     return colors[role] || '#64748b';
   }
@@ -361,11 +370,19 @@ export class UsersService {
   }
 
   /**
-   * ✅ NEW: Validate route access keys
+   * ✅ Validate route access keys against available routes
    */
-  validateRouteKeys(routeKeys: string[], availableRoutes: AvailableRoute[]): { valid: boolean; invalidKeys: string[] } {
+  validateRouteKeys(routeKeys: string[], availableRoutes: AvailableRoute[]): {
+    valid: boolean;
+    invalidKeys: string[]
+  } {
     const validKeys = availableRoutes.map(r => r.key);
     const invalidKeys = routeKeys.filter(key => !validKeys.includes(key));
+
+    if (invalidKeys.length > 0) {
+      console.warn('⚠️ Invalid route keys detected:', invalidKeys);
+      console.log('✅ Valid route keys:', validKeys);
+    }
 
     return {
       valid: invalidKeys.length === 0,
@@ -374,9 +391,38 @@ export class UsersService {
   }
 
   /**
-   * ✅ NEW: Get routes by category
+   * ✅ Get routes by category
    */
   getRoutesByCategory(routes: AvailableRoute[], category: string): AvailableRoute[] {
     return routes.filter(route => route.category === category);
+  }
+
+  /**
+   * ✅ Get route display name by key
+   */
+  getRouteLabel(routeKey: string, availableRoutes: AvailableRoute[]): string {
+    const route = availableRoutes.find(r => r.key === routeKey);
+    return route ? route.label : routeKey;
+  }
+
+  /**
+   * ✅ Count routes by category
+   */
+  countRoutesByCategory(routes: AvailableRoute[]): { [category: string]: number } {
+    const counts: { [category: string]: number } = {
+      management: 0,
+      procurement: 0,
+      inventory: 0,
+      operations: 0,
+      reports: 0
+    };
+
+    routes.forEach(route => {
+      if (counts[route.category] !== undefined) {
+        counts[route.category]++;
+      }
+    });
+
+    return counts;
   }
 }

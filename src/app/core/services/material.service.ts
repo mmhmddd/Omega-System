@@ -143,7 +143,7 @@ export class MaterialService {
     limit?: number;
   }): Observable<MaterialRequestResponse> {
     let params = new HttpParams();
-    
+
     if (filters) {
       if (filters.mrNumber && filters.mrNumber.trim() !== '') {
         params = params.set('mrNumber', filters.mrNumber);
@@ -200,7 +200,7 @@ export class MaterialService {
       ...data,
       includeStaticFile: data.includeStaticFile === true
     };
-    
+
     return this.http.post<SingleMaterialRequestResponse>(this.API_URL, payload);
   }
 
@@ -213,7 +213,7 @@ export class MaterialService {
     if ('includeStaticFile' in data) {
       payload.includeStaticFile = data.includeStaticFile === true;
     }
-    
+
     return this.http.put<SingleMaterialRequestResponse>(`${this.API_URL}/${id}`, payload);
   }
 
@@ -226,14 +226,14 @@ export class MaterialService {
 
   /**
    * ✅ Generate PDF for material request with optional attachment
-   * 
+   *
    * Note: The Terms & Conditions PDF is automatically included based on
    * the includeStaticFile flag stored in the material request data.
    * This method only handles user-uploaded attachments.
    */
   generatePDF(id: string, attachmentFile?: File): Observable<MRPDFGenerateResponse> {
     const formData = new FormData();
-    
+
     if (attachmentFile) {
       formData.append('attachment', attachmentFile);
     }
@@ -252,7 +252,7 @@ export class MaterialService {
     }
 
     const url = `${this.API_URL}/${id}/download-pdf`;
-    
+
     fetch(url, {
       method: 'GET',
       headers: {
@@ -267,12 +267,12 @@ export class MaterialService {
     })
     .then(blob => {
       const blobUrl = URL.createObjectURL(blob);
-      
+
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
       iframe.src = blobUrl;
       document.body.appendChild(iframe);
-      
+
       iframe.onload = () => {
         setTimeout(() => {
           try {
@@ -283,7 +283,7 @@ export class MaterialService {
           }
         }, 250);
       };
-      
+
       setTimeout(() => {
         document.body.removeChild(iframe);
         URL.revokeObjectURL(blobUrl);
@@ -300,7 +300,7 @@ export class MaterialService {
    */
   getPDFBlob(id: string): Observable<Blob> {
     const url = `${this.API_URL}/${id}/download-pdf`;
-    return this.http.get(url, { 
+    return this.http.get(url, {
       responseType: 'blob'
     });
   }
@@ -316,7 +316,7 @@ export class MaterialService {
     }
 
     const url = `${this.API_URL}/${id}/download-pdf`;
-    
+
     fetch(url, {
       method: 'GET',
       headers: {
@@ -332,7 +332,7 @@ export class MaterialService {
     .then(blob => {
       const blobUrl = URL.createObjectURL(blob);
       const newWindow = window.open(blobUrl, '_blank');
-      
+
       if (autoPrint && newWindow) {
         newWindow.onload = () => {
           setTimeout(() => {
@@ -340,7 +340,7 @@ export class MaterialService {
           }, 500);
         };
       }
-      
+
       setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
     })
     .catch(error => {
@@ -360,7 +360,7 @@ export class MaterialService {
     }
 
     const url = `${this.API_URL}/${id}/download-pdf`;
-    
+
     fetch(url, {
       method: 'GET',
       headers: {
@@ -382,7 +382,7 @@ export class MaterialService {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
     })
     .catch(error => {

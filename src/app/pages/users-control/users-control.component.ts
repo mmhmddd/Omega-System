@@ -1,4 +1,4 @@
-// users-control.component.ts (FIXED VERSION)
+// users-control.component.ts (UPDATED - Filtered Routes for Employee Access)
 import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -45,6 +45,21 @@ export class UsersControlComponent implements OnInit, OnDestroy {
 
   availableRoutes: AvailableRoute[] = [];
 
+  // ✅ Define allowed routes for employees
+  private readonly ALLOWED_EMPLOYEE_ROUTES = [
+    'suppliers',           // إدارة الموردين
+    'itemsControl',        // إدارة الأصناف
+    'receipts',            // إشعار استلام
+    'emptyReceipt',        // إشعار فارغ
+    'rfqs',                // طلب تسعير
+    'purchases',           // طلب شراء
+    'materialRequests',    // طلب مواد
+    'priceQuotes',         // عرض سعر
+    'proformaInvoice',     // الفواتير الأولية
+    'costingSheet',        // كشف التكاليف
+    'secretariatUserManagement' // طلبات الموظفين
+  ];
+
   routeCategories: RouteCategory[] = [
     { key: 'management', name: 'إدارة النظام', icon: 'bi-gear-fill' },
     { key: 'procurement', name: 'المشتريات والموردين', icon: 'bi-cart-fill' },
@@ -76,7 +91,7 @@ export class UsersControlComponent implements OnInit, OnDestroy {
 
   createUserForm!: FormGroup;
   editUserForm!: FormGroup;
-  routeAccessForm: string[] = []; // ✅ Initialized as empty array
+  routeAccessForm: string[] = [];
   systemAccessForm: { laserCuttingManagement: boolean } = {
     laserCuttingManagement: false
   };
@@ -215,7 +230,7 @@ export class UsersControlComponent implements OnInit, OnDestroy {
       systemAccess: this.fb.group({
         laserCuttingManagement: [false]
       }),
-      routeAccess: [[]] // ✅ Initialize as empty array
+      routeAccess: [[]]
     });
 
     this.editUserForm = this.fb.group({
@@ -246,7 +261,7 @@ export class UsersControlComponent implements OnInit, OnDestroy {
         this.users = response.data.map(user => ({
           ...user,
           selected: false,
-          routeAccess: user.routeAccess || [] // ✅ Ensure routeAccess is always an array
+          routeAccess: user.routeAccess || []
         }));
         this.applyFilters();
 
@@ -264,32 +279,59 @@ export class UsersControlComponent implements OnInit, OnDestroy {
     });
   }
 
-loadAvailableRoutes(): void {
-  this.loadingRoutes = true;
+  loadAvailableRoutes(): void {
+    this.loadingRoutes = true;
 
-  this.usersService.getAvailableRoutes().subscribe({
-    next: (response) => {
-      this.availableRoutes = response.data;
+    this.usersService.getAvailableRoutes().subscribe({
+      next: (response) => {
+        this.availableRoutes = response.data;
 
-      console.log('==========================================');
-      console.log('✅ LOADED AVAILABLE ROUTES');
-      console.log('✅ Total routes:', this.availableRoutes.length);
-      console.log('✅ Routes:', this.availableRoutes.map(r => ({
-        key: r.key,
-        label: r.label,
-        category: (r as any).category
-      })));
-      console.log('==========================================');
+        console.log('✅ Loaded available routes:', this.availableRoutes.length);
+        this.availableRoutes.forEach(route => {
+          console.log(`  - ${route.key} (${route.category}): ${route.label}`);
+        });
 
-      this.loadingRoutes = false;
-    },
-    error: (error) => {
-      console.error('❌ Error loading available routes:', error);
-      this.showToast('error', 'حدث خطأ في تحميل المسارات المتاحة');
-      this.loadingRoutes = false;
+        this.loadingRoutes = false;
+      },
+      error: (error) => {
+        console.error('❌ Error loading available routes:', error);
+        this.showToast('error', 'حدث خطأ في تحميل المسارات المتاحة');
+        this.loadingRoutes = false;
+      }
+    });
+  }
+
+  // ============================================
+  // ✅ FILTERING METHODS - EMPLOYEE ROUTES ONLY
+  // ============================================
+
+  /**
+   * ✅ Get only allowed routes for employees
+   */
+  getFilteredRoutesForEmployees(): AvailableRoute[] {
+    return this.availableRoutes.filter(route =>
+      this.ALLOWED_EMPLOYEE_ROUTES.includes(route.key)
+    );
+  }
+
+  /**
+   * ✅ Get routes by category (filtered for employees)
+   */
+  getRoutesByCategory(categoryKey: string): AvailableRoute[] {
+    if (!this.availableRoutes || this.availableRoutes.length === 0) {
+      return [];
     }
-  });
-}
+
+    // ✅ First filter by allowed routes, then by category
+    const allowedRoutes = this.getFilteredRoutesForEmployees();
+
+    const filtered = allowedRoutes.filter(route => {
+      const routeCategory = (route as any).category || '';
+      return routeCategory === categoryKey;
+    });
+
+    return filtered;
+  }
 
   // ============================================
   // FILTERING & SEARCH
@@ -553,158 +595,102 @@ loadAvailableRoutes(): void {
   }
 
   // ============================================
-  // ✅ ROUTE ACCESS MANAGEMENT (FIXED)
+  // ✅ ROUTE ACCESS MANAGEMENT (FILTERED)
   // ============================================
 
-openRouteAccessModal(user: User): void {
-  if (user.role !== 'employee') {
-    this.showToast('warning', 'صلاحيات المسارات متاحة للموظفين فقط');
-    return;
-  }
-
-  this.selectedUser = user;
-
-  // ✅ CRITICAL FIX: Ensure we always have a valid array
-  this.routeAccessForm = [];
-
-  if (user.routeAccess && Array.isArray(user.routeAccess)) {
-    // ✅ IMPORTANT: Create a new copy of the array
-    this.routeAccessForm = [...user.routeAccess];
-  }
-
-  console.log('==========================================');
-  console.log('✅ Opening route access modal');
-  console.log('✅ User:', user.name, '(', user.id, ')');
-  console.log('✅ User routeAccess from backend:', user.routeAccess);
-  console.log('✅ Initialized routeAccessForm:', this.routeAccessForm);
-  console.log('✅ Available routes count:', this.availableRoutes.length);
-  console.log('==========================================');
-
-  this.showRouteAccessModal = true;
-}
-
-/**
- * Close the route access modal
- */
-closeRouteAccessModal(): void {
-  console.log('✅ Closing route access modal');
-  this.showRouteAccessModal = false;
-  this.selectedUser = null;
-  this.routeAccessForm = [];
-}
-
-
-toggleRouteAccess(routeKey: string): void {
-  console.log('==========================================');
-  console.log('✅ Toggle route called with key:', routeKey);
-  console.log('✅ Current form state BEFORE toggle:', [...this.routeAccessForm]);
-
-  const index = this.routeAccessForm.indexOf(routeKey);
-
-  if (index > -1) {
-    // Remove from array
-    this.routeAccessForm.splice(index, 1);
-    console.log('✅ REMOVED route:', routeKey);
-  } else {
-    // Add to array
-    this.routeAccessForm.push(routeKey);
-    console.log('✅ ADDED route:', routeKey);
-  }
-
-  console.log('✅ Current form state AFTER toggle:', [...this.routeAccessForm]);
-  console.log('==========================================');
-}
-
-isRouteSelected(routeKey: string): boolean {
-  const isSelected = this.routeAccessForm.includes(routeKey);
-  return isSelected;
-}
-
-/**
- * Save the route access changes
- */
-saveRouteAccess(): void {
-  if (!this.selectedUser) {
-    console.error('❌ No user selected!');
-    this.showToast('error', 'لم يتم تحديد مستخدم');
-    return;
-  }
-
-  // ✅ Validate that we have an array
-  if (!Array.isArray(this.routeAccessForm)) {
-    console.error('❌ routeAccessForm is not an array!', this.routeAccessForm);
-    this.showToast('error', 'خطأ في البيانات - الرجاء المحاولة مرة أخرى');
-    return;
-  }
-
-  console.log('==========================================');
-  console.log('✅ SAVING ROUTE ACCESS');
-  console.log('✅ User ID:', this.selectedUser.id);
-  console.log('✅ User Name:', this.selectedUser.name);
-  console.log('✅ Route access form (SENDING TO BACKEND):', this.routeAccessForm);
-  console.log('✅ Route access count:', this.routeAccessForm.length);
-  console.log('==========================================');
-
-  // ✅ Create a clean copy to send
-  const cleanRouteAccess = [...this.routeAccessForm];
-
-  // ✅ Log what we're actually sending
-  console.log('✅ Final payload being sent:', {
-    userId: this.selectedUser.id,
-    routeAccess: cleanRouteAccess
-  });
-
-  this.savingUser = true;
-
-  this.usersService.updateRouteAccess(this.selectedUser.id, cleanRouteAccess).subscribe({
-    next: (response) => {
-      console.log('==========================================');
-      console.log('✅ SUCCESS! Route access saved');
-      console.log('✅ Response from backend:', response.data);
-      console.log('✅ Updated routeAccess:', response.data.routeAccess);
-      console.log('==========================================');
-
-      this.showToast('success', 'تم تحديث صلاحيات المسارات بنجاح');
-      this.savingUser = false;
-      this.closeRouteAccessModal();
-      this.loadUsers();
-    },
-    error: (error) => {
-      console.log('==========================================');
-      console.error('❌ ERROR updating route access!');
-      console.error('❌ Error object:', error);
-      console.error('❌ Error status:', error.status);
-      console.error('❌ Error message:', error.error?.message);
-      console.error('❌ Full error response:', error.error);
-      console.log('==========================================');
-
-      const errorMessage = error.error?.message || 'حدث خطأ أثناء تحديث الصلاحيات';
-      this.showToast('error', errorMessage);
-      this.savingUser = false;
+  openRouteAccessModal(user: User): void {
+    if (user.role !== 'employee') {
+      this.showToast('warning', 'صلاحيات المسارات متاحة للموظفين فقط');
+      return;
     }
-  });
-}
 
-getRoutesByCategory(categoryKey: string): AvailableRoute[] {
-  if (!this.availableRoutes || this.availableRoutes.length === 0) {
-    console.warn('⚠️ No available routes loaded yet');
-    return [];
+    this.selectedUser = user;
+
+    // ✅ Filter user's routes to only include allowed ones
+    const userRoutes = Array.isArray(user.routeAccess) ? user.routeAccess : [];
+    this.routeAccessForm = userRoutes.filter(route =>
+      this.ALLOWED_EMPLOYEE_ROUTES.includes(route)
+    );
+
+    console.log('==========================================');
+    console.log('✅ Opening Route Access Modal (Filtered)');
+    console.log('User:', user.name);
+    console.log('Current routeAccess (filtered):', this.routeAccessForm);
+    console.log('Available routes:', this.getFilteredRoutesForEmployees().length);
+    console.log('==========================================');
+
+    this.showRouteAccessModal = true;
   }
 
-  // ✅ Filter routes based on category property
-  const filteredRoutes = this.availableRoutes.filter(route => {
-    // Cast to any to access category property
-    const routeWithCategory = route as any;
-    const routeCategory = routeWithCategory.category || 'other';
-    return routeCategory === categoryKey;
-  });
+  closeRouteAccessModal(): void {
+    this.showRouteAccessModal = false;
+    this.selectedUser = null;
+    this.routeAccessForm = [];
+  }
 
-  console.log(`✅ Category: ${categoryKey} has ${filteredRoutes.length} routes:`,
-    filteredRoutes.map(r => r.key)
-  );
+  toggleRouteAccess(routeKey: string): void {
+    // ✅ Only allow toggling of allowed routes
+    if (!this.ALLOWED_EMPLOYEE_ROUTES.includes(routeKey)) {
+      console.warn('⚠️ Route not allowed for employees:', routeKey);
+      return;
+    }
 
-  return filteredRoutes;
-}
+    const index = this.routeAccessForm.indexOf(routeKey);
+
+    if (index > -1) {
+      this.routeAccessForm.splice(index, 1);
+      console.log(`❌ Removed: ${routeKey}`);
+    } else {
+      this.routeAccessForm.push(routeKey);
+      console.log(`✅ Added: ${routeKey}`);
+    }
+
+    console.log('Current selection:', this.routeAccessForm);
+  }
+
+  isRouteSelected(routeKey: string): boolean {
+    return this.routeAccessForm.includes(routeKey);
+  }
+
+  saveRouteAccess(): void {
+    if (!this.selectedUser) {
+      this.showToast('error', 'لم يتم تحديد مستخدم');
+      return;
+    }
+
+    if (!Array.isArray(this.routeAccessForm)) {
+      this.showToast('error', 'خطأ في البيانات');
+      return;
+    }
+
+    // ✅ Final validation: only save allowed routes
+    const validRoutes = this.routeAccessForm.filter(route =>
+      this.ALLOWED_EMPLOYEE_ROUTES.includes(route)
+    );
+
+    console.log('==========================================');
+    console.log('💾 SAVING ROUTE ACCESS (Filtered)');
+    console.log('User ID:', this.selectedUser.id);
+    console.log('Routes to save:', validRoutes);
+    console.log('==========================================');
+
+    this.savingUser = true;
+
+    this.usersService.updateRouteAccess(this.selectedUser.id, validRoutes).subscribe({
+      next: (response) => {
+        console.log('✅ SUCCESS! Saved routes:', response.data.routeAccess);
+        this.showToast('success', 'تم تحديث صلاحيات المسارات بنجاح');
+        this.savingUser = false;
+        this.closeRouteAccessModal();
+        this.loadUsers();
+      },
+      error: (error) => {
+        console.error('❌ ERROR saving routes:', error);
+        this.showToast('error', error.error?.message || 'حدث خطأ أثناء تحديث الصلاحيات');
+        this.savingUser = false;
+      }
+    });
+  }
 
   // ============================================
   // SYSTEM ACCESS MANAGEMENT

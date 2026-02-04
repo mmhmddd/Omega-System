@@ -247,6 +247,16 @@ $border-light: #f1f5f9;
 
       &:hover {
         background: #f8fafc;
+        transform: translateX(-2px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+        .notification-icon {
+          transform: scale(1.05);
+        }
+      }
+
+      &:active {
+        transform: translateX(-2px) scale(0.98);
       }
 
       &.unread {
@@ -266,6 +276,7 @@ $border-light: #f1f5f9;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
+        transition: transform 0.2s ease;
 
         i {
           font-size: 1.25rem;
