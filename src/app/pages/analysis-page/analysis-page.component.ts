@@ -19,7 +19,6 @@ import { SecretariatUserService } from '../../core/services/secretariat-user.ser
 import { SupplierService, StatisticsResponse as SupplierStatsResponse } from '../../core/services/supplier.service';
 import { UsersService } from '../../core/services/users.service';
 import { CostingSheetService } from '../../core/services/costing-sheet.service';
-import { EmptyReceiptService } from '../../core/services/empty-receipt.service';
 import { ProformaInvoiceService } from '../../core/services/proforma-invoice.service';
 
 // ============================================
@@ -136,7 +135,6 @@ export class AnalysisPageComponent implements OnInit, OnDestroy {
     private supplierService: SupplierService,
     private usersService: UsersService,
     private costingSheetService: CostingSheetService,
-    private emptyReceiptService: EmptyReceiptService,
     private proformaInvoiceService: ProformaInvoiceService
   ) {}
 
@@ -249,24 +247,6 @@ export class AnalysisPageComponent implements OnInit, OnDestroy {
           });
         })
       ),
-      emptyReceipts: this.emptyReceiptService.getAllEmptyReceipts({ limit: 1 }).pipe(
-        catchError(error => {
-          console.error('❌ Empty Receipts Error:', error);
-          console.log('   - Status:', error.status);
-          console.log('   - URL:', error.url);
-          console.log('   - Message:', error.message);
-          return of({ 
-            success: false,
-            data: [], 
-            pagination: { 
-              total: 0, 
-              currentPage: 1, 
-              totalPages: 0, 
-              limit: 1 
-            } 
-          });
-        })
-      ),
       proformaInvoices: this.proformaInvoiceService.getAllProformaInvoices({ limit: 1 }).pipe(
         catchError(error => {
           console.error('❌ Proforma Invoices Error:', error);
@@ -289,7 +269,6 @@ export class AnalysisPageComponent implements OnInit, OnDestroy {
       next: (results) => {
         console.log('✅ All Analytics Loaded Successfully');
         console.log('📊 Costing Sheets Full Response:', results.costingSheets);
-        console.log('📊 Empty Receipts Full Response:', results.emptyReceipts);
         console.log('📊 Proforma Invoices Full Response:', results.proformaInvoices);
         
         this.processAnalyticsData(results);
@@ -479,13 +458,6 @@ export class AnalysisPageComponent implements OnInit, OnDestroy {
         icon: 'bi-calculator',
         color: '#14b8a6',
         subtitle: 'كشف التكلفة'
-      },
-      {
-        title: 'إشعارات فارغة',
-        value: this.systemOverview.totalEmptyReceipts,
-        icon: 'bi-receipt',
-        color: '#f97316',
-        subtitle: 'إشعار فارغ'
       },
       {
         title: 'فواتير أولية',

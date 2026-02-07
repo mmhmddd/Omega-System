@@ -133,12 +133,6 @@ export class SideBarComponent implements OnInit {
           routeKey: 'receipts'
         },
         {
-          title: 'إشعار فارغ',
-          route: '/empty-receipt',
-          icon: 'bi-file-earmark',
-          routeKey: 'emptyReceipt'
-        },
-        {
           title: 'طلب تسعير',
           route: '/rfqs',
           icon: 'bi-file-earmark-text',

@@ -139,16 +139,6 @@ export const routes: Routes = [
     }
   },
 
-  // Empty Receipt - with route key
-  {
-    path: 'empty-receipt',
-    loadComponent: () => import('./pages/empty-receipt/empty-receipt.component').then(m => m.EmptyReceiptComponent),
-    canActivate: [authGuard],
-    data: {
-      title: 'إشعار استلام فارغ',
-      routeKey: 'emptyReceipt'
-    }
-  },
 
   // Secretariat User - with route key (for employees and secretariat)
   {
