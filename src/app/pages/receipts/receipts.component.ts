@@ -475,18 +475,31 @@ isValidEmail(email: string): boolean {
   // SUCCESS MODAL METHODS
   // ========================================
 
-  openSuccessModal(receiptId: string, receiptNumber: string): void {
-    this.successReceiptId = receiptId;
-    this.successReceiptNumber = receiptNumber;
-    this.showSuccessModal = true;
-  }
+openSuccessModal(receiptId: string, receiptNumber: string): void {
+  this.successReceiptId = receiptId;
+  this.successReceiptNumber = receiptNumber;
+  
+  // ✅ Fetch the full receipt to get the PDF filename
+  this.receiptService.getReceiptById(receiptId).subscribe({
+    next: (response: any) => {
+      this.selectedReceipt = response.data; // Store the full object
+      this.showSuccessModal = true;
+    },
+    error: (error: any) => {
+      console.error('Error fetching receipt for success modal:', error);
+      // Still show modal even if fetch fails
+      this.showSuccessModal = true;
+    }
+  });
+}
 
-  closeSuccessModal(): void {
-    this.showSuccessModal = false;
-    this.successReceiptId = '';
-    this.successReceiptNumber = '';
-    this.backToList();
-  }
+closeSuccessModal(): void {
+  this.showSuccessModal = false;
+  this.successReceiptId = '';
+  this.successReceiptNumber = '';
+  this.selectedReceipt = null; // ✅ Clear the selected receipt
+  this.backToList();
+}
 
   viewPDFFromSuccess(): void {
     if (this.successReceiptId) {
@@ -500,11 +513,17 @@ isValidEmail(email: string): boolean {
     }
   }
 
-  downloadPDFFromSuccess(): void {
-    if (this.successReceiptId && this.successReceiptNumber) {
-      this.receiptService.downloadPDF(this.successReceiptId, `${this.successReceiptNumber}.pdf`);
-    }
+downloadPDFFromSuccess(): void {
+  if (this.successReceiptId && this.selectedReceipt && this.selectedReceipt.pdfFilename) {
+    // ✅ Use the actual PDF filename from the database
+    this.receiptService.downloadPDF(this.successReceiptId, this.selectedReceipt.pdfFilename);
+  } else if (this.successReceiptId && this.successReceiptNumber) {
+    // ✅ Fallback: Use receipt number if we don't have the full filename
+    this.receiptService.downloadPDF(this.successReceiptId, `${this.successReceiptNumber}.pdf`);
+  } else {
+    this.showToast('error', this.t('errors.pdfNotGenerated'));
   }
+}
 
   doneSuccess(): void {
     this.closeSuccessModal();

@@ -411,18 +411,31 @@ sendingEmail: boolean = false;
   // SUCCESS MODAL METHODS
   // ========================================
 
-  openSuccessModal(poId: string, poNumber: string): void {
-    this.successPOId = poId;
-    this.successPONumber = poNumber;
-    this.showSuccessModal = true;
-  }
+openSuccessModal(poId: string, poNumber: string): void {
+  this.successPOId = poId;
+  this.successPONumber = poNumber;
+  
+  // ✅ Fetch the full purchase order to get the PDF filename
+  this.purchaseService.getPOById(poId).subscribe({
+    next: (response: any) => {
+      this.selectedPO = response.data; // Store the full object
+      this.showSuccessModal = true;
+    },
+    error: (error: any) => {
+      console.error('Error fetching purchase order for success modal:', error);
+      // Still show modal even if fetch fails
+      this.showSuccessModal = true;
+    }
+  });
+}
 
-  closeSuccessModal(): void {
-    this.showSuccessModal = false;
-    this.successPOId = '';
-    this.successPONumber = '';
-    this.backToList();
-  }
+closeSuccessModal(): void {
+  this.showSuccessModal = false;
+  this.successPOId = '';
+  this.successPONumber = '';
+  this.selectedPO = null; // ✅ Clear the selected PO
+  this.backToList();
+}
 
   navigateToSuppliers(): void {
     this.router.navigate(['/suppliers']);
@@ -440,11 +453,17 @@ sendingEmail: boolean = false;
     }
   }
 
-  downloadPDFFromSuccess(): void {
-    if (this.successPOId && this.successPONumber) {
-      this.purchaseService.downloadPDF(this.successPOId, `${this.successPONumber}.pdf`);
-    }
+downloadPDFFromSuccess(): void {
+  if (this.successPOId && this.selectedPO && this.selectedPO.pdfFilename) {
+    // ✅ Use the actual PDF filename from the database
+    this.purchaseService.downloadPDF(this.successPOId, this.selectedPO.pdfFilename);
+  } else if (this.successPOId && this.successPONumber) {
+    // ✅ Fallback: Use PO number if we don't have the full filename
+    this.purchaseService.downloadPDF(this.successPOId, `${this.successPONumber}.pdf`);
+  } else {
+    this.showToast('error', this.t('errors.pdfNotGenerated'));
   }
+}
 
   doneSuccess(): void {
     this.closeSuccessModal();

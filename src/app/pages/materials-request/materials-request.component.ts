@@ -407,18 +407,31 @@ sendingEmail: boolean = false;
   // SUCCESS MODAL METHODS
   // ========================================
 
-  openSuccessModal(mrId: string, mrNumber: string): void {
-    this.successMRId = mrId;
-    this.successMRNumber = mrNumber;
-    this.showSuccessModal = true;
-  }
+openSuccessModal(mrId: string, mrNumber: string): void {
+  this.successMRId = mrId;
+  this.successMRNumber = mrNumber;
+  
+  // ✅ Fetch the full material request to get the PDF filename
+  this.materialService.getMaterialRequestById(mrId).subscribe({
+    next: (response: any) => {
+      this.selectedMR = response.data; // Store the full object
+      this.showSuccessModal = true;
+    },
+    error: (error: any) => {
+      console.error('Error fetching material request for success modal:', error);
+      // Still show modal even if fetch fails
+      this.showSuccessModal = true;
+    }
+  });
+}
 
-  closeSuccessModal(): void {
-    this.showSuccessModal = false;
-    this.successMRId = '';
-    this.successMRNumber = '';
-    this.backToList();
-  }
+closeSuccessModal(): void {
+  this.showSuccessModal = false;
+  this.successMRId = '';
+  this.successMRNumber = '';
+  this.selectedMR = null; // ✅ Clear the selected MR
+  this.backToList();
+}
 
   viewPDFFromSuccess(): void {
     if (this.successMRId) {
@@ -432,11 +445,17 @@ sendingEmail: boolean = false;
     }
   }
 
-  downloadPDFFromSuccess(): void {
-    if (this.successMRId && this.successMRNumber) {
-      this.materialService.downloadPDF(this.successMRId, `${this.successMRNumber}.pdf`);
-    }
+downloadPDFFromSuccess(): void {
+  if (this.successMRId && this.selectedMR && this.selectedMR.pdfFilename) {
+    // ✅ Use the actual PDF filename from the database
+    this.materialService.downloadPDF(this.successMRId, this.selectedMR.pdfFilename);
+  } else if (this.successMRId && this.successMRNumber) {
+    // ✅ Fallback: Use MR number if we don't have the full filename
+    this.materialService.downloadPDF(this.successMRId, `${this.successMRNumber}.pdf`);
+  } else {
+    this.showToast('error', this.t('errors.pdfNotGenerated'));
   }
+}
 
   doneSuccess(): void {
     this.closeSuccessModal();

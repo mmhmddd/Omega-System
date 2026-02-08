@@ -1041,10 +1041,9 @@ isValidEmail(email: string): boolean {
 
   downloadGeneratedPDF(): void {
     const invoice = this.invoices.find(i => i.id === this.generatedInvoiceId);
-    const filename = invoice ? `${invoice.invoiceNumber}-${invoice.clientName}.pdf` : `invoice-${this.generatedInvoiceId}.pdf`;
+    const filename = invoice ? this.getDisplayFilename(invoice) : `invoice-${this.generatedInvoiceId}.pdf`;
     this.proformaInvoiceService.triggerPDFDownload(this.generatedInvoiceId, filename);
   }
-
   // ============================================
   // DELETE INVOICE
   // ============================================
@@ -1092,13 +1091,22 @@ isValidEmail(email: string): boolean {
       }
     });
   }
-
+getDisplayFilename(invoice: ProformaInvoice): string {
+  if (!invoice.pdfPath) return 'N/A';
+  
+  // Extract filename from path (works for both Windows and Unix paths)
+  const pathParts = invoice.pdfPath.split(/[/\\]/);
+  const filename = pathParts[pathParts.length - 1];
+  
+  return filename;
+}
   // ============================================
   // PDF OPERATIONS
   // ============================================
 
   downloadPDF(invoice: ProformaInvoice): void {
-    const filename = `${invoice.invoiceNumber}-${invoice.clientName}.pdf`;
+    // ✅ Use the actual filename from the server
+    const filename = this.getDisplayFilename(invoice);
     this.proformaInvoiceService.triggerPDFDownload(invoice.id, filename);
   }
 

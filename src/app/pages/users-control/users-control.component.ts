@@ -50,7 +50,6 @@ export class UsersControlComponent implements OnInit, OnDestroy {
     'suppliers',           // إدارة الموردين
     'itemsControl',        // إدارة الأصناف
     'receipts',            // إشعار استلام
-    'emptyReceipt',        // إشعار فارغ
     'rfqs',                // طلب تسعير
     'purchases',           // طلب شراء
     'materialRequests',    // طلب مواد

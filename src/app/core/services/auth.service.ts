@@ -1,85 +1,82 @@
-// src/app/core/services/auth.service.ts
-import { Injectable, signal } from '@angular/core';
+// src/app/core/services/auth.service.ts - ENHANCED VERSION
+import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { BehaviorSubject, Observable, throwError } from 'rxjs';
+import { map, catchError, tap } from 'rxjs/operators';
 import { Router } from '@angular/router';
-import { Observable, BehaviorSubject, tap, catchError, throwError } from 'rxjs';
-import API_ENDPOINTS from '../constants/api-endpoints';
+import { API_ENDPOINTS } from '../constants/api-endpoints';
 
 export interface User {
   id: string;
   username: string;
-  email: string;
   name: string;
+  email: string;
   role: 'super_admin' | 'admin' | 'employee' | 'secretariat';
   active: boolean;
-  systemAccess?: {
+  systemAccess: {
     laserCuttingManagement?: boolean;
   };
   routeAccess?: string[];
-  lastLogin?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LoginCredentials {
+  username: string;  // Backend expects 'username' field
+  password: string;
 }
 
 export interface LoginResponse {
   success: boolean;
-  message: string;
+  message?: string;
   data: {
-    user: User;
     token: string;
+    user: User;
   };
-}
-
-export interface AuthResponse {
-  success: boolean;
-  message: string;
-  data?: any;
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private currentUserSubject = new BehaviorSubject<User | null>(null);
-  public currentUser$ = this.currentUserSubject.asObservable();
+  private currentUserSubject: BehaviorSubject<User | null>;
+  public currentUser$: Observable<User | null>;
 
-  private isAuthenticatedSubject = new BehaviorSubject<boolean>(false);
-  public isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
+  // Define allowed routes for each role
+  private readonly ALLOWED_EMPLOYEE_ROUTES = [
+    'suppliers',           // إدارة الموردين
+    'itemsControl',        // إدارة الأصناف
+    'receipts',            // إشعار استلام
+    'emptyReceipt',        // إشعار فارغ
+    'rfqs',                // طلب تسعير
+    'purchases',           // طلب شراء
+    'materialRequests',    // طلب مواد
+    'priceQuotes',         // عرض سعر
+    'proformaInvoice',     // الفواتير الأولية
+    'costingSheet',        // كشف التكاليف
+    'secretariatUserManagement' // طلبات الموظفين
+  ];
 
-  // Signal for reactive state
-  isLoggedIn = signal<boolean>(false);
+  private readonly SECRETARIAT_ROUTES = [
+    'secretariat',
+    'secretariatUserManagement'
+  ];
 
   constructor(
     private http: HttpClient,
     private router: Router
   ) {
-    this.checkAuthStatus();
+    const storedUser = this.getStoredUser();
+    this.currentUserSubject = new BehaviorSubject<User | null>(storedUser);
+    this.currentUser$ = this.currentUserSubject.asObservable();
   }
 
   // ============================================
-  // INITIALIZATION
+  // GETTERS
   // ============================================
 
-  /**
-   * Check if user is authenticated on service initialization
-   */
-  private checkAuthStatus(): void {
-    const token = this.getToken();
-    const user = this.getStoredUser();
-
-    if (token && user) {
-      console.log('🔐 Auth Service initialized with user:', {
-        name: user.name,
-        role: user.role,
-        routeAccess: user.routeAccess || []
-      });
-
-      this.currentUserSubject.next(user);
-      this.isAuthenticatedSubject.next(true);
-      this.isLoggedIn.set(true);
-    } else {
-      console.log('⚠️ No authenticated user found');
-    }
+  public get currentUserValue(): User | null {
+    return this.currentUserSubject.value;
   }
 
   // ============================================
@@ -87,24 +84,16 @@ export class AuthService {
   // ============================================
 
   /**
-   * Login user (supports both username and email)
+   * Login user
    */
-  login(username: string, password: string): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(API_ENDPOINTS.AUTH.LOGIN, {
-      username,
-      password
-    }).pipe(
+  login(credentials: LoginCredentials): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(API_ENDPOINTS.AUTH.LOGIN, credentials).pipe(
       tap(response => {
         if (response.success && response.data) {
-          const { user, token } = response.data;
-
-          console.log('✅ Login successful:', {
-            name: user.name,
-            role: user.role,
-            routeAccess: user.routeAccess || []
-          });
-
-          this.setSession(response.data);
+          this.setSession(response.data.token, response.data.user);
+          console.log('✅ User logged in:', response.data.user.name);
+          console.log('📋 User role:', response.data.user.role);
+          console.log('🔑 Route access:', response.data.user.routeAccess);
         }
       }),
       catchError(error => {
@@ -115,49 +104,160 @@ export class AuthService {
   }
 
   /**
-   * Set authentication session
-   */
-  private setSession(authResult: { user: User; token: string }): void {
-    // Ensure routeAccess is always an array
-    if (!authResult.user.routeAccess) {
-      authResult.user.routeAccess = [];
-    }
-
-    console.log('💾 Setting session for user:', authResult.user.name);
-
-    localStorage.setItem('token', authResult.token);
-    localStorage.setItem('user', JSON.stringify(authResult.user));
-
-    this.currentUserSubject.next(authResult.user);
-    this.isAuthenticatedSubject.next(true);
-    this.isLoggedIn.set(true);
-  }
-
-  /**
    * Logout user
    */
   logout(): void {
-    console.log('🚪 Logging out user');
-
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
-
+    localStorage.removeItem('currentUser');
     this.currentUserSubject.next(null);
-    this.isAuthenticatedSubject.next(false);
-    this.isLoggedIn.set(false);
-
+    console.log('👋 User logged out');
     this.router.navigate(['/login']);
   }
 
+  /**
+   * Check if user is authenticated
+   */
+  isAuthenticated(): boolean {
+    const token = this.getToken();
+    const user = this.currentUserValue;
+    
+    if (!token || !user) {
+      return false;
+    }
+
+    // Check if token is expired (basic check)
+    // You might want to implement proper JWT token validation
+    return true;
+  }
+
   // ============================================
-  // USER DATA
+  // ROUTE ACCESS CONTROL
   // ============================================
 
   /**
-   * Get stored token
+   * ✅ IMPROVED: Check if user has access to a specific route
    */
-  getToken(): string | null {
-    return localStorage.getItem('token');
+  hasRouteAccess(routeKey: string): boolean {
+    const user = this.currentUserValue;
+    
+    if (!user) {
+      console.warn('⚠️ No user found when checking route access');
+      return false;
+    }
+
+    // Super admins have access to everything
+    if (user.role === 'super_admin') {
+      return true;
+    }
+
+    // Admins have access to everything except user management
+    if (user.role === 'admin') {
+      return routeKey !== 'users';
+    }
+
+    // Secretariat has access to specific routes
+    if (user.role === 'secretariat') {
+      return this.SECRETARIAT_ROUTES.includes(routeKey);
+    }
+
+    // Employees check their routeAccess array
+    if (user.role === 'employee') {
+      // First check if the route is in the allowed list for employees
+      if (!this.ALLOWED_EMPLOYEE_ROUTES.includes(routeKey)) {
+        console.warn(`⚠️ Route '${routeKey}' is not in allowed employee routes`);
+        return false;
+      }
+
+      // Then check if user has been granted access to this route
+      const userRoutes = user.routeAccess || [];
+      const hasAccess = userRoutes.includes(routeKey);
+      
+      if (!hasAccess) {
+        console.warn(`⚠️ Employee does not have access to '${routeKey}'`, {
+          userRoutes,
+          requestedRoute: routeKey
+        });
+      }
+      
+      return hasAccess;
+    }
+
+    console.warn(`⚠️ Unknown role or access check failed for: ${user.role}`);
+    return false;
+  }
+
+  /**
+   * Get accessible routes for current user
+   */
+  getAccessibleRoutes(): string[] {
+    const user = this.currentUserValue;
+    
+    if (!user) {
+      return [];
+    }
+
+    // Super admins have access to everything
+    if (user.role === 'super_admin') {
+      return ['*']; // Represents all routes
+    }
+
+    // Admins have access to everything except user management
+    if (user.role === 'admin') {
+      return ['*', '!users']; // All except users
+    }
+
+    // Secretariat has specific routes
+    if (user.role === 'secretariat') {
+      return this.SECRETARIAT_ROUTES;
+    }
+
+    // Employees have their assigned routes
+    if (user.role === 'employee') {
+      return user.routeAccess || [];
+    }
+
+    return [];
+  }
+
+  /**
+   * Check if user has a specific role
+   */
+  hasRole(role: string | string[]): boolean {
+    const user = this.currentUserValue;
+    if (!user) return false;
+
+    if (Array.isArray(role)) {
+      return role.includes(user.role);
+    }
+
+    return user.role === role;
+  }
+
+  /**
+   * Check if user has system access permission
+   */
+  hasSystemAccess(accessKey: keyof User['systemAccess']): boolean {
+    const user = this.currentUserValue;
+    if (!user || !user.systemAccess) return false;
+    return user.systemAccess[accessKey] || false;
+  }
+
+  // ============================================
+  // SESSION MANAGEMENT
+  // ============================================
+
+  /**
+   * Set authentication session
+   */
+  private setSession(token: string, user: User): void {
+    // Ensure routeAccess is initialized
+    if (!user.routeAccess) {
+      user.routeAccess = [];
+    }
+
+    localStorage.setItem('token', token);
+    localStorage.setItem('currentUser', JSON.stringify(user));
+    this.currentUserSubject.next(user);
   }
 
   /**
@@ -165,205 +265,43 @@ export class AuthService {
    */
   getStoredUser(): User | null {
     try {
-      const userStr = localStorage.getItem('user');
+      const userStr = localStorage.getItem('currentUser');
       if (!userStr) return null;
 
       const user = JSON.parse(userStr);
-
-      // ✅ Ensure routeAccess is always an array
+      
+      // Ensure routeAccess is initialized
       if (!user.routeAccess) {
         user.routeAccess = [];
       }
 
       return user;
     } catch (error) {
-      console.error('❌ Error parsing stored user:', error);
+      console.error('Error parsing stored user:', error);
       return null;
     }
   }
 
   /**
-   * Get current user value
+   * Update stored user data
    */
-  get currentUserValue(): User | null {
-    return this.currentUserSubject.value;
-  }
-
-  /**
-   * Check if user is authenticated
-   */
-  isAuthenticated(): boolean {
-    return this.isAuthenticatedSubject.value;
-  }
-
-  /**
-   * Get current user info from backend (refresh user data)
-   */
-  getCurrentUser(): Observable<AuthResponse> {
-    return this.http.get<AuthResponse>(`${API_ENDPOINTS.AUTH.LOGIN.replace('/login', '/me')}`).pipe(
-      tap(response => {
-        if (response.success && response.data) {
-          // Update stored user with fresh data from backend
-          const user = response.data as User;
-
-          // Ensure routeAccess is an array
-          if (!user.routeAccess) {
-            user.routeAccess = [];
-          }
-
-          console.log('🔄 User data refreshed:', {
-            name: user.name,
-            role: user.role,
-            routeAccess: user.routeAccess
-          });
-
-          localStorage.setItem('user', JSON.stringify(user));
-          this.currentUserSubject.next(user);
-        }
-      })
-    );
-  }
-
-  /**
-   * Refresh user data (useful after updating permissions)
-   */
-  refreshUser(): void {
-    const user = this.getStoredUser();
-    if (user) {
-      console.log('🔄 Refreshing user data:', {
-        name: user.name,
-        role: user.role,
-        routeAccess: user.routeAccess
-      });
-      this.currentUserSubject.next(user);
-    }
-  }
-
-  // ============================================
-  // PASSWORD MANAGEMENT
-  // ============================================
-
-  /**
-   * Forgot password
-   */
-  forgotPassword(email: string): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(API_ENDPOINTS.AUTH.FORGET_PASSWORD, { email });
-  }
-
-  /**
-   * Reset password
-   */
-  resetPassword(token: string, newPassword: string): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(API_ENDPOINTS.AUTH.RESET_PASSWORD, {
-      token,
-      newPassword
-    });
-  }
-
-  /**
-   * Change password
-   */
-  changePassword(currentPassword: string, newPassword: string): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(API_ENDPOINTS.AUTH.CHANGE_PASSWORD, {
-      currentPassword,
-      newPassword
-    });
-  }
-
-  // ============================================
-  // ROUTE ACCESS CONTROL (FIXED)
-  // ============================================
-
-  /**
-   * ✅ ENHANCED: Check if user has access to a specific route
-   * This is the core method used by guards and dashboard
-   */
-  hasRouteAccess(routeKey: string): boolean {
-    const user = this.currentUserValue;
-
-    if (!user) {
-      console.warn('⚠️ No user found for route access check');
-      return false;
+  updateStoredUser(user: User): void {
+    // Ensure routeAccess is initialized
+    if (!user.routeAccess) {
+      user.routeAccess = [];
     }
 
-    // ✅ Super admin has access to everything
-    if (user.role === 'super_admin') {
-      console.log(`✅ Super admin → Full access to: ${routeKey}`);
-      return true;
-    }
-
-    // ✅ Admin has access to everything EXCEPT user management
-    if (user.role === 'admin') {
-      if (routeKey === 'users') {
-        console.log(`❌ Admin → No access to: ${routeKey}`);
-        return false;
-      }
-      console.log(`✅ Admin → Access granted to: ${routeKey}`);
-      return true;
-    }
-
-    // ✅ Secretariat has access to specific routes
-    if (user.role === 'secretariat') {
-      const secretariatRoutes = [
-        'secretariat',
-        'secretariatUserManagement',
-        'secretariat-user'  // Keep for backward compatibility
-      ];
-
-      const hasAccess = secretariatRoutes.includes(routeKey);
-      console.log(`${hasAccess ? '✅' : '❌'} Secretariat → ${routeKey}: ${hasAccess}`);
-      return hasAccess;
-    }
-
-    // ✅ Employee checks routeAccess array (THIS IS THE KEY PART)
-    if (user.role === 'employee') {
-      const routeAccess = user.routeAccess || [];
-
-      console.log('🔍 Employee route check:', {
-        routeKey,
-        userRouteAccess: routeAccess,
-        hasAccess: routeAccess.includes(routeKey)
-      });
-
-      const hasAccess = routeAccess.includes(routeKey);
-
-      if (!hasAccess) {
-        console.warn(`❌ Employee "${user.name}" does NOT have access to: ${routeKey}`);
-        console.log(`   Current route access:`, routeAccess);
-      } else {
-        console.log(`✅ Employee "${user.name}" HAS access to: ${routeKey}`);
-      }
-
-      return hasAccess;
-    }
-
-    console.warn(`⚠️ Unknown role: ${user.role} for route: ${routeKey}`);
-    return false;
+    localStorage.setItem('currentUser', JSON.stringify(user));
+    this.currentUserSubject.next(user);
+    console.log('✅ User data updated in storage');
   }
-
-  // ============================================
-  // SYSTEM ACCESS CONTROL
-  // ============================================
 
   /**
-   * Check if user has system access (like laser cutting)
+   * Get authentication token
    */
-  hasSystemAccess(systemName: string): boolean {
-    const user = this.currentUserValue;
-    if (!user) return false;
-
-    // Super admin has all system access
-    if (user.role === 'super_admin') {
-      return true;
-    }
-
-    // Check specific system access
-    return user.systemAccess?.[systemName as keyof typeof user.systemAccess] || false;
+  getToken(): string | null {
+    return localStorage.getItem('token');
   }
-
-  // ============================================
-  // HTTP HEADERS
-  // ============================================
 
   /**
    * Get authorization headers
@@ -377,49 +315,73 @@ export class AuthService {
   }
 
   // ============================================
-  // DEBUGGING UTILITIES
+  // PASSWORD MANAGEMENT
   // ============================================
 
   /**
-   * ✅ Debug method to check route access for all routes
-   * Useful for troubleshooting permission issues
+   * Request password reset
    */
-  debugRouteAccess(routes: string[]): void {
-    const user = this.currentUserValue;
-    if (!user) {
-      console.log('❌ No user logged in');
-      return;
-    }
-
-    console.log('==========================================');
-    console.log('🔍 ROUTE ACCESS DEBUG');
-    console.log('User:', user.name);
-    console.log('Role:', user.role);
-    console.log('Route Access Array:', user.routeAccess || []);
-    console.log('------------------------------------------');
-
-    routes.forEach(route => {
-      const hasAccess = this.hasRouteAccess(route);
-      console.log(`${hasAccess ? '✅' : '❌'} ${route}`);
-    });
-
-    console.log('==========================================');
+  requestPasswordReset(email: string): Observable<any> {
+    return this.http.post(API_ENDPOINTS.AUTH.FORGET_PASSWORD, { email });
   }
 
   /**
-   * Get user role display name
+   * Reset password with token
    */
-  getRoleDisplayName(): string {
-    const user = this.currentUserValue;
-    if (!user) return '';
+  resetPassword(token: string, newPassword: string): Observable<any> {
+    return this.http.post(API_ENDPOINTS.AUTH.RESET_PASSWORD, {
+      token,
+      newPassword
+    });
+  }
 
+  /**
+   * Change password for current user
+   */
+  changePassword(currentPassword: string, newPassword: string): Observable<any> {
+    return this.http.post(
+      API_ENDPOINTS.AUTH.CHANGE_PASSWORD,
+      { currentPassword, newPassword },
+      { headers: this.getAuthHeaders() }
+    );
+  }
+
+  // ============================================
+  // HELPER METHODS
+  // ============================================
+
+  /**
+   * Get role display name in Arabic
+   */
+  getRoleDisplayName(role: string): string {
     const roleNames: { [key: string]: string } = {
-      'super_admin': 'مدير النظام',
-      'admin': 'مدير',
+      'super_admin': 'IT',
+      'admin': 'المدير',
       'employee': 'موظف',
-      'secretariat': 'سكرتارية'
+      'secretariat': 'سكرتيرة'
     };
+    return roleNames[role] || role;
+  }
 
-    return roleNames[user.role] || user.role;
+  /**
+   * Refresh current user data from server
+   */
+  refreshUserData(): Observable<User> {
+    const userId = this.currentUserValue?.id;
+    
+    if (!userId) {
+      return throwError(() => new Error('No user ID available'));
+    }
+
+    return this.http.get<any>(
+      API_ENDPOINTS.USERS.GET_BY_ID(userId),
+      { headers: this.getAuthHeaders() }
+    ).pipe(
+      map(response => response.data),
+      tap(user => {
+        this.updateStoredUser(user);
+        console.log('✅ User data refreshed from server');
+      })
+    );
   }
 }

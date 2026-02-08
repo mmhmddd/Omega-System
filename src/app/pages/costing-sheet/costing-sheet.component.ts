@@ -413,18 +413,35 @@ ngOnInit(): void {
   // SUCCESS MODAL METHODS
   // ========================================
 
-  openSuccessModal(csId: string, csNumber: string): void {
-    this.successCSId = csId;
-    this.successCSNumber = csNumber;
-    this.showSuccessModal = true;
-  }
+// ========================================
+// SUCCESS MODAL METHODS
+// ========================================
 
-  closeSuccessModal(): void {
-    this.showSuccessModal = false;
-    this.successCSId = '';
-    this.successCSNumber = '';
-    this.backToList();
-  }
+openSuccessModal(csId: string, csNumber: string): void {
+  this.successCSId = csId;
+  this.successCSNumber = csNumber;
+  
+  // ✅ Fetch the full costing sheet to get the PDF filename
+  this.costingSheetService.getCostingSheetById(csId).subscribe({
+    next: (response: any) => {
+      this.selectedCS = response.data; // Store the full object
+      this.showSuccessModal = true;
+    },
+    error: (error: any) => {
+      console.error('Error fetching costing sheet for success modal:', error);
+      // Still show modal even if fetch fails
+      this.showSuccessModal = true;
+    }
+  });
+}
+
+closeSuccessModal(): void {
+  this.showSuccessModal = false;
+  this.successCSId = '';
+  this.successCSNumber = '';
+  this.selectedCS = null; // ✅ Clear the selected CS
+  this.backToList();
+}
 
   viewPDFFromSuccess(): void {
     if (this.successCSId) {
@@ -438,11 +455,18 @@ ngOnInit(): void {
     }
   }
 
-  downloadPDFFromSuccess(): void {
-    if (this.successCSId && this.successCSNumber) {
-      this.costingSheetService.downloadPDF(this.successCSId, `${this.successCSNumber}.pdf`);
-    }
+downloadPDFFromSuccess(): void {
+  if (this.successCSId && this.selectedCS && this.selectedCS.pdfFilename) {
+    // ✅ Use the actual PDF filename from the database
+    this.costingSheetService.downloadPDF(this.successCSId, this.selectedCS.pdfFilename);
+  } else if (this.successCSId && this.successCSNumber) {
+    // ✅ Fallback: Use CS number if we don't have the full filename
+    this.costingSheetService.downloadPDF(this.successCSId, `${this.successCSNumber}.pdf`);
+  } else {
+    this.showToast('error', this.t('errors.pdfNotGenerated'));
   }
+}
+
 
   doneSuccess(): void {
     this.closeSuccessModal();

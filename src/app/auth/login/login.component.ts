@@ -92,6 +92,7 @@ export class LoginComponent implements OnInit {
 
   /**
    * Submit forgot password request
+   * ✅ FIXED: Changed from forgotPassword to requestPasswordReset
    */
   onForgotPasswordSubmit(): void {
     if (this.forgotPasswordForm.invalid) {
@@ -104,7 +105,8 @@ export class LoginComponent implements OnInit {
 
     const email = this.forgotPasswordForm.value.email;
 
-    this.authService.forgotPassword(email).subscribe({
+    // ✅ FIXED: Use requestPasswordReset instead of forgotPassword
+    this.authService.requestPasswordReset(email).subscribe({
       next: (response) => {
         console.log('Forgot password success:', response);
         this.forgotPasswordLoading = false;
@@ -130,6 +132,7 @@ export class LoginComponent implements OnInit {
 
   /**
    * Handle form submission
+   * ✅ FIXED: Changed to use credentials object with username field
    */
   onSubmit(): void {
     if (this.loginForm.invalid) {
@@ -142,7 +145,14 @@ export class LoginComponent implements OnInit {
 
     const { username, password } = this.loginForm.value;
 
-    this.authService.login(username, password).subscribe({
+    // ✅ FIXED: Backend expects 'username' and 'password' fields
+    const credentials = {
+      username: username,
+      password: password
+    };
+
+    // ✅ FIXED: Pass credentials object instead of separate parameters
+    this.authService.login(credentials).subscribe({
       next: (response) => {
         console.log('Login successful:', response);
 

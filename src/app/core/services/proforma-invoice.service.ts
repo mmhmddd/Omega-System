@@ -227,6 +227,15 @@ export class ProformaInvoiceService {
       { headers: this.getAuthHeaders() }
     );
   }
+  getDisplayFilename(invoice: ProformaInvoice): string {
+  if (!invoice.pdfPath) return 'N/A';
+  
+  // Extract filename from path (works for both Windows and Unix paths)
+  const pathParts = invoice.pdfPath.split(/[/\\]/);
+  const filename = pathParts[pathParts.length - 1];
+  
+  return filename;
+}
 
   // ============================================
   // GET PROFORMA INVOICES

@@ -354,7 +354,12 @@ sendEmailWithPDF(): void {
   // Start sending
   sendToNextEmail(0);
 }
-
+getDisplayFilename(quote: PriceQuote): string {
+  if (!quote.pdfPath) return 'N/A';
+  const pathParts = quote.pdfPath.split(/[/\\]/);
+  const filename = pathParts[pathParts.length - 1];
+  return filename;
+}
 /**
  * Share from success modal
  */
@@ -1016,11 +1021,11 @@ isValidEmail(email: string): boolean {
     });
   }
 
-  downloadGeneratedPDF(): void {
-    const quote = this.quotes.find(q => q.id === this.generatedQuoteId);
-    const filename = quote ? `${quote.quoteNumber}-${quote.clientName}.pdf` : `quote-${this.generatedQuoteId}.pdf`;
-    this.priceQuoteService.triggerPDFDownload(this.generatedQuoteId, filename);
-  }
+downloadGeneratedPDF(): void {
+  const quote = this.quotes.find(q => q.id === this.generatedQuoteId);
+  const filename = quote ? this.getDisplayFilename(quote) : `quote-${this.generatedQuoteId}.pdf`;
+  this.priceQuoteService.triggerPDFDownload(this.generatedQuoteId, filename);
+}
 
   // ============================================
   // DELETE QUOTE
@@ -1076,7 +1081,7 @@ isValidEmail(email: string): boolean {
   // ============================================
 
   downloadPDF(quote: PriceQuote): void {
-    const filename = `${quote.quoteNumber}-${quote.clientName}.pdf`;
+    const filename = this.getDisplayFilename(quote);
     this.priceQuoteService.triggerPDFDownload(quote.id, filename);
   }
 

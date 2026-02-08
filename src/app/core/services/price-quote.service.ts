@@ -155,7 +155,12 @@ export class PriceQuoteService {
 
     return quote.createdBy || '-';
   }
-
+  getDisplayFilename(quote: PriceQuote): string {
+    if (!quote.pdfPath) return 'N/A';
+    const pathParts = quote.pdfPath.split(/[/\\]/);
+    const filename = pathParts[pathParts.length - 1];
+    return filename;
+  }
   getCreatorEmail(quote: PriceQuote): string {
     return quote.createdByInfo?.email || 'N/A';
   }
