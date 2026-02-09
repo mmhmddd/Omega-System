@@ -306,14 +306,6 @@ export class FilesControlComponent implements OnInit, OnDestroy {
     
     // Use type-specific download methods
     switch (file.type) {
-      case 'emptyReceipts':
-        if (file.databaseId) {
-          this.fileService.downloadEmptyReceiptById(file.databaseId);
-        } else {
-          this.fileService.downloadEmptyReceipt(file.name);
-        }
-        break;
-      
       case 'proformaInvoices':
         if (file.databaseId) {
           this.fileService.downloadProformaInvoice(file.databaseId);
@@ -420,9 +412,6 @@ confirmDelete(): void {
     // Strategy 1: Use database ID with type-specific endpoint
     if (file.databaseId) {
       switch (file.type) {
-        case 'emptyReceipts':
-          strategies.push(() => this.deleteViaTypeEndpoint('emptyReceipts', file.databaseId!));
-          break;
         case 'proformaInvoices':
           strategies.push(() => this.deleteViaTypeEndpoint('proformaInvoices', file.databaseId!));
           break;
@@ -525,8 +514,6 @@ confirmDelete(): void {
    */
   private getTypeDeleteMethod(type: string): ((id: string) => any) | null {
     const methods: { [key: string]: (id: string) => any } = {
-      emptyReceipts: (id) => this.fileService.deleteEmptyReceipt(id),
-      // Add other types as needed when their services are available
     };
 
     return methods[type] || null;

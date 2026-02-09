@@ -114,7 +114,6 @@ export interface EmptyReceiptStats {
 })
 export class FileService {
   private readonly API_URL = `${environment.apiUrl}/file-management`;
-  private readonly EMPTY_RECEIPTS_URL = `${environment.apiUrl}/empty-receipts`;
 
   constructor(private http: HttpClient) {}
 
@@ -215,174 +214,6 @@ export class FileService {
   }
 
   // ============================================
-  // ✅ NEW: EMPTY RECEIPTS ENDPOINTS
-  // ============================================
-
-  /**
-   * ✅ NEW: Get all empty receipts
-   */
-  getAllEmptyReceipts(filters?: {
-    page?: number;
-    limit?: number;
-    search?: string;
-    startDate?: string;
-    endDate?: string;
-  }): Observable<{
-    success: boolean;
-    data: EmptyReceiptRecord[];
-    pagination: FilePagination;
-  }> {
-    let params = new HttpParams();
-
-    if (filters?.page) params = params.set('page', filters.page.toString());
-    if (filters?.limit) params = params.set('limit', filters.limit.toString());
-    if (filters?.search) params = params.set('search', filters.search);
-    if (filters?.startDate) params = params.set('startDate', filters.startDate);
-    if (filters?.endDate) params = params.set('endDate', filters.endDate);
-
-    return this.http.get<{
-      success: boolean;
-      data: EmptyReceiptRecord[];
-      pagination: FilePagination;
-    }>(this.EMPTY_RECEIPTS_URL, { params });
-  }
-
-  /**
-   * ✅ NEW: Get empty receipt by ID
-   */
-  getEmptyReceiptById(id: string): Observable<{
-    success: boolean;
-    data: EmptyReceiptRecord;
-  }> {
-    return this.http.get<{
-      success: boolean;
-      data: EmptyReceiptRecord;
-    }>(`${this.EMPTY_RECEIPTS_URL}/${id}`);
-  }
-
-  /**
-   * ✅ NEW: Get empty receipt by receipt number
-   */
-  getEmptyReceiptByNumber(receiptNumber: string): Observable<{
-    success: boolean;
-    data: EmptyReceiptRecord;
-  }> {
-    return this.http.get<{
-      success: boolean;
-      data: EmptyReceiptRecord;
-    }>(`${this.EMPTY_RECEIPTS_URL}/number/${receiptNumber}`);
-  }
-
-  /**
-   * ✅ NEW: Create empty receipt
-   */
-  createEmptyReceipt(data: {
-    to: string;
-    notes?: string;
-  }): Observable<{
-    success: boolean;
-    message: string;
-    data: EmptyReceiptRecord;
-  }> {
-    return this.http.post<{
-      success: boolean;
-      message: string;
-      data: EmptyReceiptRecord;
-    }>(this.EMPTY_RECEIPTS_URL, data);
-  }
-
-  /**
-   * ✅ NEW: Update empty receipt
-   */
-  updateEmptyReceipt(id: string, data: {
-    to?: string;
-    notes?: string;
-  }): Observable<{
-    success: boolean;
-    message: string;
-    data: EmptyReceiptRecord;
-  }> {
-    return this.http.put<{
-      success: boolean;
-      message: string;
-      data: EmptyReceiptRecord;
-    }>(`${this.EMPTY_RECEIPTS_URL}/${id}`, data);
-  }
-
-  /**
-   * ✅ NEW: Delete empty receipt
-   */
-  deleteEmptyReceipt(id: string): Observable<{
-    success: boolean;
-    message: string;
-    data: EmptyReceiptRecord;
-  }> {
-    return this.http.delete<{
-      success: boolean;
-      message: string;
-      data: EmptyReceiptRecord;
-    }>(`${this.EMPTY_RECEIPTS_URL}/${id}`);
-  }
-
-  /**
-   * ✅ NEW: Get empty receipts statistics
-   */
-  getEmptyReceiptsStats(): Observable<{
-    success: boolean;
-    data: EmptyReceiptStats;
-  }> {
-    return this.http.get<{
-      success: boolean;
-      data: EmptyReceiptStats;
-    }>(`${this.EMPTY_RECEIPTS_URL}/stats`);
-  }
-
-  /**
-   * ✅ NEW: Generate PDF for empty receipt
-   */
-  generateEmptyReceiptPDF(id: string): Observable<{
-    success: boolean;
-    message: string;
-    data: { pdfFilename: string };
-  }> {
-    return this.http.post<{
-      success: boolean;
-      message: string;
-      data: { pdfFilename: string };
-    }>(`${this.EMPTY_RECEIPTS_URL}/${id}/generate-pdf`, {});
-  }
-
-  /**
-   * ✅ NEW: Download empty receipt PDF by ID
-   */
-  downloadEmptyReceiptById(id: string): void {
-    const token = localStorage.getItem('token');
-    const downloadUrl = `${this.EMPTY_RECEIPTS_URL}/${id}/download-pdf`;
-
-    this.http.get(downloadUrl, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      },
-      responseType: 'blob'
-    }).subscribe({
-      next: (blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `empty-receipt-${id}.pdf`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-      },
-      error: (error) => {
-        console.error('Error downloading empty receipt:', error);
-        alert('فشل تحميل الإيصال. الرجاء المحاولة مرة أخرى.');
-      }
-    });
-  }
-
-  // ============================================
   // DOWNLOAD METHODS FOR FILE TYPES
   // ============================================
 
@@ -466,35 +297,6 @@ export class FileService {
     });
   }
 
-  /**
-   * Download Empty Receipt by filename (legacy support)
-   */
-  downloadEmptyReceipt(filename: string): void {
-    const token = localStorage.getItem('token');
-    const downloadUrl = `${this.EMPTY_RECEIPTS_URL}/download/${filename}`;
-
-    this.http.get(downloadUrl, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      },
-      responseType: 'blob'
-    }).subscribe({
-      next: (blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-      },
-      error: (error) => {
-        console.error('Error downloading empty receipt:', error);
-        alert('فشل تحميل الإيصال. الرجاء المحاولة مرة أخرى.');
-      }
-    });
-  }
 
   /**
    * Download Proforma Invoice PDF
@@ -614,7 +416,6 @@ export class FileService {
       'rfqs': 'طلبات عروض الأسعار',
       'purchases': 'طلبات الشراء',
       'materials': 'طلبات المواد',
-      'emptyReceipts': 'إشعارات فارغة',
       'proformaInvoices': 'فواتير أولية',
       'costingSheets': 'كشوف تكاليف'
     };
@@ -635,7 +436,6 @@ export class FileService {
       'rfqs': '📨',
       'purchases': '🛒',
       'materials': '📦',
-      'emptyReceipts': '🧾',
       'proformaInvoices': '📋',
       'costingSheets': '📊'
     };

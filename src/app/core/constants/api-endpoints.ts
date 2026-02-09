@@ -153,25 +153,6 @@ export const API_ENDPOINTS = {
   },
 
   // ============================================
-  // EMPTY_RECEIPTS ENDPOINTS
-  // ============================================
-  EMPTY_RECEIPTS: {
-    GENERATE: `${environment.apiUrl}/empty-receipts/generate`,
-    DOWNLOAD: (filename: string) => `${environment.apiUrl}/empty-receipts/download/${filename}`,
-    VIEW: (filename: string) => `${environment.apiUrl}/empty-receipts/view/${filename}`,
-    GET_ALL: `${environment.apiUrl}/empty-receipts`,
-    GET_BY_ID: (id: string) => `${environment.apiUrl}/empty-receipts/${id}`,
-    GET_BY_NUMBER: (receiptNumber: string) => `${environment.apiUrl}/empty-receipts/number/${receiptNumber}`,
-    CREATE: `${environment.apiUrl}/empty-receipts`,
-    UPDATE: (id: string) => `${environment.apiUrl}/empty-receipts/${id}`,
-    DELETE: (id: string) => `${environment.apiUrl}/empty-receipts/${id}`,
-    GET_STATS: `${environment.apiUrl}/empty-receipts/stats`,
-    RESET_COUNTER: `${environment.apiUrl}/empty-receipts/reset-counter`,
-    GENERATE_PDF: (id: string) => `${environment.apiUrl}/empty-receipts/${id}/generate-pdf`,
-    DOWNLOAD_PDF: (id: string) => `${environment.apiUrl}/empty-receipts/${id}/download-pdf`
-  },
-
-  // ============================================
   // SECRETARIAT USER FORMS ENDPOINTS
   // ============================================
   SECRETARIAT_USER: {

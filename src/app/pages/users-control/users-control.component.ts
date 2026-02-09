@@ -1,4 +1,4 @@
-// users-control.component.ts (UPDATED - Filtered Routes for Employee Access)
+// users-control.component.ts (FIXED - Complete 11 Routes)
 import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -45,18 +45,19 @@ export class UsersControlComponent implements OnInit, OnDestroy {
 
   availableRoutes: AvailableRoute[] = [];
 
-  // ✅ Define allowed routes for employees
+  // ✅ FIXED: Complete list of all 11 allowed routes for employees
   private readonly ALLOWED_EMPLOYEE_ROUTES = [
-    'suppliers',           // إدارة الموردين
-    'itemsControl',        // إدارة الأصناف
-    'receipts',            // إشعار استلام
-    'rfqs',                // طلب تسعير
-    'purchases',           // طلب شراء
-    'materialRequests',    // طلب مواد
-    'priceQuotes',         // عرض سعر
-    'proformaInvoice',     // الفواتير الأولية
-    'costingSheet',        // كشف التكاليف
-    'secretariatUserManagement' // طلبات الموظفين
+    'suppliers',              // 1. إدارة الموردين
+    'itemsControl',           // 2. إدارة الأصناف
+    'receipts',               // 3. إيصالات الاستلام
+    'rfqs',                   // 4. طلبات عروض الأسعار
+    'purchases',              // 5. أوامر الشراء
+    'materialRequests',       // 6. طلبات المواد
+    'priceQuotes',            // 7. عروض الأسعار
+    'proformaInvoice',        // 8. فاتورة مُقدمة
+    'costingSheet',           // 9. كشف التكاليف
+    'secretariatUserManagement', // 10. نماذج الموظف
+    'filesControl'            // 11. إدارة الملفات
   ];
 
   routeCategories: RouteCategory[] = [
@@ -141,6 +142,11 @@ export class UsersControlComponent implements OnInit, OnDestroy {
     this.initializeForms();
     this.loadUsers();
     this.loadAvailableRoutes();
+    // ✅ Log the complete list on init
+    console.log('==========================================');
+    console.log('📋 ALLOWED EMPLOYEE ROUTES (11 total):');
+    console.log(this.ALLOWED_EMPLOYEE_ROUTES);
+    console.log('=========================================='); 
   }
 
   ngOnDestroy(): void {
@@ -285,10 +291,21 @@ export class UsersControlComponent implements OnInit, OnDestroy {
       next: (response) => {
         this.availableRoutes = response.data;
 
-        console.log('✅ Loaded available routes:', this.availableRoutes.length);
+        console.log('✅ Loaded available routes from backend:', this.availableRoutes.length);
         this.availableRoutes.forEach(route => {
           console.log(`  - ${route.key} (${route.category}): ${route.label}`);
         });
+
+        // ✅ Validate that all expected routes are present
+        const receivedKeys = this.availableRoutes.map(r => r.key);
+        const missingKeys = this.ALLOWED_EMPLOYEE_ROUTES.filter(
+          key => !receivedKeys.includes(key)
+        );
+        
+        if (missingKeys.length > 0) {
+          console.warn('⚠️ WARNING: Some routes are missing from backend:');
+          console.warn(missingKeys);
+        }
 
         this.loadingRoutes = false;
       },
@@ -301,16 +318,22 @@ export class UsersControlComponent implements OnInit, OnDestroy {
   }
 
   // ============================================
-  // ✅ FILTERING METHODS - EMPLOYEE ROUTES ONLY
+  // ✅ FILTERING METHODS - EMPLOYEE ROUTES ONLY (11 ROUTES)
   // ============================================
 
   /**
-   * ✅ Get only allowed routes for employees
+   * ✅ Get only allowed routes for employees (all 11)
    */
   getFilteredRoutesForEmployees(): AvailableRoute[] {
-    return this.availableRoutes.filter(route =>
+    const filtered = this.availableRoutes.filter(route =>
       this.ALLOWED_EMPLOYEE_ROUTES.includes(route.key)
     );
+
+    console.log(`📋 Filtered routes for employees: ${filtered.length} of ${this.availableRoutes.length}`);
+    console.log('Allowed keys:', this.ALLOWED_EMPLOYEE_ROUTES);
+    console.log('Filtered keys:', filtered.map(r => r.key));
+
+    return filtered;
   }
 
   /**
@@ -321,13 +344,17 @@ export class UsersControlComponent implements OnInit, OnDestroy {
       return [];
     }
 
-    // ✅ First filter by allowed routes, then by category
+    // First filter by allowed employee routes
     const allowedRoutes = this.getFilteredRoutesForEmployees();
 
+    // Then filter by category
     const filtered = allowedRoutes.filter(route => {
       const routeCategory = (route as any).category || '';
       return routeCategory === categoryKey;
     });
+
+    console.log(`📋 Routes in category '${categoryKey}': ${filtered.length}`);
+    filtered.forEach(r => console.log(`  - ${r.key}: ${r.label}`));
 
     return filtered;
   }
@@ -594,7 +621,7 @@ export class UsersControlComponent implements OnInit, OnDestroy {
   }
 
   // ============================================
-  // ✅ ROUTE ACCESS MANAGEMENT (FILTERED)
+  // ✅ ROUTE ACCESS MANAGEMENT (FILTERED TO 11)
   // ============================================
 
   openRouteAccessModal(user: User): void {
@@ -605,17 +632,19 @@ export class UsersControlComponent implements OnInit, OnDestroy {
 
     this.selectedUser = user;
 
-    // ✅ Filter user's routes to only include allowed ones
+    // ✅ Filter user's existing routes to only include allowed ones
     const userRoutes = Array.isArray(user.routeAccess) ? user.routeAccess : [];
     this.routeAccessForm = userRoutes.filter(route =>
       this.ALLOWED_EMPLOYEE_ROUTES.includes(route)
     );
 
     console.log('==========================================');
-    console.log('✅ Opening Route Access Modal (Filtered)');
+    console.log('✅ Opening Route Access Modal');
     console.log('User:', user.name);
+    console.log('User role:', user.role);
     console.log('Current routeAccess (filtered):', this.routeAccessForm);
     console.log('Available routes:', this.getFilteredRoutesForEmployees().length);
+    console.log('Total allowed:', this.ALLOWED_EMPLOYEE_ROUTES.length);
     console.log('==========================================');
 
     this.showRouteAccessModal = true;
@@ -628,9 +657,10 @@ export class UsersControlComponent implements OnInit, OnDestroy {
   }
 
   toggleRouteAccess(routeKey: string): void {
-    // ✅ Only allow toggling of allowed routes
+    // ✅ Validate that this route is allowed for employees
     if (!this.ALLOWED_EMPLOYEE_ROUTES.includes(routeKey)) {
       console.warn('⚠️ Route not allowed for employees:', routeKey);
+      this.showToast('warning', 'هذا المسار غير متاح للموظفين');
       return;
     }
 
@@ -645,65 +675,81 @@ export class UsersControlComponent implements OnInit, OnDestroy {
     }
 
     console.log('Current selection:', this.routeAccessForm);
+    console.log(`Selected ${this.routeAccessForm.length} of ${this.ALLOWED_EMPLOYEE_ROUTES.length} routes`);
   }
 
   isRouteSelected(routeKey: string): boolean {
     return this.routeAccessForm.includes(routeKey);
   }
 
-saveRouteAccess(): void {
-  if (!this.selectedUser) {
-    this.showToast('error', 'لم يتم تحديد مستخدم');
-    return;
-  }
-
-  if (!Array.isArray(this.routeAccessForm)) {
-    this.showToast('error', 'خطأ في البيانات');
-    return;
-  }
-
-  const validRoutes = this.routeAccessForm.filter(route =>
-    this.ALLOWED_EMPLOYEE_ROUTES.includes(route)
-  );
-
-  console.log('💾 SAVING ROUTE ACCESS (Filtered)');
-  console.log('User ID:', this.selectedUser.id);
-  console.log('Routes to save:', validRoutes);
-
-  this.savingUser = true;
-
-  this.usersService.updateRouteAccess(this.selectedUser.id, validRoutes).subscribe({
-    next: (response) => {
-      console.log('✅ SUCCESS! Saved routes:', response.data.routeAccess);
-      this.showToast('success', 'تم تحديث صلاحيات المسارات بنجاح');
-      
-      // ✅ NEW: If updating current user, force refresh their session
-      const currentUser = this.authService.currentUserValue;
-      if (currentUser && currentUser.id === this.selectedUser!.id) {
-        console.log('🔄 Updating current user permissions - forcing refresh...');
-        
-        this.authService.forceRefresh().subscribe({
-          next: (updatedUser) => {
-            console.log('✅ Current user session updated:', updatedUser.routeAccess);
-            this.showToast('info', 'تم تحديث الصلاحيات في حسابك الحالي');
-          },
-          error: (error) => {
-            console.error('❌ Error refreshing current user:', error);
-          }
-        });
-      }
-      
-      this.savingUser = false;
-      this.closeRouteAccessModal();
-      this.loadUsers();
-    },
-    error: (error) => {
-      console.error('❌ ERROR saving routes:', error);
-      this.showToast('error', error.error?.message || 'حدث خطأ أثناء تحديث الصلاحيات');
-      this.savingUser = false;
+  saveRouteAccess(): void {
+    if (!this.selectedUser) {
+      this.showToast('error', 'لم يتم تحديد مستخدم');
+      return;
     }
-  });
-}
+
+    if (!Array.isArray(this.routeAccessForm)) {
+      this.showToast('error', 'خطأ في البيانات');
+      return;
+    }
+
+    // ✅ Filter to only include allowed routes
+    const validRoutes = this.routeAccessForm.filter(route =>
+      this.ALLOWED_EMPLOYEE_ROUTES.includes(route)
+    );
+
+    // ✅ Remove duplicates
+    const uniqueRoutes = [...new Set(validRoutes)];
+
+    console.log('==========================================');
+    console.log('💾 SAVING ROUTE ACCESS');
+    console.log('User ID:', this.selectedUser.id);
+    console.log('User name:', this.selectedUser.name);
+    console.log('Routes to save:', uniqueRoutes);
+    console.log('Count:', uniqueRoutes.length, 'of', this.ALLOWED_EMPLOYEE_ROUTES.length);
+    console.log('==========================================');
+
+    this.savingUser = true;
+
+    this.usersService.updateRouteAccess(this.selectedUser.id, uniqueRoutes).subscribe({
+      next: (response) => {
+        console.log('✅ SUCCESS! Saved routes:', response.data.routeAccess);
+        this.showToast('success', 'تم تحديث صلاحيات المسارات بنجاح');
+        
+        // If this is the current user, refresh their session
+        const currentUser = this.authService.currentUserValue;
+        if (currentUser && currentUser.id === this.selectedUser!.id) {
+          console.log('🔄 This is the current user - refreshing session...');
+          
+          this.authService.forceRefresh().subscribe({
+            next: (updatedUser) => {
+              console.log('✅ Current user session updated');
+              console.log('New routeAccess:', updatedUser.routeAccess);
+              this.showToast('info', 'تم تحديث الصلاحيات في حسابك الحالي');
+            },
+            error: (error) => {
+              console.error('❌ Error refreshing current user:', error);
+            }
+          });
+        }
+        
+        this.savingUser = false;
+        this.closeRouteAccessModal();
+        this.loadUsers();
+      },
+      error: (error) => {
+        console.error('==========================================');
+        console.error('❌ ERROR SAVING ROUTES');
+        console.error('Error:', error);
+        console.error('Error message:', error.error?.message);
+        console.error('==========================================');
+        
+        this.showToast('error', error.error?.message || 'حدث خطأ أثناء تحديث الصلاحيات');
+        this.savingUser = false;
+      }
+    });
+  }
+
 
   // ============================================
   // SYSTEM ACCESS MANAGEMENT
@@ -722,23 +768,47 @@ saveRouteAccess(): void {
     this.selectedUser = null;
   }
 
+// FRONTEND FIX: users-control.component.ts - System Access Modal Fix
+
+// ✅ REPLACE the saveSystemAccess() method with this fixed version:
+
 saveSystemAccess(): void {
-  if (!this.selectedUser) return;
+  if (!this.selectedUser) {
+    this.showToast('error', 'لم يتم تحديد مستخدم');
+    return;
+  }
+
+  // ✅ CRITICAL FIX: Send the systemAccess object directly, not wrapped in another object
+  const systemAccessData = {
+    laserCuttingManagement: this.systemAccessForm.laserCuttingManagement || false
+  };
+
+  console.log('==========================================');
+  console.log('💾 SAVING SYSTEM ACCESS');
+  console.log('User ID:', this.selectedUser.id);
+  console.log('User name:', this.selectedUser.name);
+  console.log('System access data to send:', systemAccessData);
+  console.log('Type check:', typeof systemAccessData);
+  console.log('Is object:', typeof systemAccessData === 'object');
+  console.log('Is array:', Array.isArray(systemAccessData));
+  console.log('==========================================');
 
   this.savingUser = true;
 
-  this.usersService.updateSystemAccess(this.selectedUser.id, this.systemAccessForm).subscribe({
+  // ✅ CRITICAL: Send systemAccessData directly, not as { systemAccess: {...} }
+  this.usersService.updateSystemAccess(this.selectedUser.id, systemAccessData).subscribe({
     next: (response) => {
+      console.log('✅ SUCCESS! Saved system access:', response.data.systemAccess);
       this.showToast('success', 'تم تحديث صلاحيات النظام بنجاح');
       
-      // ✅ NEW: If updating current user, force refresh their session
       const currentUser = this.authService.currentUserValue;
       if (currentUser && currentUser.id === this.selectedUser!.id) {
-        console.log('🔄 Updating current user permissions - forcing refresh...');
+        console.log('🔄 This is the current user - refreshing session...');
         
         this.authService.forceRefresh().subscribe({
           next: (updatedUser) => {
-            console.log('✅ Current user session updated:', updatedUser.systemAccess);
+            console.log('✅ Current user session updated');
+            console.log('New systemAccess:', updatedUser.systemAccess);
             this.showToast('info', 'تم تحديث الصلاحيات في حسابك الحالي');
           },
           error: (error) => {
@@ -752,7 +822,12 @@ saveSystemAccess(): void {
       this.loadUsers();
     },
     error: (error) => {
-      console.error('Error updating system access:', error);
+      console.error('==========================================');
+      console.error('❌ ERROR SAVING SYSTEM ACCESS');
+      console.error('Error:', error);
+      console.error('Error message:', error.error?.message);
+      console.error('==========================================');
+      
       this.showToast('error', error.error?.message || 'حدث خطأ أثناء تحديث الصلاحيات');
       this.savingUser = false;
     }

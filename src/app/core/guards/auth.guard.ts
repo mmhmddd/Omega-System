@@ -1,14 +1,30 @@
-// src/app/core/guards/auth.guard.ts - FIXED VERSION
+// src/app/core/guards/auth.guard.ts - FIXED VERSION (API REQUESTS FIX)
 import { inject } from '@angular/core';
 import { CanActivateFn, Router, ActivatedRouteSnapshot } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
 /**
  * Authentication guard - checks if user is logged in and has access to route
+ * 
+ * ✅ CRITICAL FIX: This guard should ONLY be used on ROUTE GUARDS
+ * It should NOT interfere with HTTP requests to API endpoints
+ * 
+ * Usage in routes:
+ * {
+ *   path: 'suppliers',
+ *   component: SuppliersComponent,
+ *   canActivate: [authGuard],
+ *   data: { routeKey: 'suppliers' }
+ * }
  */
 export const authGuard: CanActivateFn = (route: ActivatedRouteSnapshot, state) => {
   const authService = inject(AuthService);
   const router = inject(Router);
+
+  // ✅ IMPORTANT: This guard only runs for ANGULAR ROUTES
+  // It does NOT run for HTTP API requests
+  console.log('🛡️ Auth Guard - Checking route access');
+  console.log('📍 Route URL:', state.url);
 
   // Check if user is authenticated
   if (!authService.isAuthenticated()) {
@@ -60,7 +76,7 @@ export const authGuard: CanActivateFn = (route: ActivatedRouteSnapshot, state) =
     return true;
   }
 
-  // ✅ NEW: Check system access if required
+  // ✅ Check system access if required
   if (requiresSystemAccess) {
     const hasSystemAccess = authService.hasSystemAccess(requiresSystemAccess);
     
@@ -71,9 +87,6 @@ export const authGuard: CanActivateFn = (route: ActivatedRouteSnapshot, state) =
     }
     
     console.log(`✅ System access granted: ${requiresSystemAccess}`);
-    
-    // ✅ For routes with system access, we don't check routeAccess
-    // System access is the primary permission
     return true;
   }
 

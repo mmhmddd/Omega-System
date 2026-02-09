@@ -470,7 +470,7 @@ isValidEmail(email: string): boolean {
 
   // Check if employee has route access
   private hasRouteAccess(): boolean {
-    return this.authService.hasRouteAccess('proformaInvoices');
+    return this.authService.hasRouteAccess('proformaInvoice');
   }
 
   // ============================================

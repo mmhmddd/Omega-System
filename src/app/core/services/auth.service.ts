@@ -2,7 +2,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { BehaviorSubject, Observable, throwError, interval } from 'rxjs';
-import { map, catchError, tap, switchMap } from 'rxjs/operators';
+import { map, catchError, tap } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { API_ENDPOINTS } from '../constants/api-endpoints';
 
@@ -43,19 +43,19 @@ export class AuthService {
   public currentUser$: Observable<User | null>;
   private refreshInterval: any;
 
-  // Define allowed routes for each role
+  // ✅ FIXED: Complete list matching backend exactly (11 routes)
   private readonly ALLOWED_EMPLOYEE_ROUTES = [
-    'suppliers',
-    'itemsControl',
-    'receipts',
-    'emptyReceipt',
-    'rfqs',
-    'purchases',
-    'materialRequests',
-    'priceQuotes',
-    'proformaInvoice',
-    'costingSheet',
-    'secretariatUserManagement'
+    'suppliers',              // إدارة الموردين
+    'itemsControl',           // إدارة الأصناف
+    'receipts',               // إيصالات الاستلام
+    'rfqs',                   // طلبات عروض الأسعار
+    'purchases',              // أوامر الشراء
+    'materialRequests',       // طلبات المواد
+    'priceQuotes',            // عروض الأسعار
+    'proformaInvoice',        // فاتورة مُقدمة
+    'costingSheet',           // كشف التكاليف
+    'secretariatUserManagement', // نماذج الموظف
+    'filesControl'            // إدارة الملفات
   ];
 
   private readonly SECRETARIAT_ROUTES = [
@@ -71,19 +71,19 @@ export class AuthService {
     this.currentUserSubject = new BehaviorSubject<User | null>(storedUser);
     this.currentUser$ = this.currentUserSubject.asObservable();
 
-    // ✅ NEW: Auto-refresh user data every 30 seconds when logged in
+    // Log allowed routes on initialization
+    console.log('✅ Auth Service Initialized');
+    console.log('📋 Allowed Employee Routes:', this.ALLOWED_EMPLOYEE_ROUTES);
+
     this.startAutoRefresh();
   }
 
   // ============================================
-  // ✅ NEW: AUTO-REFRESH USER DATA
+  // AUTO-REFRESH USER DATA
   // ============================================
 
-  /**
-   * Start automatic user data refresh
-   */
   private startAutoRefresh(): void {
-    // Check every 30 seconds
+    // Refresh user data every 30 seconds
     this.refreshInterval = interval(30000).subscribe(() => {
       if (this.isAuthenticated()) {
         this.refreshUserDataSilently();
@@ -91,9 +91,6 @@ export class AuthService {
     });
   }
 
-  /**
-   * Stop automatic refresh
-   */
   private stopAutoRefresh(): void {
     if (this.refreshInterval) {
       this.refreshInterval.unsubscribe();
@@ -101,45 +98,40 @@ export class AuthService {
     }
   }
 
-
-private refreshUserDataSilently(): void {
-  const userId = this.currentUserValue?.id;
-  
-  if (!userId) {
-    return;
-  }
-
-  this.http.get<any>(
-    API_ENDPOINTS.USERS.ME, // ✅ New endpoint - works for everyone!
-    { headers: this.getAuthHeaders() }
-  ).pipe(
-    map(response => response.data),
-    catchError(error => {
-      // If error is 401, user session expired - logout
-      if (error.status === 401) {
-        console.log('🔒 Session expired, logging out...');
-        this.logout();
-      }
-      return throwError(() => error);
-    })
-  ).subscribe({
-    next: (user) => {
-      // Check if user data actually changed
-      const currentUser = this.currentUserValue;
-      const dataChanged = JSON.stringify(currentUser) !== JSON.stringify(user);
-
-      if (dataChanged) {
-        console.log('🔄 User data updated from server');
-        this.updateStoredUser(user);
-      }
-    },
-    error: (error) => {
-      // Silent error - don't show to user
-      console.warn('⚠️ Silent refresh failed:', error);
+  private refreshUserDataSilently(): void {
+    const userId = this.currentUserValue?.id;
+    
+    if (!userId) {
+      return;
     }
-  });
-}
 
+    this.http.get<any>(
+      API_ENDPOINTS.USERS.ME,
+      { headers: this.getAuthHeaders() }
+    ).pipe(
+      map(response => response.data),
+      catchError(error => {
+        if (error.status === 401) {
+          console.log('🔒 Session expired, logging out...');
+          this.logout();
+        }
+        return throwError(() => error);
+      })
+    ).subscribe({
+      next: (user) => {
+        const currentUser = this.currentUserValue;
+        const dataChanged = JSON.stringify(currentUser) !== JSON.stringify(user);
+
+        if (dataChanged) {
+          console.log('🔄 User data updated from server');
+          this.updateStoredUser(user);
+        }
+      },
+      error: (error) => {
+        console.warn('⚠️ Silent refresh failed:', error);
+      }
+    });
+  }
 
   // ============================================
   // GETTERS
@@ -153,18 +145,19 @@ private refreshUserDataSilently(): void {
   // AUTHENTICATION
   // ============================================
 
-  /**
-   * Login user
-   */
   login(credentials: LoginCredentials): Observable<LoginResponse> {
+    console.log('🔐 Attempting login for:', credentials.username);
+    
     return this.http.post<LoginResponse>(API_ENDPOINTS.AUTH.LOGIN, credentials).pipe(
       tap(response => {
         if (response.success && response.data) {
           this.setSession(response.data.token, response.data.user);
-          console.log('✅ User logged in:', response.data.user.name);
-          console.log('📋 User role:', response.data.user.role);
-          console.log('🔑 Route access:', response.data.user.routeAccess);
-          console.log('⚙️ System access:', response.data.user.systemAccess);
+          
+          console.log('✅ Login successful');
+          console.log('👤 User:', response.data.user.name);
+          console.log('🎭 Role:', response.data.user.role);
+          console.log('🔑 Route Access:', response.data.user.routeAccess);
+          console.log('⚙️ System Access:', response.data.user.systemAccess);
         }
       }),
       catchError(error => {
@@ -174,9 +167,6 @@ private refreshUserDataSilently(): void {
     );
   }
 
-  /**
-   * Logout user
-   */
   logout(): void {
     this.stopAutoRefresh();
     localStorage.removeItem('token');
@@ -186,26 +176,20 @@ private refreshUserDataSilently(): void {
     this.router.navigate(['/login']);
   }
 
-  /**
-   * Check if user is authenticated
-   */
   isAuthenticated(): boolean {
     const token = this.getToken();
     const user = this.currentUserValue;
-    
-    if (!token || !user) {
-      return false;
-    }
-
-    return true;
+    return !!(token && user);
   }
 
   // ============================================
-  // ROUTE ACCESS CONTROL
+  // ✅ ROUTE ACCESS CONTROL
   // ============================================
 
   /**
    * Check if user has access to a specific route
+   * This is ONLY used for Angular route guards (navigation)
+   * NOT used for HTTP API requests
    */
   hasRouteAccess(routeKey: string): boolean {
     const user = this.currentUserValue;
@@ -215,36 +199,47 @@ private refreshUserDataSilently(): void {
       return false;
     }
 
+    console.log(`🔍 Checking route access for: ${routeKey}`);
+    console.log('User role:', user.role);
+
     // Super admins have access to everything
     if (user.role === 'super_admin') {
+      console.log('✅ Super admin - access granted');
       return true;
     }
 
     // Admins have access to everything except user management
     if (user.role === 'admin') {
-      return routeKey !== 'users';
+      const hasAccess = routeKey !== 'users';
+      console.log(`${hasAccess ? '✅' : '❌'} Admin access: ${routeKey}`);
+      return hasAccess;
     }
 
     // Secretariat has access to specific routes
     if (user.role === 'secretariat') {
-      return this.SECRETARIAT_ROUTES.includes(routeKey);
+      const hasAccess = this.SECRETARIAT_ROUTES.includes(routeKey);
+      console.log(`${hasAccess ? '✅' : '❌'} Secretariat access: ${routeKey}`);
+      return hasAccess;
     }
 
     // Employees check their routeAccess array
     if (user.role === 'employee') {
+      // First check: Is this route allowed for employees at all?
       if (!this.ALLOWED_EMPLOYEE_ROUTES.includes(routeKey)) {
-        console.warn(`⚠️ Route '${routeKey}' is not in allowed employee routes`);
+        console.warn(`⚠️ Route '${routeKey}' is NOT in allowed employee routes`);
+        console.log('Allowed routes:', this.ALLOWED_EMPLOYEE_ROUTES);
         return false;
       }
 
+      // Second check: Does this specific employee have access?
       const userRoutes = user.routeAccess || [];
       const hasAccess = userRoutes.includes(routeKey);
       
-      if (!hasAccess) {
-        console.warn(`⚠️ Employee does not have access to '${routeKey}'`, {
-          userRoutes,
-          requestedRoute: routeKey
-        });
+      if (hasAccess) {
+        console.log(`✅ Employee has access to: ${routeKey}`);
+      } else {
+        console.warn(`❌ Employee does NOT have access to: ${routeKey}`);
+        console.log('Employee routes:', userRoutes);
       }
       
       return hasAccess;
@@ -265,11 +260,11 @@ private refreshUserDataSilently(): void {
     }
 
     if (user.role === 'super_admin') {
-      return ['*'];
+      return ['*']; // All routes
     }
 
     if (user.role === 'admin') {
-      return ['*', '!users'];
+      return ['*', '!users']; // All except users
     }
 
     if (user.role === 'secretariat') {
@@ -284,7 +279,7 @@ private refreshUserDataSilently(): void {
   }
 
   /**
-   * Check if user has a specific role
+   * Check if user has specific role(s)
    */
   hasRole(role: string | string[]): boolean {
     const user = this.currentUserValue;
@@ -298,61 +293,40 @@ private refreshUserDataSilently(): void {
   }
 
   /**
-   * ✅ FIXED: Check if user has system access permission
+   * Check if user has system access permission
    */
   hasSystemAccess(accessKey: keyof User['systemAccess']): boolean {
     const user = this.currentUserValue;
     
-    console.log('🔍 Checking system access:', {
-      accessKey,
-      user: user?.name,
-      role: user?.role,
-      systemAccess: user?.systemAccess,
-      hasAccess: user?.systemAccess?.[accessKey]
-    });
-
     if (!user) {
       console.warn('⚠️ No user found');
       return false;
     }
 
-    // Super admins have access to everything
+    // Super admins always have system access
     if (user.role === 'super_admin') {
-      console.log('✅ Super admin - access granted');
       return true;
     }
 
-    // Check systemAccess object
     if (!user.systemAccess) {
       console.warn('⚠️ No systemAccess object found');
       return false;
     }
 
-    const hasAccess = user.systemAccess[accessKey] === true;
-    
-    if (hasAccess) {
-      console.log('✅ System access granted');
-    } else {
-      console.warn('❌ System access denied');
-    }
-
-    return hasAccess;
+    return user.systemAccess[accessKey] === true;
   }
 
   // ============================================
   // SESSION MANAGEMENT
   // ============================================
 
-  /**
-   * Set authentication session
-   */
   private setSession(token: string, user: User): void {
-    // Ensure routeAccess is initialized
+    // Ensure routeAccess exists
     if (!user.routeAccess) {
       user.routeAccess = [];
     }
 
-    // Ensure systemAccess is initialized
+    // Ensure systemAccess exists
     if (!user.systemAccess) {
       user.systemAccess = {};
     }
@@ -362,9 +336,6 @@ private refreshUserDataSilently(): void {
     this.currentUserSubject.next(user);
   }
 
-  /**
-   * Get stored user from localStorage
-   */
   getStoredUser(): User | null {
     try {
       const userStr = localStorage.getItem('currentUser');
@@ -372,12 +343,12 @@ private refreshUserDataSilently(): void {
 
       const user = JSON.parse(userStr);
       
-      // Ensure routeAccess is initialized
+      // Ensure routeAccess exists
       if (!user.routeAccess) {
         user.routeAccess = [];
       }
 
-      // Ensure systemAccess is initialized
+      // Ensure systemAccess exists
       if (!user.systemAccess) {
         user.systemAccess = {};
       }
@@ -389,16 +360,12 @@ private refreshUserDataSilently(): void {
     }
   }
 
-  /**
-   * ✅ FIXED: Update stored user data
-   */
   updateStoredUser(user: User): void {
-    // Ensure routeAccess is initialized
+    // Ensure required fields exist
     if (!user.routeAccess) {
       user.routeAccess = [];
     }
 
-    // Ensure systemAccess is initialized
     if (!user.systemAccess) {
       user.systemAccess = {};
     }
@@ -412,19 +379,13 @@ private refreshUserDataSilently(): void {
 
     localStorage.setItem('currentUser', JSON.stringify(user));
     this.currentUserSubject.next(user);
-    console.log('✅ User data updated in storage and BehaviorSubject');
+    console.log('✅ User data updated in storage');
   }
 
-  /**
-   * Get authentication token
-   */
   getToken(): string | null {
     return localStorage.getItem('token');
   }
 
-  /**
-   * Get authorization headers
-   */
   getAuthHeaders(): HttpHeaders {
     const token = this.getToken();
     return new HttpHeaders({
@@ -437,16 +398,10 @@ private refreshUserDataSilently(): void {
   // PASSWORD MANAGEMENT
   // ============================================
 
-  /**
-   * Request password reset
-   */
   requestPasswordReset(email: string): Observable<any> {
     return this.http.post(API_ENDPOINTS.AUTH.FORGET_PASSWORD, { email });
   }
 
-  /**
-   * Reset password with token
-   */
   resetPassword(token: string, newPassword: string): Observable<any> {
     return this.http.post(API_ENDPOINTS.AUTH.RESET_PASSWORD, {
       token,
@@ -454,9 +409,6 @@ private refreshUserDataSilently(): void {
     });
   }
 
-  /**
-   * Change password for current user
-   */
   changePassword(currentPassword: string, newPassword: string): Observable<any> {
     return this.http.post(
       API_ENDPOINTS.AUTH.CHANGE_PASSWORD,
@@ -469,9 +421,6 @@ private refreshUserDataSilently(): void {
   // HELPER METHODS
   // ============================================
 
-  /**
-   * Get role display name in Arabic
-   */
   getRoleDisplayName(role: string): string {
     const roleNames: { [key: string]: string } = {
       'super_admin': 'IT',
@@ -483,37 +432,51 @@ private refreshUserDataSilently(): void {
   }
 
   /**
-   * ✅ IMPROVED: Refresh current user data from server with notification
+   * Refresh user data from server
    */
-refreshUserData(): Observable<User> {
-  const userId = this.currentUserValue?.id;
-  
-  if (!userId) {
-    return throwError(() => new Error('No user ID available'));
+  refreshUserData(): Observable<User> {
+    const userId = this.currentUserValue?.id;
+    
+    if (!userId) {
+      return throwError(() => new Error('No user ID available'));
+    }
+
+    console.log('🔄 Refreshing user data from server...');
+
+    return this.http.get<any>(
+      API_ENDPOINTS.USERS.ME,
+      { headers: this.getAuthHeaders() }
+    ).pipe(
+      map(response => response.data),
+      tap(user => {
+        this.updateStoredUser(user);
+        console.log('✅ User data refreshed:', {
+          systemAccess: user.systemAccess,
+          routeAccess: user.routeAccess
+        });
+      })
+    );
   }
 
-  console.log('🔄 Refreshing user data from server...');
-
-  return this.http.get<any>(
-    API_ENDPOINTS.USERS.ME, // ✅ New endpoint - works for everyone!
-    { headers: this.getAuthHeaders() }
-  ).pipe(
-    map(response => response.data),
-    tap(user => {
-      this.updateStoredUser(user);
-      console.log('✅ User data refreshed from server:', {
-        systemAccess: user.systemAccess,
-        routeAccess: user.routeAccess
-      });
-    })
-  );
-}
-
   /**
-   * ✅ NEW: Force immediate refresh (useful after permission changes)
+   * Force refresh user permissions
    */
   forceRefresh(): Observable<User> {
     return this.refreshUserData();
+  }
+
+  /**
+   * Get the complete list of routes allowed for employees
+   */
+  getAllowedEmployeeRoutes(): string[] {
+    return [...this.ALLOWED_EMPLOYEE_ROUTES];
+  }
+
+  /**
+   * Check if a route is allowed for employees
+   */
+  isRouteAllowedForEmployees(routeKey: string): boolean {
+    return this.ALLOWED_EMPLOYEE_ROUTES.includes(routeKey);
   }
 
   // ============================================

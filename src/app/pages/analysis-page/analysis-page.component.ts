@@ -49,7 +49,6 @@ interface SystemOverview {
   totalSecretariatForms: number;
   totalSuppliers: number;
   totalCostingSheets: number;
-  totalEmptyReceipts: number;
   totalProformaInvoices: number;
 }
 
@@ -91,7 +90,6 @@ export class AnalysisPageComponent implements OnInit, OnDestroy {
     totalSecretariatForms: 0,
     totalSuppliers: 0,
     totalCostingSheets: 0,
-    totalEmptyReceipts: 0,
     totalProformaInvoices: 0
   };
 
@@ -291,7 +289,6 @@ export class AnalysisPageComponent implements OnInit, OnDestroy {
     console.log('📊 Costing Sheets Response:', results.costingSheets);
     console.log('📊 Costing Sheets Pagination:', results.costingSheets?.pagination);
     console.log('📊 Costing Sheets Data:', results.costingSheets?.data);
-    console.log('📊 Empty Receipts Response:', results.emptyReceipts);
     console.log('📊 Proforma Invoices Response:', results.proformaInvoices);
 
     // Helper function to safely extract count from different response structures
@@ -354,14 +351,7 @@ export class AnalysisPageComponent implements OnInit, OnDestroy {
         'totalCount'
       ], 'Costing Sheets'),
       // Try multiple possible paths for Empty Receipts
-      totalEmptyReceipts: extractCount(results.emptyReceipts, [
-        'pagination.total',
-        'pagination.totalReceipts',
-        'pagination.totalEmptyReceipts',
-        'data.total',
-        'total',
-        'count'
-      ], 'Empty Receipts'),
+      
       // Try multiple possible paths for Proforma Invoices
       totalProformaInvoices: extractCount(results.proformaInvoices, [
         'pagination.totalInvoices',
@@ -612,9 +602,8 @@ export class AnalysisPageComponent implements OnInit, OnDestroy {
         color: '#14b8a6',
         stats: [
           { label: 'كشف التكاليف', value: this.systemOverview.totalCostingSheets },
-          { label: 'الإشعارات الفارغة', value: this.systemOverview.totalEmptyReceipts },
           { label: 'الفواتير الأولية', value: this.systemOverview.totalProformaInvoices },
-          { label: 'الإجمالي', value: this.systemOverview.totalCostingSheets + this.systemOverview.totalEmptyReceipts + this.systemOverview.totalProformaInvoices }
+          { label: 'الإجمالي', value: this.systemOverview.totalCostingSheets + this.systemOverview.totalProformaInvoices }
         ]
       }
     ];

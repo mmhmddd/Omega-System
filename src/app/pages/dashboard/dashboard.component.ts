@@ -72,14 +72,6 @@ export class DashboardComponent implements OnInit {
       routeKey: 'receipts'
     },
     {
-      title: 'إشعار استلام فارغ',
-      subtitle: 'إنشاء إشعار استلام فارغ بدون أي بيانات',
-      icon: 'bi-file-earmark',
-      route: '/empty-receipt',
-      color: '#D97706',
-      routeKey: 'emptyReceipt'
-    },
-    {
       title: 'طلب تسعير',
       subtitle: 'طلبات تسعير من الموردين',
       icon: 'bi-file-earmark-bar-graph',
