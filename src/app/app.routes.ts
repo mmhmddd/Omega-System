@@ -1,7 +1,7 @@
-// src/app/app.routes.ts
+// src/app/app.routes.ts - FIXED VERSION
 import { Routes } from '@angular/router';
 import { authGuard, roleGuard } from './core/guards/auth.guard';
-authGuard
+
 export const routes: Routes = [
   {
     path: '',
@@ -139,7 +139,6 @@ export const routes: Routes = [
     }
   },
 
-
   // Secretariat User - with route key (for employees and secretariat)
   {
     path: 'secretariat-user',
@@ -162,14 +161,15 @@ export const routes: Routes = [
     }
   },
 
-  // Cutting - with route key
+  // ✅ FIXED: Cutting - Check BOTH systemAccess AND routeAccess
   {
     path: 'cutting',
     loadComponent: () => import('./pages/cutting/cutting.component').then(m => m.CuttingComponent),
     canActivate: [authGuard],
     data: {
       title: 'إدارة أعمال القص',
-      routeKey: 'cutting'
+      routeKey: 'cutting',
+      requiresSystemAccess: 'laserCuttingManagement' // ✅ NEW: Specify system access requirement
     }
   },
 

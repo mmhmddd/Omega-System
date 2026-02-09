@@ -1,4 +1,4 @@
-// src/app/core/guards/auth.guard.ts
+// src/app/core/guards/auth.guard.ts - FIXED VERSION
 import { inject } from '@angular/core';
 import { CanActivateFn, Router, ActivatedRouteSnapshot } from '@angular/router';
 import { AuthService } from '../services/auth.service';
@@ -24,19 +24,24 @@ export const authGuard: CanActivateFn = (route: ActivatedRouteSnapshot, state) =
     return false;
   }
 
-  // Get route key from route data
+  // Get route key and system access requirement from route data
   const routeKey = route.data['routeKey'] as string;
+  const requiresSystemAccess = route.data['requiresSystemAccess'] as keyof typeof user.systemAccess;
+
+  console.log('🔍 Auth Guard Check:', {
+    route: state.url,
+    routeKey,
+    requiresSystemAccess,
+    userRole: user.role,
+    systemAccess: user.systemAccess,
+    routeAccess: user.routeAccess
+  });
 
   // If no route key specified, allow access (public authenticated route like dashboard)
   if (!routeKey) {
     console.log('✅ No route key required, allowing access');
     return true;
   }
-
-  console.log(`🔍 Checking access for route: ${routeKey}`, {
-    userRole: user.role,
-    routeAccess: user.routeAccess
-  });
 
   // Super admins have access to everything
   if (user.role === 'super_admin') {
@@ -52,6 +57,23 @@ export const authGuard: CanActivateFn = (route: ActivatedRouteSnapshot, state) =
       return false;
     }
     console.log('✅ Admin access granted');
+    return true;
+  }
+
+  // ✅ NEW: Check system access if required
+  if (requiresSystemAccess) {
+    const hasSystemAccess = authService.hasSystemAccess(requiresSystemAccess);
+    
+    if (!hasSystemAccess) {
+      console.warn(`❌ User does not have system access: ${requiresSystemAccess}`);
+      router.navigate(['/dashboard']);
+      return false;
+    }
+    
+    console.log(`✅ System access granted: ${requiresSystemAccess}`);
+    
+    // ✅ For routes with system access, we don't check routeAccess
+    // System access is the primary permission
     return true;
   }
 

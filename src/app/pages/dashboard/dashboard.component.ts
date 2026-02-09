@@ -1,8 +1,9 @@
+// src/app/pages/dashboard/dashboard.component.ts - FIXED TYPESCRIPT VERSION
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { UsersService } from '../../core/services/users.service';
-import { AuthService } from '../../core/services/auth.service';
+import { AuthService, User } from '../../core/services/auth.service';
 import { FileService } from '../../core/services/file.service';
 
 interface DashboardCard {
@@ -11,8 +12,9 @@ interface DashboardCard {
   icon: string;
   route: string;
   color: string;
-  routeKey?: string; // For permission checking
-  requiredRoles?: string[]; // Roles that can see this card
+  routeKey?: string;
+  requiredRoles?: string[];
+  requiresSystemAccess?: keyof User['systemAccess']; // ✅ FIXED: Properly typed
 }
 
 @Component({
@@ -36,7 +38,7 @@ export class DashboardComponent implements OnInit {
   filesError: string = '';
 
   // Current user signal
-  currentUser = signal<any>(null);
+  currentUser = signal<User | null>(null);
 
   // All dashboard cards with access control
   private allFileManagementCards: DashboardCard[] = [
@@ -134,7 +136,8 @@ export class DashboardComponent implements OnInit {
       icon: 'bi-scissors',
       route: '/cutting',
       color: '#ef4444',
-      routeKey: 'cutting'
+      routeKey: 'cutting',
+      requiresSystemAccess: 'laserCuttingManagement' // ✅ FIXED: Now properly typed
     }
   ];
 
@@ -165,7 +168,7 @@ export class DashboardComponent implements OnInit {
       route: '/users',
       color: '#112e61',
       routeKey: 'users',
-      requiredRoles: ['super_admin'] // Only super_admin
+      requiredRoles: ['super_admin']
     },
     {
       title: 'إدارة الملفات',
@@ -227,6 +230,12 @@ export class DashboardComponent implements OnInit {
     // Subscribe to current user
     this.authService.currentUser$.subscribe(user => {
       this.currentUser.set(user);
+      console.log('👤 Dashboard: User updated', {
+        name: user?.name,
+        role: user?.role,
+        systemAccess: user?.systemAccess,
+        routeAccess: user?.routeAccess
+      });
     });
 
     // Load initial user
@@ -252,44 +261,78 @@ export class DashboardComponent implements OnInit {
   }
 
   /**
-   * Check if user can access a card
+   * ✅ FIXED: Check if user can access a card
    */
   private canAccessCard(card: DashboardCard): boolean {
     const user = this.currentUser();
     if (!user) return false;
 
+    console.log(`🔍 Checking card access: ${card.title}`, {
+      routeKey: card.routeKey,
+      requiresSystemAccess: card.requiresSystemAccess,
+      userRole: user.role,
+      systemAccess: user.systemAccess,
+      routeAccess: user.routeAccess
+    });
+
     // Super admin has access to everything
     if (user.role === 'super_admin') {
+      console.log('✅ Super admin - access granted');
       return true;
     }
 
     // Admin has access to everything except user management
     if (user.role === 'admin') {
       if (card.routeKey === 'users') {
+        console.log('❌ Admin cannot access user management');
         return false;
       }
+      console.log('✅ Admin - access granted');
       return true;
     }
 
     // Check required roles if specified
     if (card.requiredRoles && !card.requiredRoles.includes(user.role)) {
+      console.log('❌ Role not in required roles');
       return false;
+    }
+
+    // ✅ FIXED: Check system access if required (e.g., for cutting)
+    if (card.requiresSystemAccess) {
+      const hasSystemAccess = this.authService.hasSystemAccess(card.requiresSystemAccess);
+      
+      if (!hasSystemAccess) {
+        console.log(`❌ No system access: ${String(card.requiresSystemAccess)}`);
+        return false;
+      }
+      
+      console.log(`✅ Has system access: ${String(card.requiresSystemAccess)}`);
+      
+      // For cards with system access requirement, we don't check routeAccess
+      // System access is the primary permission
+      return true;
     }
 
     // For secretariat role
     if (user.role === 'secretariat') {
       const secretariatRoutes = ['secretariat', 'secretariatUserManagement'];
-      return card.routeKey ? secretariatRoutes.includes(card.routeKey) : false;
+      const hasAccess = card.routeKey ? secretariatRoutes.includes(card.routeKey) : false;
+      console.log(hasAccess ? '✅ Secretariat access granted' : '❌ Secretariat access denied');
+      return hasAccess;
     }
 
     // For employee role - check routeAccess
     if (user.role === 'employee') {
       if (card.routeKey) {
-        return this.authService.hasRouteAccess(card.routeKey);
+        const hasAccess = this.authService.hasRouteAccess(card.routeKey);
+        console.log(hasAccess ? `✅ Employee has routeAccess to ${card.routeKey}` : `❌ Employee missing routeAccess to ${card.routeKey}`);
+        return hasAccess;
       }
+      console.log('❌ No routeKey defined');
       return false;
     }
 
+    console.log('❌ Default deny');
     return false;
   }
 

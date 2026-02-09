@@ -651,45 +651,59 @@ export class UsersControlComponent implements OnInit, OnDestroy {
     return this.routeAccessForm.includes(routeKey);
   }
 
-  saveRouteAccess(): void {
-    if (!this.selectedUser) {
-      this.showToast('error', 'لم يتم تحديد مستخدم');
-      return;
-    }
-
-    if (!Array.isArray(this.routeAccessForm)) {
-      this.showToast('error', 'خطأ في البيانات');
-      return;
-    }
-
-    // ✅ Final validation: only save allowed routes
-    const validRoutes = this.routeAccessForm.filter(route =>
-      this.ALLOWED_EMPLOYEE_ROUTES.includes(route)
-    );
-
-    console.log('==========================================');
-    console.log('💾 SAVING ROUTE ACCESS (Filtered)');
-    console.log('User ID:', this.selectedUser.id);
-    console.log('Routes to save:', validRoutes);
-    console.log('==========================================');
-
-    this.savingUser = true;
-
-    this.usersService.updateRouteAccess(this.selectedUser.id, validRoutes).subscribe({
-      next: (response) => {
-        console.log('✅ SUCCESS! Saved routes:', response.data.routeAccess);
-        this.showToast('success', 'تم تحديث صلاحيات المسارات بنجاح');
-        this.savingUser = false;
-        this.closeRouteAccessModal();
-        this.loadUsers();
-      },
-      error: (error) => {
-        console.error('❌ ERROR saving routes:', error);
-        this.showToast('error', error.error?.message || 'حدث خطأ أثناء تحديث الصلاحيات');
-        this.savingUser = false;
-      }
-    });
+saveRouteAccess(): void {
+  if (!this.selectedUser) {
+    this.showToast('error', 'لم يتم تحديد مستخدم');
+    return;
   }
+
+  if (!Array.isArray(this.routeAccessForm)) {
+    this.showToast('error', 'خطأ في البيانات');
+    return;
+  }
+
+  const validRoutes = this.routeAccessForm.filter(route =>
+    this.ALLOWED_EMPLOYEE_ROUTES.includes(route)
+  );
+
+  console.log('💾 SAVING ROUTE ACCESS (Filtered)');
+  console.log('User ID:', this.selectedUser.id);
+  console.log('Routes to save:', validRoutes);
+
+  this.savingUser = true;
+
+  this.usersService.updateRouteAccess(this.selectedUser.id, validRoutes).subscribe({
+    next: (response) => {
+      console.log('✅ SUCCESS! Saved routes:', response.data.routeAccess);
+      this.showToast('success', 'تم تحديث صلاحيات المسارات بنجاح');
+      
+      // ✅ NEW: If updating current user, force refresh their session
+      const currentUser = this.authService.currentUserValue;
+      if (currentUser && currentUser.id === this.selectedUser!.id) {
+        console.log('🔄 Updating current user permissions - forcing refresh...');
+        
+        this.authService.forceRefresh().subscribe({
+          next: (updatedUser) => {
+            console.log('✅ Current user session updated:', updatedUser.routeAccess);
+            this.showToast('info', 'تم تحديث الصلاحيات في حسابك الحالي');
+          },
+          error: (error) => {
+            console.error('❌ Error refreshing current user:', error);
+          }
+        });
+      }
+      
+      this.savingUser = false;
+      this.closeRouteAccessModal();
+      this.loadUsers();
+    },
+    error: (error) => {
+      console.error('❌ ERROR saving routes:', error);
+      this.showToast('error', error.error?.message || 'حدث خطأ أثناء تحديث الصلاحيات');
+      this.savingUser = false;
+    }
+  });
+}
 
   // ============================================
   // SYSTEM ACCESS MANAGEMENT
@@ -708,25 +722,42 @@ export class UsersControlComponent implements OnInit, OnDestroy {
     this.selectedUser = null;
   }
 
-  saveSystemAccess(): void {
-    if (!this.selectedUser) return;
+saveSystemAccess(): void {
+  if (!this.selectedUser) return;
 
-    this.savingUser = true;
+  this.savingUser = true;
 
-    this.usersService.updateSystemAccess(this.selectedUser.id, this.systemAccessForm).subscribe({
-      next: (response) => {
-        this.showToast('success', 'تم تحديث صلاحيات النظام بنجاح');
-        this.savingUser = false;
-        this.closeSystemAccessModal();
-        this.loadUsers();
-      },
-      error: (error) => {
-        console.error('Error updating system access:', error);
-        this.showToast('error', error.error?.message || 'حدث خطأ أثناء تحديث الصلاحيات');
-        this.savingUser = false;
+  this.usersService.updateSystemAccess(this.selectedUser.id, this.systemAccessForm).subscribe({
+    next: (response) => {
+      this.showToast('success', 'تم تحديث صلاحيات النظام بنجاح');
+      
+      // ✅ NEW: If updating current user, force refresh their session
+      const currentUser = this.authService.currentUserValue;
+      if (currentUser && currentUser.id === this.selectedUser!.id) {
+        console.log('🔄 Updating current user permissions - forcing refresh...');
+        
+        this.authService.forceRefresh().subscribe({
+          next: (updatedUser) => {
+            console.log('✅ Current user session updated:', updatedUser.systemAccess);
+            this.showToast('info', 'تم تحديث الصلاحيات في حسابك الحالي');
+          },
+          error: (error) => {
+            console.error('❌ Error refreshing current user:', error);
+          }
+        });
       }
-    });
-  }
+      
+      this.savingUser = false;
+      this.closeSystemAccessModal();
+      this.loadUsers();
+    },
+    error: (error) => {
+      console.error('Error updating system access:', error);
+      this.showToast('error', error.error?.message || 'حدث خطأ أثناء تحديث الصلاحيات');
+      this.savingUser = false;
+    }
+  });
+}
 
   // ============================================
   // HELPER METHODS

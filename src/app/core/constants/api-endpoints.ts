@@ -12,12 +12,15 @@ export const API_ENDPOINTS = {
     CHANGE_PASSWORD: `${environment.apiUrl}/auth/change-password`,
     ME: `${environment.apiUrl}/auth/me`,
     VERIFY_TOKEN: `${environment.apiUrl}/auth/verify-token`,
+    REFRESH_TOKEN: `${environment.apiUrl}/auth/refresh-token`,
   },
 
   // ============================================
   // USERS MANAGEMENT ENDPOINTS
   // ============================================
   USERS: {
+    ME: `${environment.apiUrl}/users/me`, // ✅ Current user endpoint for auto-refresh
+    PROFILE: `${environment.apiUrl}/users/profile`, // ✅ User profile endpoint
     GET_ALL: `${environment.apiUrl}/users`,
     GET_BY_ID: (id: string) => `${environment.apiUrl}/users/${id}`,
     CREATE: `${environment.apiUrl}/users`,
@@ -29,7 +32,9 @@ export const API_ENDPOINTS = {
     UPDATE_USERNAME: (id: string) => `${environment.apiUrl}/users/${id}/username`,
     UPDATE_SYSTEM_ACCESS: (id: string) => `${environment.apiUrl}/users/${id}/system-access`,
     UPDATE_ROUTE_ACCESS: (id: string) => `${environment.apiUrl}/users/${id}/route-access`,
-    GET_AVAILABLE_ROUTES: `${environment.apiUrl}/users/available-routes`
+    PERMISSIONS: (id: string) => `${environment.apiUrl}/users/${id}/permissions`, // ✅ Update both systemAccess & routeAccess
+    GET_AVAILABLE_ROUTES: `${environment.apiUrl}/users/available-routes`,
+    STATS: `${environment.apiUrl}/users/stats/summary`, // ✅ User statistics
   },
 
   // ============================================
@@ -77,13 +82,13 @@ export const API_ENDPOINTS = {
   // COSTING_SHEETS ENDPOINTS
   // ============================================
   COSTING_SHEETS: {
-    CREATE: '/api/costing-sheets',
-    GET_ALL: '/api/costing-sheets',
-    GET_MY_LATEST: '/api/costing-sheets/my-latest',
-    GET_BY_ID: (id: string) => `/api/costing-sheets/${id}`,
-    UPDATE: (id: string) => `/api/costing-sheets/${id}`,
-    DELETE: (id: string) => `/api/costing-sheets/${id}`,
-    DOWNLOAD_PDF: (id: string) => `/api/costing-sheets/${id}/pdf`
+    CREATE: `${environment.apiUrl}/costing-sheets`,
+    GET_ALL: `${environment.apiUrl}/costing-sheets`,
+    GET_MY_LATEST: `${environment.apiUrl}/costing-sheets/my-latest`,
+    GET_BY_ID: (id: string) => `${environment.apiUrl}/costing-sheets/${id}`,
+    UPDATE: (id: string) => `${environment.apiUrl}/costing-sheets/${id}`,
+    DELETE: (id: string) => `${environment.apiUrl}/costing-sheets/${id}`,
+    DOWNLOAD_PDF: (id: string) => `${environment.apiUrl}/costing-sheets/${id}/pdf`
   },
 
   // ============================================
@@ -151,12 +156,9 @@ export const API_ENDPOINTS = {
   // EMPTY_RECEIPTS ENDPOINTS
   // ============================================
   EMPTY_RECEIPTS: {
-    // EXISTING endpoints (keep these)
-    GENERATE: `${environment.apiUrl}/empty-receipts/generate`, // ✅ Keep existing
-    DOWNLOAD: (filename: string) => `${environment.apiUrl}/empty-receipts/download/${filename}`, // ✅ Keep existing
-    VIEW: (filename: string) => `${environment.apiUrl}/empty-receipts/view/${filename}`, // ✅ Keep existing (if you have it)
-    
-    // ✅ NEW endpoints (add these)
+    GENERATE: `${environment.apiUrl}/empty-receipts/generate`,
+    DOWNLOAD: (filename: string) => `${environment.apiUrl}/empty-receipts/download/${filename}`,
+    VIEW: (filename: string) => `${environment.apiUrl}/empty-receipts/view/${filename}`,
     GET_ALL: `${environment.apiUrl}/empty-receipts`,
     GET_BY_ID: (id: string) => `${environment.apiUrl}/empty-receipts/${id}`,
     GET_BY_NUMBER: (receiptNumber: string) => `${environment.apiUrl}/empty-receipts/number/${receiptNumber}`,
@@ -237,15 +239,19 @@ export const API_ENDPOINTS = {
     BULK_DELETE: `${environment.apiUrl}/file-management/bulk-delete`,
     EXPORT_LIST: `${environment.apiUrl}/file-management/export/list`
   },
+
+  // ============================================
+  // PROFORMA INVOICES ENDPOINTS
+  // ============================================
   PROFORMA_INVOICES: {
-  GET_ALL: `${environment.apiUrl}/proforma-invoices`,
-  GET_BY_ID: (id: string) => `${environment.apiUrl}/proforma-invoices/${id}`,
-  CREATE: `${environment.apiUrl}/proforma-invoices`,
-  UPDATE: (id: string) => `${environment.apiUrl}/proforma-invoices/${id}`,
-  DELETE: (id: string) => `${environment.apiUrl}/proforma-invoices/${id}`,
-  GET_MY_LATEST: `${environment.apiUrl}/proforma-invoices/my-latest`,
-  DOWNLOAD_PDF: (id: string) => `${environment.apiUrl}/proforma-invoices/${id}/pdf`
-},
+    GET_ALL: `${environment.apiUrl}/proforma-invoices`,
+    GET_BY_ID: (id: string) => `${environment.apiUrl}/proforma-invoices/${id}`,
+    CREATE: `${environment.apiUrl}/proforma-invoices`,
+    UPDATE: (id: string) => `${environment.apiUrl}/proforma-invoices/${id}`,
+    DELETE: (id: string) => `${environment.apiUrl}/proforma-invoices/${id}`,
+    GET_MY_LATEST: `${environment.apiUrl}/proforma-invoices/my-latest`,
+    DOWNLOAD_PDF: (id: string) => `${environment.apiUrl}/proforma-invoices/${id}/pdf`
+  },
 };
 
 // ============================================

@@ -1,21 +1,23 @@
+// src/app/shared/side-bar/side-bar.component.ts - FIXED TYPESCRIPT VERSION
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { AuthService } from '../../core/services/auth.service';
+import { AuthService, User } from '../../core/services/auth.service';
 
 export interface MenuItem {
   title: string;
   route: string;
   icon: string;
   iconColor?: string;
-  routeKey?: string; // Route access key for permission checking
-  requiredRoles?: string[]; // Required roles for this menu item
+  routeKey?: string;
+  requiredRoles?: string[];
+  requiresSystemAccess?: keyof User['systemAccess']; // ✅ FIXED: Properly typed
 }
 
 export interface MenuSection {
   title?: string;
   items: MenuItem[];
-  requiredRoles?: string[]; // Required roles to see this entire section
+  requiredRoles?: string[];
 }
 
 @Component({
@@ -34,7 +36,7 @@ export class SideBarComponent implements OnInit {
   showLogoutModal = signal<boolean>(false);
 
   // Signal for current user
-  currentUser = signal<any>(null);
+  currentUser = signal<User | null>(null);
 
   // Computed values for user info
   userName = computed(() => {
@@ -112,7 +114,7 @@ export class SideBarComponent implements OnInit {
           route: '/users',
           icon: 'bi-people-fill',
           routeKey: 'users',
-          requiredRoles: ['super_admin'] // Only super_admin
+          requiredRoles: ['super_admin']
         },
         {
           title: 'إدارة الملفات',
@@ -194,7 +196,8 @@ export class SideBarComponent implements OnInit {
           title: 'نظام إدارة القص',
           route: '/cutting',
           icon: 'bi-scissors',
-          routeKey: 'cutting'
+          routeKey: 'cutting',
+          requiresSystemAccess: 'laserCuttingManagement' // ✅ FIXED: Now properly typed
         }
       ]
     }
@@ -209,6 +212,12 @@ export class SideBarComponent implements OnInit {
     // Subscribe to user changes from AuthService
     this.authService.currentUser$.subscribe(user => {
       this.currentUser.set(user);
+      console.log('👤 Sidebar: User updated', {
+        name: user?.name,
+        role: user?.role,
+        systemAccess: user?.systemAccess,
+        routeAccess: user?.routeAccess
+      });
     });
 
     // Initial load from stored user
@@ -251,51 +260,86 @@ export class SideBarComponent implements OnInit {
   }
 
   /**
-   * Check if user can access a menu item
+   * ✅ FIXED: Check if user can access a menu item
    */
   private canAccessMenuItem(item: MenuItem): boolean {
     const user = this.currentUser();
     if (!user) return false;
 
+    console.log(`🔍 Checking menu access for: ${item.title}`, {
+      routeKey: item.routeKey,
+      requiresSystemAccess: item.requiresSystemAccess,
+      userRole: user.role,
+      systemAccess: user.systemAccess,
+      routeAccess: user.routeAccess
+    });
+
     // Super admin has access to everything
     if (user.role === 'super_admin') {
+      console.log('✅ Super admin - access granted');
       return true;
     }
 
     // Admin has access to everything except user management
     if (user.role === 'admin') {
       if (item.routeKey === 'users') {
+        console.log('❌ Admin cannot access user management');
         return false;
       }
+      console.log('✅ Admin - access granted');
       return true;
     }
 
     // Check required roles if specified
     if (item.requiredRoles && !item.requiredRoles.includes(user.role)) {
+      console.log('❌ Role not in required roles');
       return false;
+    }
+
+    // ✅ FIXED: Check system access if required (e.g., for cutting)
+    if (item.requiresSystemAccess) {
+      const hasSystemAccess = this.authService.hasSystemAccess(item.requiresSystemAccess);
+      
+      if (!hasSystemAccess) {
+        console.log(`❌ No system access: ${String(item.requiresSystemAccess)}`);
+        return false;
+      }
+      
+      console.log(`✅ Has system access: ${String(item.requiresSystemAccess)}`);
+      
+      // For items with system access requirement, we don't check routeAccess
+      // System access is the primary permission
+      return true;
     }
 
     // For secretariat role
     if (user.role === 'secretariat') {
       const secretariatRoutes = ['secretariat', 'secretariatUserManagement'];
-      return item.routeKey ? secretariatRoutes.includes(item.routeKey) : false;
+      const hasAccess = item.routeKey ? secretariatRoutes.includes(item.routeKey) : false;
+      console.log(hasAccess ? '✅ Secretariat access granted' : '❌ Secretariat access denied');
+      return hasAccess;
     }
 
     // For employee role - check routeAccess
     if (user.role === 'employee') {
       // Dashboard is always accessible
       if (item.route === '/dashboard') {
+        console.log('✅ Dashboard always accessible');
         return true;
       }
 
       // Check if route key is in user's routeAccess array
       if (item.routeKey) {
-        return this.authService.hasRouteAccess(item.routeKey);
+        const hasAccess = this.authService.hasRouteAccess(item.routeKey);
+        console.log(hasAccess ? `✅ Employee has routeAccess to ${item.routeKey}` : `❌ Employee missing routeAccess to ${item.routeKey}`);
+        return hasAccess;
       }
 
+      console.log('❌ No routeKey defined');
       return false;
     }
 
+    console.log('❌ Default deny');
     return false;
   }
 
