@@ -1,5 +1,5 @@
 // ============================================================
-// COSTING SHEET COMPONENT - WITH CORRECTED ARABIC TRANSLATIONS
+// COSTING SHEET COMPONENT - WITH TEXT-BASED TERMS AND CONDITIONS
 // costing-sheet.component.ts
 // ============================================================
 
@@ -33,6 +33,38 @@ interface Toast {
   styleUrl: './costing-sheet.component.scss'
 })
 export class CostingSheetComponent implements OnInit, OnDestroy {
+  // ✅ DEFAULT TERMS & CONDITIONS TEXT
+  // Replace these with your actual Terms & Conditions
+  private readonly DEFAULT_TERMS_AR = `الشروط والأحكام
+
+١. الأسعار المذكورة سارية لمدة ٣٠ يوماً من تاريخ هذا العرض.
+٢. يتم الدفع على النحو التالي:
+   • ٣٠٪ دفعة مقدمة عند التوقيع على العقد
+   • ٤٠٪ عند منتصف المشروع
+   • ٣٠٪ عند الانتهاء والتسليم
+٣. جميع الأسعار لا تشمل ضريبة القيمة المضافة.
+٤. أي تغييرات في نطاق العمل قد تؤدي إلى تعديل الأسعار والجداول الزمنية.
+٥. الشركة غير مسؤولة عن التأخيرات الناجمة عن ظروف خارجة عن إرادتها.
+٦. يحتفظ المورد بحق ملكية البضائع حتى استلام الدفعة الكاملة.
+٧. يتم حل أي نزاعات بموجب قوانين [البلد/الدولة].
+
+نشكركم على ثقتكم بنا ونتطلع للعمل معكم.`;
+
+  private readonly DEFAULT_TERMS_EN = `Terms and Conditions
+
+1. Prices quoted are valid for 30 days from the date of this quotation.
+2. Payment terms are as follows:
+   • 30% deposit upon contract signing
+   • 40% at project milestone
+   • 30% upon completion and delivery
+3. All prices exclude applicable VAT/taxes.
+4. Any changes to scope of work may result in price and timeline adjustments.
+5. The company is not liable for delays due to circumstances beyond its control.
+6. The supplier retains title to goods until full payment is received.
+7. Any disputes shall be governed by the laws of [Country/State].
+
+Thank you for your trust and we look forward to working with you.`;
+
   // View states
   currentView: ViewMode = 'list';
   currentStep: FormStep = 'basic';
@@ -75,7 +107,7 @@ export class CostingSheetComponent implements OnInit, OnDestroy {
   formError: string = '';
   fieldErrors: { [key: string]: string } = {};
 
-  // Form data with includeStaticFile
+  // ✅ Form data with text-based Terms & Conditions
   csForm: CreateCostingSheetData = {
     date: this.getTodayDate(),
     client: '',
@@ -84,7 +116,8 @@ export class CostingSheetComponent implements OnInit, OnDestroy {
     notes: '',
     items: [],
     additionalNotes: '',
-    includeStaticFile: false
+    includeTermsAndConditions: false,
+    termsAndConditionsText: ''
   };
 
   // PDF generation
@@ -116,7 +149,7 @@ export class CostingSheetComponent implements OnInit, OnDestroy {
   showDuplicateModal: boolean = false;
   csToDuplicate: CostingSheet | null = null;
 
-
+  // SHARE MODAL STATE
   showShareModal: boolean = false;
   shareCSId: string = '';
   shareCSNumber: string = '';
@@ -128,12 +161,13 @@ export class CostingSheetComponent implements OnInit, OnDestroy {
   customEmail: string = '';
   sendingEmail: boolean = false;
 
-  // ✅ Static email addresses - UPDATE THESE
+  // Static email addresses
   staticEmails = {
     email1: 'alaqtash@gmail.com',
     email2: 'munther.fayed@gmail.com'
   };
-  // Translations (Updated Arabic: كشف التكاليف)
+
+  // Translations
   private translations = {
     ar: {
       errors: {
@@ -231,77 +265,71 @@ export class CostingSheetComponent implements OnInit, OnDestroy {
     private itemsService: ItemsService
   ) {}
 
-ngOnInit(): void {
-  // ✅ AUTHENTICATION DEBUG - Check if user is logged in
-  console.log('🔐 Costing Sheet Component Initialized');
-  
-  // Check localStorage for auth data
-  const token = localStorage.getItem('token');
-  const userDataString = localStorage.getItem('user');
-  
-  console.log('Token exists:', !!token);
-  console.log('User data exists:', !!userDataString);
-  
-  if (!token) {
-    console.error('❌ NO TOKEN FOUND! User may not be logged in.');
-    console.error('Redirecting to login...');
-    this.router.navigate(['/login']);
-    return;
-  }
-  
-  if (token) {
-    console.log('✅ Token found:', token.substring(0, 20) + '...');
-  }
-  
-  if (userDataString) {
-    try {
-      const userData = JSON.parse(userDataString);
-      console.log('✅ User data:', {
-        id: userData.id,
-        name: userData.name,
-        role: userData.role
-      });
-      this.userRole = userData.role;
-    } catch (e) {
-      console.error('❌ Failed to parse user data:', e);
+  ngOnInit(): void {
+    console.log('🔐 Costing Sheet Component Initialized');
+
+    const token = localStorage.getItem('token');
+    const userDataString = localStorage.getItem('user');
+
+    console.log('Token exists:', !!token);
+    console.log('User data exists:', !!userDataString);
+
+    if (!token) {
+      console.error('❌ NO TOKEN FOUND! User may not be logged in.');
+      console.error('Redirecting to login...');
+      this.router.navigate(['/login']);
+      return;
     }
-  }
-  
-  // Log authentication status from service
-  this.costingSheetService.logAuthStatus();
-  
-  // Verify AuthService has user
-  const currentUser = this.authService.currentUserValue;
-  console.log('AuthService currentUser:', currentUser);
-  
-  if (!currentUser) {
-    console.error('❌ AuthService has no current user!');
-    console.error('Redirecting to login...');
-    this.router.navigate(['/login']);
-    return;
-  }
-  
-  // Set user role from AuthService if not already set
-  if (!this.userRole && currentUser) {
-    this.userRole = currentUser.role || '';
-  }
-  
-  // If we made it here, we have auth data - proceed with loading
-  console.log('✅ Authentication verified, loading data...');
-  
-  this.loadCostingSheets();
-  this.loadAvailableItems();
 
-  this.updateDirection();
+    if (token) {
+      console.log('✅ Token found:', token.substring(0, 20) + '...');
+    }
 
-  this.searchSubject.pipe(
-    debounceTime(500),
-    distinctUntilChanged()
-  ).subscribe(() => {
-    this.currentPage = 1;
+    if (userDataString) {
+      try {
+        const userData = JSON.parse(userDataString);
+        console.log('✅ User data:', {
+          id: userData.id,
+          name: userData.name,
+          role: userData.role
+        });
+        this.userRole = userData.role;
+      } catch (e) {
+        console.error('❌ Failed to parse user data:', e);
+      }
+    }
+
+    this.costingSheetService.logAuthStatus();
+
+    const currentUser = this.authService.currentUserValue;
+    console.log('AuthService currentUser:', currentUser);
+
+    if (!currentUser) {
+      console.error('❌ AuthService has no current user!');
+      console.error('Redirecting to login...');
+      this.router.navigate(['/login']);
+      return;
+    }
+
+    if (!this.userRole && currentUser) {
+      this.userRole = currentUser.role || '';
+    }
+
+    console.log('✅ Authentication verified, loading data...');
+
     this.loadCostingSheets();
-  });
-}
+    this.loadAvailableItems();
+
+    this.updateDirection();
+
+    this.searchSubject.pipe(
+      debounceTime(500),
+      distinctUntilChanged()
+    ).subscribe(() => {
+      this.currentPage = 1;
+      this.loadCostingSheets();
+    });
+  }
 
   ngOnDestroy(): void {
     this.searchSubject.complete();
@@ -310,6 +338,37 @@ ngOnInit(): void {
     this.closeDuplicateModal();
     document.documentElement.setAttribute('dir', 'rtl');
     document.body.setAttribute('dir', 'rtl');
+  }
+
+  // ========================================
+  // ✅ TERMS & CONDITIONS HANDLING
+  // ========================================
+
+  /**
+   * Get default Terms & Conditions based on current language
+   */
+  getDefaultTermsAndConditions(): string {
+    return this.formLanguage === 'ar' ? this.DEFAULT_TERMS_AR : this.DEFAULT_TERMS_EN;
+  }
+
+  /**
+   * Handle Terms & Conditions checkbox change
+   */
+  onTermsAndConditionsToggle(): void {
+    if (this.csForm.includeTermsAndConditions) {
+      // If checkbox is checked and text is empty, populate with default
+      if (!this.csForm.termsAndConditionsText || this.csForm.termsAndConditionsText.trim() === '') {
+        this.csForm.termsAndConditionsText = this.getDefaultTermsAndConditions();
+      }
+    }
+    // If unchecked, we keep the text (user might want to check it again)
+  }
+
+  /**
+   * Reset Terms & Conditions to default
+   */
+  resetTermsToDefault(): void {
+    this.csForm.termsAndConditionsText = this.getDefaultTermsAndConditions();
   }
 
   // ========================================
@@ -369,7 +428,7 @@ ngOnInit(): void {
   hasAutoFilledUnit(index: number): boolean {
     const selectedItemId = this.getSelectedItemId(index);
     if (!selectedItemId) return false;
-    
+
     const selectedItem = this.availableItems.find(item => item.id === selectedItemId);
     return !!(selectedItem && selectedItem.unit && this.csForm.items[index].unit);
   }
@@ -413,35 +472,29 @@ ngOnInit(): void {
   // SUCCESS MODAL METHODS
   // ========================================
 
-// ========================================
-// SUCCESS MODAL METHODS
-// ========================================
+  openSuccessModal(csId: string, csNumber: string): void {
+    this.successCSId = csId;
+    this.successCSNumber = csNumber;
 
-openSuccessModal(csId: string, csNumber: string): void {
-  this.successCSId = csId;
-  this.successCSNumber = csNumber;
-  
-  // ✅ Fetch the full costing sheet to get the PDF filename
-  this.costingSheetService.getCostingSheetById(csId).subscribe({
-    next: (response: any) => {
-      this.selectedCS = response.data; // Store the full object
-      this.showSuccessModal = true;
-    },
-    error: (error: any) => {
-      console.error('Error fetching costing sheet for success modal:', error);
-      // Still show modal even if fetch fails
-      this.showSuccessModal = true;
-    }
-  });
-}
+    this.costingSheetService.getCostingSheetById(csId).subscribe({
+      next: (response: any) => {
+        this.selectedCS = response.data;
+        this.showSuccessModal = true;
+      },
+      error: (error: any) => {
+        console.error('Error fetching costing sheet for success modal:', error);
+        this.showSuccessModal = true;
+      }
+    });
+  }
 
-closeSuccessModal(): void {
-  this.showSuccessModal = false;
-  this.successCSId = '';
-  this.successCSNumber = '';
-  this.selectedCS = null; // ✅ Clear the selected CS
-  this.backToList();
-}
+  closeSuccessModal(): void {
+    this.showSuccessModal = false;
+    this.successCSId = '';
+    this.successCSNumber = '';
+    this.selectedCS = null;
+    this.backToList();
+  }
 
   viewPDFFromSuccess(): void {
     if (this.successCSId) {
@@ -455,18 +508,15 @@ closeSuccessModal(): void {
     }
   }
 
-downloadPDFFromSuccess(): void {
-  if (this.successCSId && this.selectedCS && this.selectedCS.pdfFilename) {
-    // ✅ Use the actual PDF filename from the database
-    this.costingSheetService.downloadPDF(this.successCSId, this.selectedCS.pdfFilename);
-  } else if (this.successCSId && this.successCSNumber) {
-    // ✅ Fallback: Use CS number if we don't have the full filename
-    this.costingSheetService.downloadPDF(this.successCSId, `${this.successCSNumber}.pdf`);
-  } else {
-    this.showToast('error', this.t('errors.pdfNotGenerated'));
+  downloadPDFFromSuccess(): void {
+    if (this.successCSId && this.selectedCS && this.selectedCS.pdfFilename) {
+      this.costingSheetService.downloadPDF(this.successCSId, this.selectedCS.pdfFilename);
+    } else if (this.successCSId && this.successCSNumber) {
+      this.costingSheetService.downloadPDF(this.successCSId, `${this.successCSNumber}.pdf`);
+    } else {
+      this.showToast('error', this.t('errors.pdfNotGenerated'));
+    }
   }
-}
-
 
   doneSuccess(): void {
     this.closeSuccessModal();
@@ -542,7 +592,8 @@ downloadPDFFromSuccess(): void {
           notes: sourceCS.notes || '',
           items: clonedItems,
           additionalNotes: sourceCS.additionalNotes || '',
-          includeStaticFile: sourceCS.includeStaticFile || false
+          includeTermsAndConditions: sourceCS.includeTermsAndConditions || false,
+          termsAndConditionsText: sourceCS.termsAndConditionsText || ''
         };
 
         this.currentView = 'create';
@@ -784,7 +835,8 @@ downloadPDFFromSuccess(): void {
           notes: freshCS.notes || '',
           items: clonedItems,
           additionalNotes: freshCS.additionalNotes || '',
-          includeStaticFile: freshCS.includeStaticFile || false
+          includeTermsAndConditions: freshCS.includeTermsAndConditions || false,
+          termsAndConditionsText: freshCS.termsAndConditionsText || ''
         };
       },
       error: (error: any) => {
@@ -835,7 +887,8 @@ downloadPDFFromSuccess(): void {
       notes: this.csForm.notes,
       items: formattedItems,
       additionalNotes: this.csForm.additionalNotes,
-      includeStaticFile: this.csForm.includeStaticFile
+      includeTermsAndConditions: this.csForm.includeTermsAndConditions,
+      termsAndConditionsText: this.csForm.termsAndConditionsText
     };
 
     if (this.currentView === 'create') {
@@ -954,157 +1007,157 @@ downloadPDFFromSuccess(): void {
     });
   }
 
-
   // ========================================
-// ✅ SHARE/EMAIL FUNCTIONALITY
-// ========================================
+  // SHARE/EMAIL FUNCTIONALITY
+  // ========================================
 
-openShareModal(cs: CostingSheet): void {
-  if (!cs.pdfFilename) {
-    this.showToast('error', this.t('errors.pdfNotGenerated'));
-    return;
-  }
-  this.shareCSId = cs.id;
-  this.shareCSNumber = cs.csNumber;
-  
-  this.emailSelections = {
-    email1: false,
-    email2: false,
-    custom: false
-  };
-  this.customEmail = '';
-  this.showShareModal = true;
-}
-
-closeShareModal(): void {
-  this.showShareModal = false;
-  this.shareCSId = '';
-  this.shareCSNumber = '';
-  this.emailSelections = {
-    email1: false,
-    email2: false,
-    custom: false
-  };
-  this.customEmail = '';
-}
-
-getSelectedEmailsList(): string[] {
-  const emails: string[] = [];
-  
-  if (this.emailSelections.email1) {
-    emails.push(this.staticEmails.email1);
-  }
-  
-  if (this.emailSelections.email2) {
-    emails.push(this.staticEmails.email2);
-  }
-  
-  if (this.emailSelections.custom && this.customEmail && this.customEmail.trim()) {
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (emailPattern.test(this.customEmail.trim())) {
-      emails.push(this.customEmail.trim());
-    }
-  }
-  
-  return emails;
-}
-
-isEmailValid(): boolean {
-  const selectedEmails = this.getSelectedEmailsList();
-  
-  if (selectedEmails.length === 0) {
-    return false;
-  }
-  
-  if (this.emailSelections.custom) {
-    if (!this.customEmail || this.customEmail.trim() === '') {
-      return false;
-    }
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailPattern.test(this.customEmail.trim())) {
-      return false;
-    }
-  }
-  
-  return true;
-}
-
-sendEmailWithPDF(): void {
-  const selectedEmails = this.getSelectedEmailsList();
-  
-  if (selectedEmails.length === 0) {
-    this.showToast('error', this.formLanguage === 'ar' 
-      ? 'يرجى اختيار بريد إلكتروني واحد على الأقل'
-      : 'Please select at least one email address'
-    );
-    return;
-  }
-
-  this.sendingEmail = true;
-  
-  let completedCount = 0;
-  let failedCount = 0;
-  
-  const sendToNextEmail = (index: number) => {
-    if (index >= selectedEmails.length) {
-      this.sendingEmail = false;
-      this.closeShareModal();
-      
-      if (failedCount === 0) {
-        const successMsg = this.formLanguage === 'ar'
-          ? `تم الإرسال بنجاح إلى ${completedCount} بريد إلكتروني`
-          : `Sent successfully to ${completedCount} email${completedCount > 1 ? 's' : ''}`;
-        this.showToast('success', successMsg);
-      } else if (completedCount > 0) {
-        const partialMsg = this.formLanguage === 'ar'
-          ? `تم الإرسال إلى ${completedCount} من أصل ${selectedEmails.length} بريد`
-          : `Sent to ${completedCount} of ${selectedEmails.length} emails`;
-        this.showToast('warning', partialMsg);
-      } else {
-        this.showToast('error', this.t('errors.emailFailed'));
-      }
+  openShareModal(cs: CostingSheet): void {
+    if (!cs.pdfFilename) {
+      this.showToast('error', this.t('errors.pdfNotGenerated'));
       return;
     }
-    
-    const email = selectedEmails[index];
-    
-    this.costingSheetService.sendCostingSheetByEmail(this.shareCSId, email).subscribe({
-      next: () => {
-        completedCount++;
-        sendToNextEmail(index + 1);
-      },
-      error: (error: any) => {
-        console.error(`Error sending to ${email}:`, error);
-        failedCount++;
-        sendToNextEmail(index + 1);
-      }
-    });
-  };
-  
-  sendToNextEmail(0);
-}
+    this.shareCSId = cs.id;
+    this.shareCSNumber = cs.csNumber;
 
-shareFromSuccessModal(): void {
-  if (this.successCSId) {
-    this.closeSuccessModal();
-    this.costingSheetService.getCostingSheetById(this.successCSId).subscribe({
-      next: (response: any) => {
-        this.openShareModal(response.data);
-      },
-      error: () => {
-        this.showToast('error', this.t('errors.loadFailed'));
-      }
-    });
+    this.emailSelections = {
+      email1: false,
+      email2: false,
+      custom: false
+    };
+    this.customEmail = '';
+    this.showShareModal = true;
   }
-}
 
-isValidEmail(email: string): boolean {
-  if (!email || email.trim() === '') {
-    return false;
+  closeShareModal(): void {
+    this.showShareModal = false;
+    this.shareCSId = '';
+    this.shareCSNumber = '';
+    this.emailSelections = {
+      email1: false,
+      email2: false,
+      custom: false
+    };
+    this.customEmail = '';
   }
-  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailPattern.test(email.trim());
-}
+
+  getSelectedEmailsList(): string[] {
+    const emails: string[] = [];
+
+    if (this.emailSelections.email1) {
+      emails.push(this.staticEmails.email1);
+    }
+
+    if (this.emailSelections.email2) {
+      emails.push(this.staticEmails.email2);
+    }
+
+    if (this.emailSelections.custom && this.customEmail && this.customEmail.trim()) {
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (emailPattern.test(this.customEmail.trim())) {
+        emails.push(this.customEmail.trim());
+      }
+    }
+
+    return emails;
+  }
+
+  isEmailValid(): boolean {
+    const selectedEmails = this.getSelectedEmailsList();
+
+    if (selectedEmails.length === 0) {
+      return false;
+    }
+
+    if (this.emailSelections.custom) {
+      if (!this.customEmail || this.customEmail.trim() === '') {
+        return false;
+      }
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailPattern.test(this.customEmail.trim())) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  sendEmailWithPDF(): void {
+    const selectedEmails = this.getSelectedEmailsList();
+
+    if (selectedEmails.length === 0) {
+      this.showToast('error', this.formLanguage === 'ar'
+        ? 'يرجى اختيار بريد إلكتروني واحد على الأقل'
+        : 'Please select at least one email address'
+      );
+      return;
+    }
+
+    this.sendingEmail = true;
+
+    let completedCount = 0;
+    let failedCount = 0;
+
+    const sendToNextEmail = (index: number) => {
+      if (index >= selectedEmails.length) {
+        this.sendingEmail = false;
+        this.closeShareModal();
+
+        if (failedCount === 0) {
+          const successMsg = this.formLanguage === 'ar'
+            ? `تم الإرسال بنجاح إلى ${completedCount} بريد إلكتروني`
+            : `Sent successfully to ${completedCount} email${completedCount > 1 ? 's' : ''}`;
+          this.showToast('success', successMsg);
+        } else if (completedCount > 0) {
+          const partialMsg = this.formLanguage === 'ar'
+            ? `تم الإرسال إلى ${completedCount} من أصل ${selectedEmails.length} بريد`
+            : `Sent to ${completedCount} of ${selectedEmails.length} emails`;
+          this.showToast('warning', partialMsg);
+        } else {
+          this.showToast('error', this.t('errors.emailFailed'));
+        }
+        return;
+      }
+
+      const email = selectedEmails[index];
+
+      this.costingSheetService.sendCostingSheetByEmail(this.shareCSId, email).subscribe({
+        next: () => {
+          completedCount++;
+          sendToNextEmail(index + 1);
+        },
+        error: (error: any) => {
+          console.error(`Error sending to ${email}:`, error);
+          failedCount++;
+          sendToNextEmail(index + 1);
+        }
+      });
+    };
+
+    sendToNextEmail(0);
+  }
+
+  shareFromSuccessModal(): void {
+    if (this.successCSId) {
+      this.closeSuccessModal();
+      this.costingSheetService.getCostingSheetById(this.successCSId).subscribe({
+        next: (response: any) => {
+          this.openShareModal(response.data);
+        },
+        error: () => {
+          this.showToast('error', this.t('errors.loadFailed'));
+        }
+      });
+    }
+  }
+
+  isValidEmail(email: string): boolean {
+    if (!email || email.trim() === '') {
+      return false;
+    }
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailPattern.test(email.trim());
+  }
+
   // ========================================
   // FORM NAVIGATION
   // ========================================
@@ -1160,7 +1213,8 @@ isValidEmail(email: string): boolean {
       notes: '',
       items: [],
       additionalNotes: '',
-      includeStaticFile: false
+      includeTermsAndConditions: false,
+      termsAndConditionsText: ''
     };
     this.formPdfAttachment = null;
     this.clearErrors();

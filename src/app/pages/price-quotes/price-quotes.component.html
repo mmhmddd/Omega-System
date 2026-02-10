@@ -129,7 +129,7 @@
               </button>
               <button
                 class="btn-icon btn-share"
-                (click)="openShareModal(quote)" 
+                (click)="openShareModal(quote)"
                 [title]="formLanguage === 'ar' ? 'مشاركة' : 'Share'">
                 <i class="bi bi-envelope"></i>
               </button>
@@ -726,83 +726,107 @@
           </div>
         </div>
 
-        <!-- ✅ NEW STEP 4: Terms & Conditions Options -->
-        <div *ngIf="currentStep === 'options'" class="step-content">
-          <h2 class="step-title">
-            {{ formLanguage === 'ar' ? 'الشروط والأحكام' : 'Terms & Conditions' }}
-          </h2>
-          
-          <!-- Info Alert -->
-          <div class="info-alert">
-            <i class="bi bi-info-circle"></i>
-            <div style="flex: 1;">
-              <p>
-                {{ formLanguage === 'ar'
-                  ? 'يمكنك اختيار إضافة ملف PDF ثابت (الشروط والأحكام) إلى عرض السعر الخاص بك. سيتم دمج الملف تلقائياً في نهاية المستند عند تفعيل هذا الخيار.'
-                  : 'You can choose to include a static PDF file (Terms and Conditions) with your price quote. The file will be automatically merged at the end of the document when this option is enabled.'
-                }}
-              </p>
-            </div>
-          </div>
+<!-- ✅ STEP 4: Terms & Conditions Options -->
+<div *ngIf="currentStep === 'options'" class="step-content">
+  <h2 class="step-title">
+    {{ formLanguage === 'ar' ? 'الشروط والأحكام' : 'Terms & Conditions' }}
+  </h2>
 
-          <!-- Static PDF Checkbox -->
-          <div class="static-pdf-option">
-            <div class="checkbox-container">
-              <input
-                type="checkbox"
-                id="includeStaticFile"
-                [(ngModel)]="quoteForm.includeStaticFile"
-                class="checkbox-input"
-              />
-              <label for="includeStaticFile" class="checkbox-label">
-                <i class="bi bi-file-earmark-pdf"></i>
-                <span>
-                  {{ formLanguage === 'ar'
-                    ? 'إضافة ملف الشروط والأحكام إلى عرض السعر'
-                    : 'Include Terms and Conditions with Price Quote'
-                  }}
-                </span>
-              </label>
-            </div>
-            
-            <small class="help-text">
-              {{ formLanguage === 'ar'
-                ? 'عند تفعيل هذا الخيار، سيتم إضافة ملف الشروط والأحكام الثابت تلقائياً في نهاية ملف PDF الخاص بعرض السعر.'
-                : 'When enabled, the static Terms and Conditions file will be automatically added to the end of the price quote PDF.'
-              }}
-            </small>
-          </div>
+  <!-- Info Alert -->
+  <div class="info-alert">
+    <i class="bi bi-info-circle"></i>
+    <div style="flex: 1;">
+      <p>
+        {{ formLanguage === 'ar'
+          ? 'يمكنك إضافة الشروط والأحكام إلى عرض السعر الخاص بك. سيتم إنشاء صفحة منفصلة في نهاية المستند.'
+          : 'You can add Terms and Conditions to your price quote. A separate page will be created at the end of the document.'
+        }}
+      </p>
+    </div>
+  </div>
 
-          <!-- Navigation Buttons -->
-          <div class="form-navigation">
-            <button class="btn-secondary btn-back" (click)="previousStep()" type="button">
-              <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
-              {{ formLanguage === 'ar' ? 'السابق' : 'Back' }}
-            </button>
-          </div>
+  <!-- Terms Checkbox -->
+  <div class="form-group">
+    <label class="checkbox-label large">
+      <input
+        type="checkbox"
+        [(ngModel)]="quoteForm.includeTermsAndConditions"
+        (ngModelChange)="toggleTermsAndConditions($event)"
+      />
+      <div class="checkbox-info">
+        <span class="checkbox-title">
+          {{ formLanguage === 'ar'
+            ? 'إضافة الشروط والأحكام'
+            : 'Include Terms and Conditions'
+          }}
+        </span>
+        <span class="checkbox-description">
+          {{ formLanguage === 'ar'
+            ? 'سيتم إضافة صفحة منفصلة تحتوي على الشروط والأحكام'
+            : 'A separate page with Terms and Conditions will be added'
+          }}
+        </span>
+      </div>
+    </label>
+  </div>
 
-          <!-- Final Save Section -->
-          <div class="final-save-section">
-            <button
-              class="btn-primary btn-save-final"
-              (click)="saveQuote()"
-              [disabled]="savingQuote"
-              type="button">
-              <i class="bi bi-save"></i>
-              {{ savingQuote
-                ? (formLanguage === 'ar' ? 'جاري الحفظ...' : 'Saving...')
-                : (formLanguage === 'ar' ? 'حفظ عرض السعر' : 'Save Price Quote')
-              }}
-            </button>
-            
-            <p class="save-info-text">
-              {{ formLanguage === 'ar'
-                ? 'سيتم إنشاء ملف PDF تلقائياً بعد الحفظ.'
-                : 'A PDF file will be generated automatically after saving.'
-              }}
-            </p>
-          </div>
-        </div>
+  <!-- ✅ Terms Textarea (shows when checkbox is enabled) -->
+  <div class="form-group" *ngIf="quoteForm.includeTermsAndConditions">
+    <label>
+      <i class="bi bi-file-text"></i>
+      {{ formLanguage === 'ar' ? 'نص الشروط والأحكام' : 'Terms and Conditions Text' }}
+      <span class="required">*</span>
+    </label>
+    <textarea
+      [(ngModel)]="quoteForm.termsAndConditionsText"
+      [placeholder]="formLanguage === 'ar' ? 'أدخل نص الشروط والأحكام...' : 'Enter Terms and Conditions text...'"
+      class="form-control terms-textarea"
+      [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'"
+      rows="15"
+      [class.error]="fieldErrors['termsAndConditionsText']"
+    ></textarea>
+    <small class="error-message" *ngIf="fieldErrors['termsAndConditionsText']">
+      <i class="bi bi-exclamation-circle"></i>
+      {{ fieldErrors['termsAndConditionsText'] }}
+    </small>
+    <small class="help-text">
+      {{ formLanguage === 'ar'
+        ? 'يمكنك تعديل النص الافتراضي حسب الحاجة. سيتم تطبيق تنسيق RTL للعربية وLTR للإنجليزية تلقائياً.'
+        : 'You can edit the default text as needed. RTL formatting for Arabic and LTR for English will be applied automatically.'
+      }}
+    </small>
+  </div>
+
+  <!-- Navigation Buttons -->
+  <div class="form-navigation">
+    <button class="btn-secondary btn-back" (click)="previousStep()" type="button">
+      <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
+      {{ formLanguage === 'ar' ? 'السابق' : 'Back' }}
+    </button>
+  </div>
+
+  <!-- Final Save Section -->
+  <div class="final-save-section">
+    <button
+      class="btn-primary btn-save-final"
+      (click)="saveQuote()"
+      [disabled]="savingQuote"
+      type="button">
+      <i class="bi bi-save"></i>
+      {{ savingQuote
+        ? (formLanguage === 'ar' ? 'جاري الحفظ...' : 'Saving...')
+        : (formLanguage === 'ar' ? 'حفظ عرض السعر' : 'Save Price Quote')
+      }}
+    </button>
+
+    <p class="save-info-text">
+      {{ formLanguage === 'ar'
+        ? 'سيتم إنشاء ملف PDF تلقائياً بعد الحفظ.'
+        : 'A PDF file will be generated automatically after saving.'
+      }}
+    </p>
+  </div>
+</div>
 
       </div>
     </div>
@@ -960,23 +984,23 @@
 <!-- ============================================ -->
 <div *ngIf="showShareModal" class="confirmation-overlay" (click)="closeShareModal()">
   <div class="confirmation-modal share-modal-improved" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'" (click)="$event.stopPropagation()">
-    
+
     <!-- Fixed Header -->
     <div class="modal-header-fixed info">
       <button class="close-btn-fixed" (click)="closeShareModal()">
         <i class="bi bi-x-lg"></i>
       </button>
-      
+
       <div class="modal-icon">
         <i class="bi bi-envelope-fill"></i>
       </div>
-      
+
       <h3 class="modal-title">
         {{ formLanguage === 'ar' ? 'مشاركة الإشعار عبر البريد الإلكتروني' : 'Share Receipt via Email' }}
       </h3>
-      
+
       <p class="modal-subtitle">
-        {{ formLanguage === 'ar' 
+        {{ formLanguage === 'ar'
           ? 'اختر بريد إلكتروني أو أكثر أو أدخل بريد مخصص'
           : 'Select one or more emails or enter a custom email'
         }}
@@ -985,7 +1009,7 @@
 
     <!-- Scrollable Body -->
     <div class="modal-body-scrollable">
-      
+
       <!-- Receipt Info Badge -->
       <div class="receipt-info-badge">
         <i class="bi bi-file-earmark-text-fill"></i>
@@ -1002,8 +1026,8 @@
 
         <!-- Static Email 1 -->
         <label class="email-option">
-          <input 
-            type="checkbox" 
+          <input
+            type="checkbox"
             [(ngModel)]="emailSelections.email1"
             [disabled]="sendingEmail"
           />
@@ -1020,8 +1044,8 @@
 
         <!-- Static Email 2 -->
         <label class="email-option">
-          <input 
-            type="checkbox" 
+          <input
+            type="checkbox"
             [(ngModel)]="emailSelections.email2"
             [disabled]="sendingEmail"
           />
@@ -1038,8 +1062,8 @@
 
         <!-- Custom Email Option -->
         <label class="email-option">
-          <input 
-            type="checkbox" 
+          <input
+            type="checkbox"
             [(ngModel)]="emailSelections.custom"
             [disabled]="sendingEmail"
           />
@@ -1099,8 +1123,8 @@
       </button>
       <button class="btn-confirm btn-send" (click)="sendEmailWithPDF()" [disabled]="sendingEmail || !isEmailValid()">
         <i class="bi" [ngClass]="sendingEmail ? 'bi-hourglass-split spin-icon' : 'bi-send-fill'"></i>
-        {{ sendingEmail 
-          ? (formLanguage === 'ar' ? 'جاري الإرسال...' : 'Sending...') 
+        {{ sendingEmail
+          ? (formLanguage === 'ar' ? 'جاري الإرسال...' : 'Sending...')
           : (formLanguage === 'ar' ? 'إرسال' : 'Send')
         }}
       </button>

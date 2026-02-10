@@ -41,7 +41,8 @@ export interface PriceQuote {
   taxRate: number;
   items: PriceQuoteItem[];
   customNotes?: string | null;
-  includeStaticFile?: boolean; // ✅ NEW FIELD - Include terms and conditions PDF
+  includeTermsAndConditions?: boolean; // ✅ UPDATED FIELD NAME
+  termsAndConditionsText?: string | null; // ✅ NEW FIELD - Text content
   subtotal: number;
   taxAmount: number;
   total: number;
@@ -68,7 +69,8 @@ export interface CreatePriceQuoteData {
   taxRate?: number;
   items: PriceQuoteItem[];
   customNotes?: string;
-  includeStaticFile?: boolean; // ✅ NEW FIELD - Include terms and conditions PDF
+  includeTermsAndConditions?: boolean; // ✅ UPDATED FIELD NAME
+  termsAndConditionsText?: string; // ✅ NEW FIELD - Text content
   attachment?: File;
 }
 
@@ -86,7 +88,8 @@ export interface UpdatePriceQuoteData {
   taxRate?: number;
   items?: PriceQuoteItem[];
   customNotes?: string;
-  includeStaticFile?: boolean; // ✅ NEW FIELD - Include terms and conditions PDF
+  includeTermsAndConditions?: boolean; // ✅ UPDATED FIELD NAME
+  termsAndConditionsText?: string; // ✅ NEW FIELD - Text content
   attachment?: File;
 }
 
@@ -170,7 +173,7 @@ export class PriceQuoteService {
   }
 
   // ============================================
-  // CREATE PRICE QUOTE
+  // CREATE PRICE QUOTE - ✅ UPDATED
   // ============================================
 
   createPriceQuote(quoteData: CreatePriceQuoteData): Observable<PriceQuoteResponse> {
@@ -209,9 +212,14 @@ export class PriceQuoteService {
       formData.append('customNotes', quoteData.customNotes);
     }
 
-    // ✅ NEW FIELD - Include terms and conditions PDF
-    if (quoteData.includeStaticFile !== undefined) {
-      formData.append('includeStaticFile', quoteData.includeStaticFile.toString());
+    // ✅ NEW FIELD - Include terms and conditions checkbox
+    if (quoteData.includeTermsAndConditions !== undefined) {
+      formData.append('includeTermsAndConditions', quoteData.includeTermsAndConditions.toString());
+    }
+
+    // ✅ NEW FIELD - Terms and conditions text content
+    if (quoteData.termsAndConditionsText) {
+      formData.append('termsAndConditionsText', quoteData.termsAndConditionsText);
     }
 
     if (quoteData.attachment) {
@@ -282,7 +290,7 @@ export class PriceQuoteService {
   }
 
   // ============================================
-  // UPDATE PRICE QUOTE
+  // UPDATE PRICE QUOTE - ✅ UPDATED
   // ============================================
 
   updatePriceQuote(id: string, updateData: UpdatePriceQuoteData): Observable<PriceQuoteResponse> {
@@ -328,9 +336,14 @@ export class PriceQuoteService {
       formData.append('customNotes', updateData.customNotes);
     }
 
-    // ✅ NEW FIELD - Include terms and conditions PDF
-    if (updateData.includeStaticFile !== undefined) {
-      formData.append('includeStaticFile', updateData.includeStaticFile.toString());
+    // ✅ NEW FIELD - Include terms and conditions checkbox
+    if (updateData.includeTermsAndConditions !== undefined) {
+      formData.append('includeTermsAndConditions', updateData.includeTermsAndConditions.toString());
+    }
+
+    // ✅ NEW FIELD - Terms and conditions text content
+    if (updateData.termsAndConditionsText !== undefined) {
+      formData.append('termsAndConditionsText', updateData.termsAndConditionsText || '');
     }
 
     if (updateData.attachment) {
@@ -488,5 +501,44 @@ export class PriceQuoteService {
 
     const number = parseInt(match[1]) + 1;
     return `PQ${number.toString().padStart(4, '0')}`;
+  }
+
+  // ✅ NEW METHOD - Get default terms and conditions text
+  getDefaultTermsAndConditions(language: 'arabic' | 'english'): string {
+    if (language === 'arabic') {
+      return `الشروط والأحكام
+
+تُعتبر جميع المواد والبنود والخدمات غير المذكورة صراحةً في هذا المستند مستثناة. كما أن أي خدمات أو أعمال تقع خارج نطاق عمل المورد غير مشمولة. ضريبة القيمة المضافة وأي رسوم حكومية أو تصاريح أو موافقات رسمية غير مشمولة ما لم يُذكر خلاف ذلك. كما أن الأعمال المدنية وأعمال الرفع والمناولة وفك وإعادة تركيب العوائق الموجودة في الموقع أو أي أعمال مشابهة غير مشمولة ما لم يتم ذكرها بشكل صريح.
+
+أي أعمال إضافية أو تغييرات أو متطلبات غير مذكورة في هذا المستند تخضع لتكاليف إضافية وتعديل في مدة التنفيذ حسب الحالة. كما أن رسوم الدراسات واعتماد التصاميم والموافقات الرسمية والتصاريح وختم المخططات والحسابات الهندسية أو أي متطلبات فنية مشابهة غير مشمولة ما لم يُذكر خلاف ذلك صراحةً.
+
+الأسعار مبنية على أساس تنفيذ الطلب بالكامل كما هو محدد، وفي حال تنفيذ جزء من الطلب يحق للمورد تعديل الأسعار وفقاً لذلك.
+
+تكون شروط الدفع على النحو التالي:
+( )% دفعة مقدمة عند تأكيد الطلب،
+( )% أثناء التنفيذ / عند التوريد،
+( )% عند الانتهاء والتسليم النهائي.
+
+يسري هذا المستند لمدة ( ) يوم تقويمي/يوم عمل من تاريخ الإصدار ما لم يُذكر خلاف ذلك.
+
+تعتمد مدة التنفيذ والتوريد على تأكيد الطلب واستلام الموافقات اللازمة وجاهزية الموقع. مدة التنفيذ التقديرية: ( ) يوم/أسبوع/شهر من تاريخ تأكيد الطلب.`;
+    } else {
+      return `Terms and Conditions
+
+All materials, items, and services not explicitly stated in this document shall be considered excluded. Any services or works falling outside the supplier's scope are not included. Value Added Tax (VAT) and any applicable governmental fees, permits, or approvals are not included unless otherwise stated. Civil works, lifting equipment, handling, dismantling, and re-installation of existing site obstacles or any similar activities are excluded unless clearly mentioned.
+
+Any additional work, variations, or requirements not specified in this document shall be subject to additional cost and time adjustments as applicable. Fees related to studies, design approvals, authority approvals, permits, stamping, engineering calculations, or similar technical requirements are not included unless explicitly stated.
+
+Prices are based on the execution of the complete order as specified. In the event of partial orders, the supplier reserves the right to revise and amend the prices accordingly.
+
+Payment terms shall be as follows:
+( )% advance payment upon order confirmation,
+( )% during project execution / upon delivery,
+( )% upon completion and final handover.
+
+This document is valid for ( ) calendar/working days from the date of issuance unless otherwise stated.
+
+Execution and delivery timelines are subject to order confirmation, receipt of required approvals, and readiness of the project/site conditions. Estimated execution period: ( ) days/weeks/months from the date of order confirmation.`;
+    }
   }
 }

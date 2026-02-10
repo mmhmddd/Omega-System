@@ -83,7 +83,8 @@ export class ProformaInvoiceComponent implements OnInit, OnDestroy {
     taxRate: 0,
     items: [],
     customNotes: '',
-    includeStaticFile: false
+    includeTermsAndConditions: false,
+    termsAndConditionsText: ''
   };
 
   // File attachment
@@ -130,22 +131,23 @@ export class ProformaInvoiceComponent implements OnInit, OnDestroy {
   showDuplicateModal: boolean = false;
   generatedInvoiceId: string = '';
   invoiceToDuplicate: ProformaInvoice | null = null;
-showShareModal: boolean = false;
-shareInvoiceId: string = '';
-shareInvoiceNumber: string = '';
-emailSelections = {
-  email1: false,
-  email2: false,
-  custom: false
-};
-customEmail: string = '';
-sendingEmail: boolean = false;
+  showShareModal: boolean = false;
+  shareInvoiceId: string = '';
+  shareInvoiceNumber: string = '';
+  emailSelections = {
+    email1: false,
+    email2: false,
+    custom: false
+  };
+  customEmail: string = '';
+  sendingEmail: boolean = false;
 
   // ✅ Static email addresses - UPDATE THESE
   staticEmails = {
     email1: 'alaqtash@gmail.com',
     email2: 'munther.fayed@gmail.com'
   };
+
   constructor(
     public proformaInvoiceService: ProformaInvoiceService,
     private authService: AuthService,
@@ -200,184 +202,185 @@ sendingEmail: boolean = false;
   }
 
   /**
- * Open share modal for an invoice
- */
-openShareModal(invoice: ProformaInvoice): void {
-  if (!invoice.pdfPath) {
-    this.showToast('error', this.formLanguage === 'ar' ? 'لم يتم إنشاء PDF بعد' : 'PDF not generated yet');
-    return;
-  }
-  this.shareInvoiceId = invoice.id;
-  this.shareInvoiceNumber = invoice.invoiceNumber;
-  
-  // Reset selections
-  this.emailSelections = {
-    email1: false,
-    email2: false,
-    custom: false
-  };
-  this.customEmail = '';
-  this.showShareModal = true;
-}
-
-/**
- * Close share modal
- */
-closeShareModal(): void {
-  this.showShareModal = false;
-  this.shareInvoiceId = '';
-  this.shareInvoiceNumber = '';
-  this.emailSelections = {
-    email1: false,
-    email2: false,
-    custom: false
-  };
-  this.customEmail = '';
-}
-
-/**
- * Get list of selected emails
- */
-getSelectedEmailsList(): string[] {
-  const emails: string[] = [];
-  
-  if (this.emailSelections.email1) {
-    emails.push(this.staticEmails.email1);
-  }
-  
-  if (this.emailSelections.email2) {
-    emails.push(this.staticEmails.email2);
-  }
-  
-  if (this.emailSelections.custom && this.customEmail && this.customEmail.trim()) {
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (emailPattern.test(this.customEmail.trim())) {
-      emails.push(this.customEmail.trim());
-    }
-  }
-  
-  return emails;
-}
-
-/**
- * Validate email selection
- */
-isEmailValid(): boolean {
-  const selectedEmails = this.getSelectedEmailsList();
-  
-  // Must have at least one valid email selected
-  if (selectedEmails.length === 0) {
-    return false;
-  }
-  
-  // If custom is selected, validate the custom email
-  if (this.emailSelections.custom) {
-    if (!this.customEmail || this.customEmail.trim() === '') {
-      return false;
-    }
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailPattern.test(this.customEmail.trim())) {
-      return false;
-    }
-  }
-  
-  return true;
-}
-
-/**
- * Send invoice PDF to selected emails
- */
-sendEmailWithPDF(): void {
-  const selectedEmails = this.getSelectedEmailsList();
-  
-  if (selectedEmails.length === 0) {
-    this.showToast('error', this.formLanguage === 'ar' 
-      ? 'يرجى اختيار بريد إلكتروني واحد على الأقل'
-      : 'Please select at least one email address'
-    );
-    return;
-  }
-
-  this.sendingEmail = true;
-  
-  // Send to all selected emails sequentially
-  let completedCount = 0;
-  let failedCount = 0;
-  
-  const sendToNextEmail = (index: number) => {
-    if (index >= selectedEmails.length) {
-      // All emails processed
-      this.sendingEmail = false;
-      this.closeShareModal();
-      
-      if (failedCount === 0) {
-        const successMsg = this.formLanguage === 'ar'
-          ? `تم إرسال الفاتورة بنجاح إلى ${completedCount} بريد إلكتروني`
-          : `Invoice sent successfully to ${completedCount} email${completedCount > 1 ? 's' : ''}`;
-        this.showToast('success', successMsg);
-      } else if (completedCount > 0) {
-        const partialMsg = this.formLanguage === 'ar'
-          ? `تم الإرسال إلى ${completedCount} من أصل ${selectedEmails.length} بريد`
-          : `Sent to ${completedCount} of ${selectedEmails.length} emails`;
-        this.showToast('warning', partialMsg);
-      } else {
-        const errorMsg = this.formLanguage === 'ar'
-          ? 'فشل إرسال البريد الإلكتروني'
-          : 'Failed to send email';
-        this.showToast('error', errorMsg);
-      }
+   * Open share modal for an invoice
+   */
+  openShareModal(invoice: ProformaInvoice): void {
+    if (!invoice.pdfPath) {
+      this.showToast('error', this.formLanguage === 'ar' ? 'لم يتم إنشاء PDF بعد' : 'PDF not generated yet');
       return;
     }
-    
-    const email = selectedEmails[index];
-    
-    this.proformaInvoiceService.sendInvoiceByEmail(this.shareInvoiceId, email).subscribe({
-      next: () => {
-        completedCount++;
-        sendToNextEmail(index + 1);
-      },
-      error: (error: any) => {
-        console.error(`Error sending to ${email}:`, error);
-        failedCount++;
-        sendToNextEmail(index + 1);
-      }
-    });
-  };
-  
-  // Start sending
-  sendToNextEmail(0);
-}
+    this.shareInvoiceId = invoice.id;
+    this.shareInvoiceNumber = invoice.invoiceNumber;
 
-/**
- * Share from success modal
- */
-shareFromSuccessModal(): void {
-  if (this.generatedInvoiceId) {
-    this.closeSuccessModal();
-    this.proformaInvoiceService.getProformaInvoiceById(this.generatedInvoiceId).subscribe({
-      next: (response: any) => {
-        this.openShareModal(response.data);
-      },
-      error: () => {
-        const errorMsg = this.formLanguage === 'ar'
-          ? 'حدث خطأ في تحميل البيانات'
-          : 'Error loading data';
-        this.showToast('error', errorMsg);
-      }
-    });
+    // Reset selections
+    this.emailSelections = {
+      email1: false,
+      email2: false,
+      custom: false
+    };
+    this.customEmail = '';
+    this.showShareModal = true;
   }
-}
 
-/**
- * Validate email format
- */
-isValidEmail(email: string): boolean {
-  if (!email || email.trim() === '') {
-    return false;
+  /**
+   * Close share modal
+   */
+  closeShareModal(): void {
+    this.showShareModal = false;
+    this.shareInvoiceId = '';
+    this.shareInvoiceNumber = '';
+    this.emailSelections = {
+      email1: false,
+      email2: false,
+      custom: false
+    };
+    this.customEmail = '';
   }
-  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailPattern.test(email.trim());
-}
+
+  /**
+   * Get list of selected emails
+   */
+  getSelectedEmailsList(): string[] {
+    const emails: string[] = [];
+
+    if (this.emailSelections.email1) {
+      emails.push(this.staticEmails.email1);
+    }
+
+    if (this.emailSelections.email2) {
+      emails.push(this.staticEmails.email2);
+    }
+
+    if (this.emailSelections.custom && this.customEmail && this.customEmail.trim()) {
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (emailPattern.test(this.customEmail.trim())) {
+        emails.push(this.customEmail.trim());
+      }
+    }
+
+    return emails;
+  }
+
+  /**
+   * Validate email selection
+   */
+  isEmailValid(): boolean {
+    const selectedEmails = this.getSelectedEmailsList();
+
+    // Must have at least one valid email selected
+    if (selectedEmails.length === 0) {
+      return false;
+    }
+
+    // If custom is selected, validate the custom email
+    if (this.emailSelections.custom) {
+      if (!this.customEmail || this.customEmail.trim() === '') {
+        return false;
+      }
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailPattern.test(this.customEmail.trim())) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Send invoice PDF to selected emails
+   */
+  sendEmailWithPDF(): void {
+    const selectedEmails = this.getSelectedEmailsList();
+
+    if (selectedEmails.length === 0) {
+      this.showToast('error', this.formLanguage === 'ar'
+        ? 'يرجى اختيار بريد إلكتروني واحد على الأقل'
+        : 'Please select at least one email address'
+      );
+      return;
+    }
+
+    this.sendingEmail = true;
+
+    // Send to all selected emails sequentially
+    let completedCount = 0;
+    let failedCount = 0;
+
+    const sendToNextEmail = (index: number) => {
+      if (index >= selectedEmails.length) {
+        // All emails processed
+        this.sendingEmail = false;
+        this.closeShareModal();
+
+        if (failedCount === 0) {
+          const successMsg = this.formLanguage === 'ar'
+            ? `تم إرسال الفاتورة بنجاح إلى ${completedCount} بريد إلكتروني`
+            : `Invoice sent successfully to ${completedCount} email${completedCount > 1 ? 's' : ''}`;
+          this.showToast('success', successMsg);
+        } else if (completedCount > 0) {
+          const partialMsg = this.formLanguage === 'ar'
+            ? `تم الإرسال إلى ${completedCount} من أصل ${selectedEmails.length} بريد`
+            : `Sent to ${completedCount} of ${selectedEmails.length} emails`;
+          this.showToast('warning', partialMsg);
+        } else {
+          const errorMsg = this.formLanguage === 'ar'
+            ? 'فشل إرسال البريد الإلكتروني'
+            : 'Failed to send email';
+          this.showToast('error', errorMsg);
+        }
+        return;
+      }
+
+      const email = selectedEmails[index];
+
+      this.proformaInvoiceService.sendInvoiceByEmail(this.shareInvoiceId, email).subscribe({
+        next: () => {
+          completedCount++;
+          sendToNextEmail(index + 1);
+        },
+        error: (error: any) => {
+          console.error(`Error sending to ${email}:`, error);
+          failedCount++;
+          sendToNextEmail(index + 1);
+        }
+      });
+    };
+
+    // Start sending
+    sendToNextEmail(0);
+  }
+
+  /**
+   * Share from success modal
+   */
+  shareFromSuccessModal(): void {
+    if (this.generatedInvoiceId) {
+      this.closeSuccessModal();
+      this.proformaInvoiceService.getProformaInvoiceById(this.generatedInvoiceId).subscribe({
+        next: (response: any) => {
+          this.openShareModal(response.data);
+        },
+        error: () => {
+          const errorMsg = this.formLanguage === 'ar'
+            ? 'حدث خطأ في تحميل البيانات'
+            : 'Error loading data';
+          this.showToast('error', errorMsg);
+        }
+      });
+    }
+  }
+
+  /**
+   * Validate email format
+   */
+  isValidEmail(email: string): boolean {
+    if (!email || email.trim() === '') {
+      return false;
+    }
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailPattern.test(email.trim());
+  }
+
   // ============================================
   // DATA LOADING - ROLE-BASED ACCESS
   // ============================================
@@ -496,6 +499,12 @@ isValidEmail(email: string): boolean {
     this.formLanguage = currentLanguage;
     this.invoiceForm.language = currentLanguage === 'ar' ? 'arabic' : 'english';
 
+    // ✅ Set default terms and conditions based on language
+    const languageForTerms = this.invoiceForm.language || 'arabic';
+    this.invoiceForm.termsAndConditionsText = this.proformaInvoiceService.getDefaultTermsAndConditions(
+      languageForTerms
+    );
+
     this.currentView = 'create';
     this.currentStep = 'basic';
     this.formError = '';
@@ -570,12 +579,13 @@ isValidEmail(email: string): boolean {
       date: this.getTodayDate(),
       revNumber: '00',
       validForDays: invoice.validForDays || 30,
-      language: duplicatedLanguage,  // ✅ Use the original invoice language
+      language: duplicatedLanguage,
       includeTax: invoice.includeTax,
       taxRate: invoice.taxRate,
       items: [...invoice.items.map(item => ({ ...item }))],
       customNotes: invoice.customNotes || '',
-      includeStaticFile: invoice.includeStaticFile || false
+      includeTermsAndConditions: invoice.includeTermsAndConditions || false,
+      termsAndConditionsText: invoice.termsAndConditionsText || ''
     };
 
     // ✅ FIX: Sync formLanguage AFTER setting invoiceForm
@@ -614,7 +624,8 @@ isValidEmail(email: string): boolean {
       taxRate: 0,
       items: [],
       customNotes: '',
-      includeStaticFile: false
+      includeTermsAndConditions: false,
+      termsAndConditionsText: ''
     };
     // ✅ FIX: Reset formLanguage to match
     this.formLanguage = 'ar';
@@ -638,7 +649,8 @@ isValidEmail(email: string): boolean {
       taxRate: invoice.taxRate,
       items: [...invoice.items],
       customNotes: invoice.customNotes || '',
-      includeStaticFile: invoice.includeStaticFile || false
+      includeTermsAndConditions: invoice.includeTermsAndConditions || false,
+      termsAndConditionsText: invoice.termsAndConditionsText || ''
     };
     // ✅ FIX: Sync formLanguage with invoice language
     this.formLanguage = invoice.language === 'arabic' ? 'ar' : 'en';
@@ -666,6 +678,21 @@ isValidEmail(email: string): boolean {
     this.formLanguage = lang;
     this.invoiceForm.language = lang === 'ar' ? 'arabic' : 'english';
 
+    // ✅ Update terms and conditions text to match new language if checkbox is enabled and text is empty or default
+    if (this.invoiceForm.includeTermsAndConditions) {
+      const oldLanguage = lang === 'ar' ? 'english' : 'arabic';
+      const currentDefault = this.proformaInvoiceService.getDefaultTermsAndConditions(oldLanguage);
+
+      // If current text is empty or matches the old language default, update to new language
+      if (!this.invoiceForm.termsAndConditionsText ||
+          this.invoiceForm.termsAndConditionsText === currentDefault) {
+        const newLanguage = this.invoiceForm.language || 'arabic';
+        this.invoiceForm.termsAndConditionsText = this.proformaInvoiceService.getDefaultTermsAndConditions(
+          newLanguage
+        );
+      }
+    }
+
     console.log('✅ After change - formLanguage:', this.formLanguage);
     console.log('✅ After change - invoiceForm.language:', this.invoiceForm.language);
 
@@ -673,7 +700,39 @@ isValidEmail(email: string): boolean {
     this.cdr.detectChanges();
   }
 
-  // ... (rest of the methods remain the same - continuing in next part due to length)
+  // ============================================
+  // TERMS AND CONDITIONS METHODS - ✅ NEW
+  // ============================================
+
+  /**
+   * Toggle terms and conditions checkbox
+   */
+  toggleTermsAndConditions(include: boolean): void {
+    this.invoiceForm.includeTermsAndConditions = include;
+
+    if (include && !this.invoiceForm.termsAndConditionsText) {
+      // Load default terms and conditions based on current language
+      const languageForTerms = this.invoiceForm.language || 'arabic';
+      this.invoiceForm.termsAndConditionsText = this.proformaInvoiceService.getDefaultTermsAndConditions(
+        languageForTerms
+      );
+    }
+  }
+
+  /**
+   * Load default terms and conditions
+   */
+  loadDefaultTermsAndConditions(): void {
+    const languageForTerms = this.invoiceForm.language || 'arabic';
+    this.invoiceForm.termsAndConditionsText = this.proformaInvoiceService.getDefaultTermsAndConditions(
+      languageForTerms
+    );
+
+    const successMsg = this.formLanguage === 'ar'
+      ? 'تم تحميل الشروط والأحكام الافتراضية'
+      : 'Default terms and conditions loaded';
+    this.showToast('success', successMsg);
+  }
 
   // ============================================
   // STEP NAVIGATION
@@ -927,7 +986,8 @@ isValidEmail(email: string): boolean {
     console.log('📤 ========== DATA BEING SENT TO API ==========');
     console.log('📤 Invoice Data:', invoiceData);
     console.log('📤 Language field:', invoiceData.language);
-    console.log('📤 Expected: "english" for English PDF, "arabic" for Arabic PDF');
+    console.log('📤 Include Terms:', invoiceData.includeTermsAndConditions);
+    console.log('📤 Terms Text Length:', invoiceData.termsAndConditionsText?.length || 0);
     console.log('================================================');
 
     if (this.currentView === 'create') {
@@ -991,7 +1051,6 @@ isValidEmail(email: string): boolean {
     });
   }
 
-  // (All other methods remain exactly the same)
   // ============================================
   // SUCCESS MODAL ACTIONS
   // ============================================
@@ -1044,6 +1103,7 @@ isValidEmail(email: string): boolean {
     const filename = invoice ? this.getDisplayFilename(invoice) : `invoice-${this.generatedInvoiceId}.pdf`;
     this.proformaInvoiceService.triggerPDFDownload(this.generatedInvoiceId, filename);
   }
+
   // ============================================
   // DELETE INVOICE
   // ============================================
@@ -1091,21 +1151,22 @@ isValidEmail(email: string): boolean {
       }
     });
   }
-getDisplayFilename(invoice: ProformaInvoice): string {
-  if (!invoice.pdfPath) return 'N/A';
-  
-  // Extract filename from path (works for both Windows and Unix paths)
-  const pathParts = invoice.pdfPath.split(/[/\\]/);
-  const filename = pathParts[pathParts.length - 1];
-  
-  return filename;
-}
+
+  getDisplayFilename(invoice: ProformaInvoice): string {
+    if (!invoice.pdfPath) return 'N/A';
+
+    // Extract filename from path (works for both Windows and Unix paths)
+    const pathParts = invoice.pdfPath.split(/[/\\]/);
+    const filename = pathParts[pathParts.length - 1];
+
+    return filename;
+  }
+
   // ============================================
   // PDF OPERATIONS
   // ============================================
 
   downloadPDF(invoice: ProformaInvoice): void {
-    // ✅ Use the actual filename from the server
     const filename = this.getDisplayFilename(invoice);
     this.proformaInvoiceService.triggerPDFDownload(invoice.id, filename);
   }

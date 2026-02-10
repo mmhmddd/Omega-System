@@ -42,7 +42,8 @@ export interface ProformaInvoice {
   taxRate: number;
   items: ProformaInvoiceItem[];
   customNotes?: string | null;
-  includeStaticFile?: boolean;
+  includeTermsAndConditions?: boolean;
+  termsAndConditionsText?: string | null;
   subtotal: number;
   taxAmount: number;
   total: number;
@@ -69,7 +70,8 @@ export interface CreateProformaInvoiceData {
   taxRate?: number;
   items: ProformaInvoiceItem[];
   customNotes?: string;
-  includeStaticFile?: boolean;
+  includeTermsAndConditions?: boolean;
+  termsAndConditionsText?: string;
   attachment?: File;
 }
 
@@ -87,7 +89,8 @@ export interface UpdateProformaInvoiceData {
   taxRate?: number;
   items?: ProformaInvoiceItem[];
   customNotes?: string;
-  includeStaticFile?: boolean;
+  includeTermsAndConditions?: boolean;
+  termsAndConditionsText?: string;
   attachment?: File;
 }
 
@@ -166,6 +169,48 @@ export class ProformaInvoiceService {
   }
 
   // ============================================
+  // GET DEFAULT TERMS AND CONDITIONS
+  // ============================================
+
+  getDefaultTermsAndConditions(language: 'arabic' | 'english'): string {
+    if (language === 'arabic') {
+      return `الشروط والأحكام
+
+تُعتبر جميع المواد والبنود والخدمات غير المذكورة صراحةً في هذا المستند مستثناة. كما أن أي خدمات أو أعمال تقع خارج نطاق عمل المورد غير مشمولة. ضريبة القيمة المضافة وأي رسوم حكومية أو تصاريح أو موافقات رسمية غير مشمولة ما لم يُذكر خلاف ذلك. كما أن الأعمال المدنية وأعمال الرفع والمناولة وفك وإعادة تركيب العوائق الموجودة في الموقع أو أي أعمال مشابهة غير مشمولة ما لم يتم ذكرها بشكل صريح.
+
+أي أعمال إضافية أو تغييرات أو متطلبات غير مذكورة في هذا المستند تخضع لتكاليف إضافية وتعديل في مدة التنفيذ حسب الحالة. كما أن رسوم الدراسات واعتماد التصاميم والموافقات الرسمية والتصاريح وختم المخططات والحسابات الهندسية أو أي متطلبات فنية مشابهة غير مشمولة ما لم يُذكر خلاف ذلك صراحةً.
+
+الأسعار مبنية على أساس تنفيذ الطلب بالكامل كما هو محدد، وفي حال تنفيذ جزء من الطلب يحق للمورد تعديل الأسعار وفقاً لذلك.
+
+تكون شروط الدفع على النحو التالي:
+( )% دفعة مقدمة عند تأكيد الطلب،
+( )% أثناء التنفيذ / عند التوريد،
+( )% عند الانتهاء والتسليم النهائي.
+
+يسري هذا المستند لمدة ( ) يوم تقويمي/يوم عمل من تاريخ الإصدار ما لم يُذكر خلاف ذلك.
+
+تعتمد مدة التنفيذ والتوريد على تأكيد الطلب واستلام الموافقات اللازمة وجاهزية الموقع. مدة التنفيذ التقديرية: ( ) يوم/أسبوع/شهر من تاريخ تأكيد الطلب.`;
+    } else {
+      return `Terms and Conditions
+
+All materials, items, and services not explicitly stated in this document shall be considered excluded. Any services or works falling outside the supplier’s scope are not included. Value Added Tax (VAT) and any applicable governmental fees, permits, or approvals are not included unless otherwise stated. Civil works, lifting equipment, handling, dismantling, and re-installation of existing site obstacles or any similar activities are excluded unless clearly mentioned.
+
+Any additional work, variations, or requirements not specified in this document shall be subject to additional cost and time adjustments as applicable. Fees related to studies, design approvals, authority approvals, permits, stamping, engineering calculations, or similar technical requirements are not included unless explicitly stated.
+
+Prices are based on the execution of the complete order as specified. In the event of partial orders, the supplier reserves the right to revise and amend the prices accordingly.
+
+Payment terms shall be as follows:
+( )% advance payment upon order confirmation,
+( )% during project execution / upon delivery,
+( )% upon completion and final handover.
+
+This document is valid for ( ) calendar/working days from the date of issuance unless otherwise stated.
+
+Execution and delivery timelines are subject to order confirmation, receipt of required approvals, and readiness of the project/site conditions. Estimated execution period: ( ) days/weeks/months from the date of order confirmation.`;
+    }
+  }
+
+  // ============================================
   // CREATE PROFORMA INVOICE
   // ============================================
 
@@ -205,8 +250,12 @@ export class ProformaInvoiceService {
       formData.append('customNotes', invoiceData.customNotes);
     }
 
-    if (invoiceData.includeStaticFile !== undefined) {
-      formData.append('includeStaticFile', invoiceData.includeStaticFile.toString());
+    // Terms and Conditions
+    if (invoiceData.includeTermsAndConditions !== undefined) {
+      formData.append('includeTermsAndConditions', invoiceData.includeTermsAndConditions.toString());
+    }
+    if (invoiceData.termsAndConditionsText) {
+      formData.append('termsAndConditionsText', invoiceData.termsAndConditionsText);
     }
 
     if (invoiceData.attachment) {
@@ -229,11 +278,11 @@ export class ProformaInvoiceService {
   }
   getDisplayFilename(invoice: ProformaInvoice): string {
   if (!invoice.pdfPath) return 'N/A';
-  
+
   // Extract filename from path (works for both Windows and Unix paths)
   const pathParts = invoice.pdfPath.split(/[/\\]/);
   const filename = pathParts[pathParts.length - 1];
-  
+
   return filename;
 }
 
@@ -329,8 +378,12 @@ export class ProformaInvoiceService {
       formData.append('customNotes', updateData.customNotes);
     }
 
-    if (updateData.includeStaticFile !== undefined) {
-      formData.append('includeStaticFile', updateData.includeStaticFile.toString());
+    // Terms and Conditions
+    if (updateData.includeTermsAndConditions !== undefined) {
+      formData.append('includeTermsAndConditions', updateData.includeTermsAndConditions.toString());
+    }
+    if (updateData.termsAndConditionsText !== undefined) {
+      formData.append('termsAndConditionsText', updateData.termsAndConditionsText);
     }
 
     if (updateData.attachment) {

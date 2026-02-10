@@ -3592,3 +3592,61 @@ $breakpoint-xl: 1200px;
     }
   }
 }
+// ✅ Terms and Conditions Textarea
+.terms-textarea {
+  font-family: inherit;
+  line-height: 1.6;
+  white-space: pre-wrap;
+
+  &[dir="rtl"] {
+    text-align: right;
+  }
+
+  &[dir="ltr"] {
+    text-align: left;
+  }
+}
+
+.final-save-section {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 2px solid #e2e8f0;
+  text-align: center;
+
+  .btn-save-final {
+    padding: 0.875rem 2rem;
+    background: #1565C0;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+
+    &:hover:not(:disabled) {
+      background: #0D47A1;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(21, 101, 192, 0.3);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    i {
+      font-size: 1rem;
+    }
+  }
+
+  .save-info-text {
+    margin-top: 1rem;
+    color: #64748b;
+    font-size: 0.875rem;
+    font-style: italic;
+  }
+}

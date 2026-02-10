@@ -164,7 +164,7 @@
               </button>
               <button
                 class="btn-icon btn-share"
-                (click)="openShareModal(invoice)" 
+                (click)="openShareModal(invoice)"
                 [title]="formLanguage === 'ar' ? 'مشاركة' : 'Share'">
                 <i class="bi bi-envelope"></i>
               </button>
@@ -758,84 +758,114 @@
             </button>
           </div>
         </div>
+<!-- STEP 4: Terms & Conditions Options -->
+<div *ngIf="currentStep === 'options'" class="step-content">
+  <h2 class="step-title">
+    {{ formLanguage === 'ar' ? 'الشروط والأحكام' : 'Terms & Conditions' }}
+  </h2>
 
-        <!-- STEP 4: Terms & Conditions Options -->
-        <div *ngIf="currentStep === 'options'" class="step-content">
-          <h2 class="step-title">
-            {{ formLanguage === 'ar' ? 'الشروط والأحكام' : 'Terms & Conditions' }}
-          </h2>
+  <!-- Info Alert -->
+  <div class="info-alert">
+    <i class="bi bi-info-circle"></i>
+    <div style="flex: 1;">
+      <p>
+        {{ formLanguage === 'ar'
+          ? 'يمكنك إضافة شروط وأحكام مخصصة لفاتورتك الأولية. سيتم إضافة النص في نهاية المستند.'
+          : 'You can add custom terms and conditions to your proforma invoice. The text will be added at the end of the document.'
+        }}
+      </p>
+    </div>
+  </div>
 
-          <!-- Info Alert -->
-          <div class="info-alert">
-            <i class="bi bi-info-circle"></i>
-            <div style="flex: 1;">
-              <p>
-                {{ formLanguage === 'ar'
-                  ? 'يمكنك اختيار إضافة ملف PDF ثابت (الشروط والأحكام) إلى الفاتورة الأولية الخاصة بك. سيتم دمج الملف تلقائياً في نهاية المستند عند تفعيل هذا الخيار.'
-                  : 'You can choose to include a static PDF file (Terms and Conditions) with your proforma invoice. The file will be automatically merged at the end of the document when this option is enabled.'
-                }}
-              </p>
-            </div>
-          </div>
+  <!-- Include Terms and Conditions Checkbox -->
+  <div class="form-group">
+    <label class="checkbox-label large">
+      <input
+        type="checkbox"
+        [(ngModel)]="invoiceForm.includeTermsAndConditions"
+        (ngModelChange)="toggleTermsAndConditions($event)"
+      />
+      <div class="checkbox-info">
+        <span class="checkbox-title">
+          {{ formLanguage === 'ar' ? 'إضافة الشروط والأحكام' : 'Include Terms and Conditions' }}
+        </span>
+        <span class="checkbox-description">
+          {{ formLanguage === 'ar'
+            ? 'إضافة شروط وأحكام في نهاية الفاتورة الأولية'
+            : 'Add terms and conditions at the end of the proforma invoice'
+          }}
+        </span>
+      </div>
+    </label>
+  </div>
 
-          <!-- Static PDF Checkbox -->
-          <div class="static-pdf-option">
-            <div class="checkbox-container">
-              <input
-                type="checkbox"
-                id="includeStaticFile"
-                [(ngModel)]="invoiceForm.includeStaticFile"
-                class="checkbox-input"
-              />
-              <label for="includeStaticFile" class="checkbox-label">
-                <i class="bi bi-file-earmark-pdf"></i>
-                <span>
-                  {{ formLanguage === 'ar'
-                    ? 'إضافة ملف الشروط والأحكام إلى الفاتورة الأولية'
-                    : 'Include Terms and Conditions with Proforma Invoice'
-                  }}
-                </span>
-              </label>
-            </div>
+  <!-- Terms and Conditions Text Area (shown only when checkbox is enabled) -->
+  <div *ngIf="invoiceForm.includeTermsAndConditions" class="terms-section" [@slideDown]>
+    <div class="form-group">
+      <div class="terms-header">
+        <label>
+          <i class="bi bi-file-text"></i>
+          {{ formLanguage === 'ar' ? 'نص الشروط والأحكام' : 'Terms and Conditions Text' }}
+        </label>
+        <button
+          type="button"
+          class="btn-load-default"
+          (click)="loadDefaultTermsAndConditions()"
+          [title]="formLanguage === 'ar' ? 'تحميل النص الافتراضي' : 'Load Default Text'">
+          <i class="bi bi-arrow-clockwise"></i>
+          {{ formLanguage === 'ar' ? 'تحميل النص الافتراضي' : 'Load Default' }}
+        </button>
+      </div>
 
-            <small class="help-text">
-              {{ formLanguage === 'ar'
-                ? 'عند تفعيل هذا الخيار، سيتم إضافة ملف الشروط والأحكام الثابت تلقائياً في نهاية ملف PDF الخاص بالفاتورة الأولية.'
-                : 'When enabled, the static Terms and Conditions file will be automatically added to the end of the proforma invoice PDF.'
-              }}
-            </small>
-          </div>
+      <textarea
+        [(ngModel)]="invoiceForm.termsAndConditionsText"
+        [placeholder]="formLanguage === 'ar'
+          ? 'أدخل الشروط والأحكام هنا...'
+          : 'Enter terms and conditions here...'"
+        class="form-control terms-textarea"
+        rows="12"
+      ></textarea>
 
-          <!-- Navigation Buttons -->
-          <div class="form-navigation">
-            <button class="btn-secondary btn-back" (click)="previousStep()" type="button">
-              <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
-              {{ formLanguage === 'ar' ? 'السابق' : 'Back' }}
-            </button>
-          </div>
+      <small class="help-text">
+        <i class="bi bi-lightbulb"></i>
+        {{ formLanguage === 'ar'
+          ? 'يمكنك تعديل النص الافتراضي أو كتابة شروط وأحكام مخصصة.'
+          : 'You can modify the default text or write custom terms and conditions.'
+        }}
+      </small>
+    </div>
+  </div>
 
-          <!-- Final Save Section -->
-          <div class="final-save-section">
-            <button
-              class="btn-primary btn-save-final"
-              (click)="saveInvoice()"
-              [disabled]="savingInvoice"
-              type="button">
-              <i class="bi bi-save"></i>
-              {{ savingInvoice
-                ? (formLanguage === 'ar' ? 'جاري الحفظ...' : 'Saving...')
-                : (formLanguage === 'ar' ? 'حفظ الفاتورة الأولية' : 'Save Proforma Invoice')
-              }}
-            </button>
+  <!-- Navigation Buttons -->
+  <div class="form-navigation">
+    <button class="btn-secondary btn-back" (click)="previousStep()" type="button">
+      <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
+      {{ formLanguage === 'ar' ? 'السابق' : 'Back' }}
+    </button>
+  </div>
 
-            <p class="save-info-text">
-              {{ formLanguage === 'ar'
-                ? 'سيتم إنشاء ملف PDF تلقائياً بعد الحفظ.'
-                : 'A PDF file will be generated automatically after saving.'
-              }}
-            </p>
-          </div>
-        </div>
+  <!-- Final Save Section -->
+  <div class="final-save-section">
+    <button
+      class="btn-primary btn-save-final"
+      (click)="saveInvoice()"
+      [disabled]="savingInvoice"
+      type="button">
+      <i class="bi bi-save"></i>
+      {{ savingInvoice
+        ? (formLanguage === 'ar' ? 'جاري الحفظ...' : 'Saving...')
+        : (formLanguage === 'ar' ? 'حفظ الفاتورة الأولية' : 'Save Proforma Invoice')
+      }}
+    </button>
+
+    <p class="save-info-text">
+      {{ formLanguage === 'ar'
+        ? 'سيتم إنشاء ملف PDF تلقائياً بعد الحفظ.'
+        : 'A PDF file will be generated automatically after saving.'
+      }}
+    </p>
+  </div>
+</div>
 
       </div>
     </div>
@@ -993,23 +1023,23 @@
 <!-- ============================================ -->
 <div *ngIf="showShareModal" class="confirmation-overlay" (click)="closeShareModal()">
   <div class="confirmation-modal share-modal-improved" [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'" (click)="$event.stopPropagation()">
-    
+
     <!-- Fixed Header -->
     <div class="modal-header-fixed info">
       <button class="close-btn-fixed" (click)="closeShareModal()">
         <i class="bi bi-x-lg"></i>
       </button>
-      
+
       <div class="modal-icon">
         <i class="bi bi-envelope-fill"></i>
       </div>
-      
+
       <h3 class="modal-title">
         {{ formLanguage === 'ar' ? 'مشاركة الفاتورة الأولية عبر البريد الإلكتروني' : 'Share Proforma Invoice via Email' }}
       </h3>
-      
+
       <p class="modal-subtitle">
-        {{ formLanguage === 'ar' 
+        {{ formLanguage === 'ar'
           ? 'اختر بريد إلكتروني أو أكثر أو أدخل بريد مخصص'
           : 'Select one or more emails or enter a custom email'
         }}
@@ -1018,7 +1048,7 @@
 
     <!-- Scrollable Body -->
     <div class="modal-body-scrollable">
-      
+
       <!-- Invoice Info Badge -->
       <div class="receipt-info-badge">
         <i class="bi bi-file-earmark-text-fill"></i>
@@ -1035,8 +1065,8 @@
 
         <!-- Static Email 1 -->
         <label class="email-option">
-          <input 
-            type="checkbox" 
+          <input
+            type="checkbox"
             [(ngModel)]="emailSelections.email1"
             [disabled]="sendingEmail"
           />
@@ -1053,8 +1083,8 @@
 
         <!-- Static Email 2 -->
         <label class="email-option">
-          <input 
-            type="checkbox" 
+          <input
+            type="checkbox"
             [(ngModel)]="emailSelections.email2"
             [disabled]="sendingEmail"
           />
@@ -1071,8 +1101,8 @@
 
         <!-- Custom Email Option -->
         <label class="email-option">
-          <input 
-            type="checkbox" 
+          <input
+            type="checkbox"
             [(ngModel)]="emailSelections.custom"
             [disabled]="sendingEmail"
           />
@@ -1132,8 +1162,8 @@
       </button>
       <button class="btn-confirm btn-send" (click)="sendEmailWithPDF()" [disabled]="sendingEmail || !isEmailValid()">
         <i class="bi" [ngClass]="sendingEmail ? 'bi-hourglass-split spin-icon' : 'bi-send-fill'"></i>
-        {{ sendingEmail 
-          ? (formLanguage === 'ar' ? 'جاري الإرسال...' : 'Sending...') 
+        {{ sendingEmail
+          ? (formLanguage === 'ar' ? 'جاري الإرسال...' : 'Sending...')
           : (formLanguage === 'ar' ? 'إرسال' : 'Send')
         }}
       </button>

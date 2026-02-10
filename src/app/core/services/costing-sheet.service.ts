@@ -1,5 +1,5 @@
 // ============================================================
-// COSTING SHEET SERVICE - COMPLETE FIXED VERSION
+// COSTING SHEET SERVICE - WITH TEXT-BASED TERMS AND CONDITIONS
 // src/app/core/services/costing-sheet.service.ts
 // ============================================================
 
@@ -24,7 +24,9 @@ export interface CreateCostingSheetData {
   notes: string;
   items: CSItem[];
   additionalNotes: string;
-  includeStaticFile: boolean;
+  // ✅ NEW: Text-based Terms & Conditions
+  includeTermsAndConditions: boolean;
+  termsAndConditionsText: string;
 }
 
 export interface CostingSheet {
@@ -37,7 +39,9 @@ export interface CostingSheet {
   notes: string;
   items: CSItem[];
   additionalNotes: string;
-  includeStaticFile: boolean;
+  // ✅ NEW: Text-based Terms & Conditions
+  includeTermsAndConditions: boolean;
+  termsAndConditionsText: string;
   language: string;
   status: string;
   createdBy: string;
@@ -80,11 +84,11 @@ export class CostingSheetService {
    */
   private getAuthHeaders(): HttpHeaders {
     const token = localStorage.getItem('token');
-    
+
     if (!token) {
       console.warn('⚠️ No authentication token found in localStorage');
     }
-    
+
     return new HttpHeaders({
       'Authorization': token ? `Bearer ${token}` : '',
       'Content-Type': 'application/json'
@@ -96,7 +100,7 @@ export class CostingSheetService {
    */
   private handleError(error: any): Observable<never> {
     console.error('HTTP Error:', error);
-    
+
     if (error.status === 401) {
       console.error('🔒 Unauthorized - Token may be invalid or expired');
     } else if (error.status === 403) {
@@ -104,7 +108,7 @@ export class CostingSheetService {
     } else if (error.status === 0) {
       console.error('❌ Network error - Could not connect to server');
     }
-    
+
     return throwError(() => error);
   }
 
@@ -125,32 +129,32 @@ export class CostingSheetService {
 
     console.log('📡 Fetching costing sheets with params:', params.toString());
 
-    return this.http.get<any>(this.apiUrl, { 
+    return this.http.get<any>(this.apiUrl, {
       params,
-      headers: this.getAuthHeaders() 
+      headers: this.getAuthHeaders()
     }).pipe(
       catchError(this.handleError)
     );
   }
 
   sendCostingSheetByEmail(id: string, email: string): Observable<{ success: boolean; message: string }> {
-  console.log('📧 Sending costing sheet email:', { id, email });
-  
-  return this.http.post<{ success: boolean; message: string }>(
-    `${this.apiUrl}/${id}/send-email`,
-    { email },
-    { headers: this.getAuthHeaders() }
-  ).pipe(
-    catchError(this.handleError)
-  );
-}
+    console.log('📧 Sending costing sheet email:', { id, email });
+
+    return this.http.post<{ success: boolean; message: string }>(
+      `${this.apiUrl}/${id}/send-email`,
+      { email },
+      { headers: this.getAuthHeaders() }
+    ).pipe(
+      catchError(this.handleError)
+    );
+  }
 
   /**
    * Get a specific costing sheet by ID
    */
   getCostingSheetById(id: string): Observable<any> {
     console.log('📡 Fetching costing sheet:', id);
-    
+
     return this.http.get<any>(`${this.apiUrl}/${id}`, {
       headers: this.getAuthHeaders()
     }).pipe(
@@ -163,7 +167,7 @@ export class CostingSheetService {
    */
   createCostingSheet(data: CreateCostingSheetData): Observable<any> {
     console.log('📡 Creating costing sheet:', data);
-    
+
     return this.http.post<any>(this.apiUrl, data, {
       headers: this.getAuthHeaders()
     }).pipe(
@@ -176,7 +180,7 @@ export class CostingSheetService {
    */
   updateCostingSheet(id: string, data: Partial<CreateCostingSheetData>): Observable<any> {
     console.log('📡 Updating costing sheet:', id, data);
-    
+
     return this.http.put<any>(`${this.apiUrl}/${id}`, data, {
       headers: this.getAuthHeaders()
     }).pipe(
@@ -189,7 +193,7 @@ export class CostingSheetService {
    */
   deleteCostingSheet(id: string): Observable<any> {
     console.log('📡 Deleting costing sheet:', id);
-    
+
     return this.http.delete<any>(`${this.apiUrl}/${id}`, {
       headers: this.getAuthHeaders()
     }).pipe(
@@ -202,7 +206,7 @@ export class CostingSheetService {
    */
   generatePDF(id: string, attachment?: File): Observable<any> {
     console.log('📡 Generating PDF for costing sheet:', id);
-    
+
     const formData = new FormData();
     if (attachment) {
       formData.append('attachment', attachment);
@@ -224,14 +228,14 @@ export class CostingSheetService {
   }
 
   /**
-   * ✅ FIXED: Download PDF using fetch with Authorization header
+   * Download PDF using fetch with Authorization header
    */
   downloadPDF(id: string, filename: string): void {
     console.log('📥 Downloading PDF:', filename);
-    
+
     const token = localStorage.getItem('token');
     const downloadUrl = `${this.apiUrl}/${id}/download-pdf`;
-    
+
     fetch(downloadUrl, {
       method: 'GET',
       headers: {
@@ -262,14 +266,14 @@ export class CostingSheetService {
   }
 
   /**
-   * ✅ FIXED: View PDF in new tab using fetch with Authorization header
+   * View PDF in new tab using fetch with Authorization header
    */
   viewPDFInNewTab(id: string): void {
     console.log('👁️ Opening PDF in new tab');
-    
+
     const token = localStorage.getItem('token');
     const pdfUrl = `${this.apiUrl}/${id}/download-pdf`;
-    
+
     fetch(pdfUrl, {
       method: 'GET',
       headers: {
@@ -285,19 +289,19 @@ export class CostingSheetService {
     .then(blob => {
       const url = window.URL.createObjectURL(blob);
       const newWindow = window.open(url, '_blank');
-      
+
       if (!newWindow) {
         alert('Please allow popups for this site to view PDFs');
         window.URL.revokeObjectURL(url);
         return;
       }
-      
+
       newWindow.onload = () => {
         setTimeout(() => {
           window.URL.revokeObjectURL(url);
         }, 1000);
       };
-      
+
       console.log('✅ PDF opened in new tab');
     })
     .catch(error => {
@@ -307,14 +311,14 @@ export class CostingSheetService {
   }
 
   /**
-   * ✅ FIXED: Open print dialog using fetch with Authorization header
+   * Open print dialog using fetch with Authorization header
    */
   openPrintDialog(id: string): void {
     console.log('🖨️ Opening print dialog');
-    
+
     const token = localStorage.getItem('token');
     const pdfUrl = `${this.apiUrl}/${id}/download-pdf`;
-    
+
     fetch(pdfUrl, {
       method: 'GET',
       headers: {
@@ -329,13 +333,13 @@ export class CostingSheetService {
     })
     .then(blob => {
       const url = window.URL.createObjectURL(blob);
-      
+
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
       iframe.src = url;
-      
+
       document.body.appendChild(iframe);
-      
+
       iframe.onload = () => {
         try {
           iframe.contentWindow?.print();
@@ -343,13 +347,13 @@ export class CostingSheetService {
           console.error('Print failed:', e);
           alert('Failed to print. Please try downloading the PDF instead.');
         }
-        
+
         setTimeout(() => {
           document.body.removeChild(iframe);
           window.URL.revokeObjectURL(url);
         }, 1000);
       };
-      
+
       console.log('✅ Print dialog opened');
     })
     .catch(error => {
@@ -363,7 +367,7 @@ export class CostingSheetService {
    */
   getCostingSheetStats(): Observable<any> {
     console.log('📊 Fetching costing sheet statistics');
-    
+
     return this.http.get<any>(`${this.apiUrl}/stats`, {
       headers: this.getAuthHeaders()
     }).pipe(
@@ -376,7 +380,7 @@ export class CostingSheetService {
    */
   resetCounter(): Observable<any> {
     console.log('🔄 Resetting costing sheet counter');
-    
+
     return this.http.post<any>(`${this.apiUrl}/reset-counter`, {}, {
       headers: this.getAuthHeaders()
     }).pipe(
@@ -409,7 +413,7 @@ export class CostingSheetService {
   logAuthStatus(): void {
     const token = localStorage.getItem('token');
     const user = localStorage.getItem('user');
-    
+
     console.log('🔐 Authentication Status:');
     console.log('  Token exists:', !!token);
     console.log('  Token preview:', token ? `${token.substring(0, 20)}...` : 'null');

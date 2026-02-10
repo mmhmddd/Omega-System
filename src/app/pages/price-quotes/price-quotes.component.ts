@@ -67,7 +67,7 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
   private toastTimeouts: Map<string, any> = new Map();
 
   // ============================================
-  // FORM DATA - ✅ UPDATED WITH includeStaticFile
+  // FORM DATA - ✅ UPDATED WITH includeTermsAndConditions
   // ============================================
   quoteForm: CreatePriceQuoteData = {
     clientName: '',
@@ -83,7 +83,8 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
     taxRate: 0,
     items: [],
     customNotes: '',
-    includeStaticFile: false // ✅ NEW FIELD
+    includeTermsAndConditions: false, // ✅ NEW FIELD
+    termsAndConditionsText: '' // ✅ NEW FIELD
   };
 
   // File attachment
@@ -147,6 +148,7 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
     email1: 'alaqtash@gmail.com',
     email2: 'munther.fayed@gmail.com'
   };
+
   constructor(
     public priceQuoteService: PriceQuoteService,
     private authService: AuthService
@@ -198,199 +200,198 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
       }
     }
   }
-/////////////////////////////////////////
 
+  // ============================================
+  // EMAIL SHARING METHODS
+  // ============================================
 
-
-// ============================================
-// EMAIL SHARING METHODS
-// ============================================
-
-/**
- * Open share modal for a quote
- */
-openShareModal(quote: PriceQuote): void {
-  if (!quote.pdfPath) {
-    this.showToast('error', this.formLanguage === 'ar' ? 'لم يتم إنشاء PDF بعد' : 'PDF not generated yet');
-    return;
-  }
-  this.shareQuoteId = quote.id;
-  this.shareQuoteNumber = quote.quoteNumber;
-  
-  // Reset selections
-  this.emailSelections = {
-    email1: false,
-    email2: false,
-    custom: false
-  };
-  this.customEmail = '';
-  this.showShareModal = true;
-}
-
-/**
- * Close share modal
- */
-closeShareModal(): void {
-  this.showShareModal = false;
-  this.shareQuoteId = '';
-  this.shareQuoteNumber = '';
-  this.emailSelections = {
-    email1: false,
-    email2: false,
-    custom: false
-  };
-  this.customEmail = '';
-}
-
-/**
- * Get list of selected emails
- */
-getSelectedEmailsList(): string[] {
-  const emails: string[] = [];
-  
-  if (this.emailSelections.email1) {
-    emails.push(this.staticEmails.email1);
-  }
-  
-  if (this.emailSelections.email2) {
-    emails.push(this.staticEmails.email2);
-  }
-  
-  if (this.emailSelections.custom && this.customEmail && this.customEmail.trim()) {
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (emailPattern.test(this.customEmail.trim())) {
-      emails.push(this.customEmail.trim());
-    }
-  }
-  
-  return emails;
-}
-
-/**
- * Validate email selection
- */
-isEmailValid(): boolean {
-  const selectedEmails = this.getSelectedEmailsList();
-  
-  // Must have at least one valid email selected
-  if (selectedEmails.length === 0) {
-    return false;
-  }
-  
-  // If custom is selected, validate the custom email
-  if (this.emailSelections.custom) {
-    if (!this.customEmail || this.customEmail.trim() === '') {
-      return false;
-    }
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailPattern.test(this.customEmail.trim())) {
-      return false;
-    }
-  }
-  
-  return true;
-}
-
-/**
- * Send quote PDF to selected emails
- */
-sendEmailWithPDF(): void {
-  const selectedEmails = this.getSelectedEmailsList();
-  
-  if (selectedEmails.length === 0) {
-    this.showToast('error', this.formLanguage === 'ar' 
-      ? 'يرجى اختيار بريد إلكتروني واحد على الأقل'
-      : 'Please select at least one email address'
-    );
-    return;
-  }
-
-  this.sendingEmail = true;
-  
-  // Send to all selected emails sequentially
-  let completedCount = 0;
-  let failedCount = 0;
-  
-  const sendToNextEmail = (index: number) => {
-    if (index >= selectedEmails.length) {
-      // All emails processed
-      this.sendingEmail = false;
-      this.closeShareModal();
-      
-      if (failedCount === 0) {
-        const successMsg = this.formLanguage === 'ar'
-          ? `تم إرسال عرض السعر بنجاح إلى ${completedCount} بريد إلكتروني`
-          : `Quote sent successfully to ${completedCount} email${completedCount > 1 ? 's' : ''}`;
-        this.showToast('success', successMsg);
-      } else if (completedCount > 0) {
-        const partialMsg = this.formLanguage === 'ar'
-          ? `تم الإرسال إلى ${completedCount} من أصل ${selectedEmails.length} بريد`
-          : `Sent to ${completedCount} of ${selectedEmails.length} emails`;
-        this.showToast('warning', partialMsg);
-      } else {
-        const errorMsg = this.formLanguage === 'ar'
-          ? 'فشل إرسال البريد الإلكتروني'
-          : 'Failed to send email';
-        this.showToast('error', errorMsg);
-      }
+  /**
+   * Open share modal for a quote
+   */
+  openShareModal(quote: PriceQuote): void {
+    if (!quote.pdfPath) {
+      this.showToast('error', this.formLanguage === 'ar' ? 'لم يتم إنشاء PDF بعد' : 'PDF not generated yet');
       return;
     }
-    
-    const email = selectedEmails[index];
-    
-    this.priceQuoteService.sendQuoteByEmail(this.shareQuoteId, email).subscribe({
-      next: () => {
-        completedCount++;
-        sendToNextEmail(index + 1);
-      },
-      error: (error: any) => {
-        console.error(`Error sending to ${email}:`, error);
-        failedCount++;
-        sendToNextEmail(index + 1);
-      }
-    });
-  };
-  
-  // Start sending
-  sendToNextEmail(0);
-}
-getDisplayFilename(quote: PriceQuote): string {
-  if (!quote.pdfPath) return 'N/A';
-  const pathParts = quote.pdfPath.split(/[/\\]/);
-  const filename = pathParts[pathParts.length - 1];
-  return filename;
-}
-/**
- * Share from success modal
- */
-shareFromSuccessModal(): void {
-  if (this.generatedQuoteId) {
-    this.closeSuccessModal();
-    this.priceQuoteService.getPriceQuoteById(this.generatedQuoteId).subscribe({
-      next: (response: any) => {
-        this.openShareModal(response.data);
-      },
-      error: () => {
-        const errorMsg = this.formLanguage === 'ar'
-          ? 'حدث خطأ في تحميل البيانات'
-          : 'Error loading data';
-        this.showToast('error', errorMsg);
-      }
-    });
-  }
-}
+    this.shareQuoteId = quote.id;
+    this.shareQuoteNumber = quote.quoteNumber;
 
-/**
- * Validate email format
- */
-isValidEmail(email: string): boolean {
-  if (!email || email.trim() === '') {
-    return false;
+    // Reset selections
+    this.emailSelections = {
+      email1: false,
+      email2: false,
+      custom: false
+    };
+    this.customEmail = '';
+    this.showShareModal = true;
   }
-  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailPattern.test(email.trim());
-}
-  
+
+  /**
+   * Close share modal
+   */
+  closeShareModal(): void {
+    this.showShareModal = false;
+    this.shareQuoteId = '';
+    this.shareQuoteNumber = '';
+    this.emailSelections = {
+      email1: false,
+      email2: false,
+      custom: false
+    };
+    this.customEmail = '';
+  }
+
+  /**
+   * Get list of selected emails
+   */
+  getSelectedEmailsList(): string[] {
+    const emails: string[] = [];
+
+    if (this.emailSelections.email1) {
+      emails.push(this.staticEmails.email1);
+    }
+
+    if (this.emailSelections.email2) {
+      emails.push(this.staticEmails.email2);
+    }
+
+    if (this.emailSelections.custom && this.customEmail && this.customEmail.trim()) {
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (emailPattern.test(this.customEmail.trim())) {
+        emails.push(this.customEmail.trim());
+      }
+    }
+
+    return emails;
+  }
+
+  /**
+   * Validate email selection
+   */
+  isEmailValid(): boolean {
+    const selectedEmails = this.getSelectedEmailsList();
+
+    // Must have at least one valid email selected
+    if (selectedEmails.length === 0) {
+      return false;
+    }
+
+    // If custom is selected, validate the custom email
+    if (this.emailSelections.custom) {
+      if (!this.customEmail || this.customEmail.trim() === '') {
+        return false;
+      }
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailPattern.test(this.customEmail.trim())) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Send quote PDF to selected emails
+   */
+  sendEmailWithPDF(): void {
+    const selectedEmails = this.getSelectedEmailsList();
+
+    if (selectedEmails.length === 0) {
+      this.showToast('error', this.formLanguage === 'ar'
+        ? 'يرجى اختيار بريد إلكتروني واحد على الأقل'
+        : 'Please select at least one email address'
+      );
+      return;
+    }
+
+    this.sendingEmail = true;
+
+    // Send to all selected emails sequentially
+    let completedCount = 0;
+    let failedCount = 0;
+
+    const sendToNextEmail = (index: number) => {
+      if (index >= selectedEmails.length) {
+        // All emails processed
+        this.sendingEmail = false;
+        this.closeShareModal();
+
+        if (failedCount === 0) {
+          const successMsg = this.formLanguage === 'ar'
+            ? `تم إرسال عرض السعر بنجاح إلى ${completedCount} بريد إلكتروني`
+            : `Quote sent successfully to ${completedCount} email${completedCount > 1 ? 's' : ''}`;
+          this.showToast('success', successMsg);
+        } else if (completedCount > 0) {
+          const partialMsg = this.formLanguage === 'ar'
+            ? `تم الإرسال إلى ${completedCount} من أصل ${selectedEmails.length} بريد`
+            : `Sent to ${completedCount} of ${selectedEmails.length} emails`;
+          this.showToast('warning', partialMsg);
+        } else {
+          const errorMsg = this.formLanguage === 'ar'
+            ? 'فشل إرسال البريد الإلكتروني'
+            : 'Failed to send email';
+          this.showToast('error', errorMsg);
+        }
+        return;
+      }
+
+      const email = selectedEmails[index];
+
+      this.priceQuoteService.sendQuoteByEmail(this.shareQuoteId, email).subscribe({
+        next: () => {
+          completedCount++;
+          sendToNextEmail(index + 1);
+        },
+        error: (error: any) => {
+          console.error(`Error sending to ${email}:`, error);
+          failedCount++;
+          sendToNextEmail(index + 1);
+        }
+      });
+    };
+
+    // Start sending
+    sendToNextEmail(0);
+  }
+
+  getDisplayFilename(quote: PriceQuote): string {
+    if (!quote.pdfPath) return 'N/A';
+    const pathParts = quote.pdfPath.split(/[/\\]/);
+    const filename = pathParts[pathParts.length - 1];
+    return filename;
+  }
+
+  /**
+   * Share from success modal
+   */
+  shareFromSuccessModal(): void {
+    if (this.generatedQuoteId) {
+      this.closeSuccessModal();
+      this.priceQuoteService.getPriceQuoteById(this.generatedQuoteId).subscribe({
+        next: (response: any) => {
+          this.openShareModal(response.data);
+        },
+        error: () => {
+          const errorMsg = this.formLanguage === 'ar'
+            ? 'حدث خطأ في تحميل البيانات'
+            : 'Error loading data';
+          this.showToast('error', errorMsg);
+        }
+      });
+    }
+  }
+
+  /**
+   * Validate email format
+   */
+  isValidEmail(email: string): boolean {
+    if (!email || email.trim() === '') {
+      return false;
+    }
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailPattern.test(email.trim());
+  }
+
   // ============================================
   // DATA LOADING - UPDATED FOR ROLE-BASED ACCESS
   // ============================================
@@ -563,7 +564,7 @@ isValidEmail(email: string): boolean {
 
   /**
    * Confirm duplicate and create new quote with copied data
-   * ✅ UPDATED: Now includes includeStaticFile
+   * ✅ UPDATED: Now includes includeTermsAndConditions
    */
   confirmDuplicate(): void {
     if (!this.quoteToDuplicate) return;
@@ -586,7 +587,8 @@ isValidEmail(email: string): boolean {
       taxRate: quote.taxRate,
       items: [...quote.items.map(item => ({ ...item }))],
       customNotes: quote.customNotes || '',
-      includeStaticFile: quote.includeStaticFile || false // ✅ NEW FIELD
+      includeTermsAndConditions: quote.includeTermsAndConditions || false, // ✅ NEW FIELD
+      termsAndConditionsText: quote.termsAndConditionsText || '' // ✅ NEW FIELD
     };
 
     this.currentView = 'create';
@@ -603,7 +605,7 @@ isValidEmail(email: string): boolean {
   }
 
   // ============================================
-  // FORM MANAGEMENT - ✅ UPDATED WITH includeStaticFile
+  // FORM MANAGEMENT - ✅ UPDATED WITH includeTermsAndConditions
   // ============================================
 
   resetForm(): void {
@@ -621,7 +623,8 @@ isValidEmail(email: string): boolean {
       taxRate: 0,
       items: [],
       customNotes: '',
-      includeStaticFile: false // ✅ NEW FIELD
+      includeTermsAndConditions: false, // ✅ NEW FIELD
+      termsAndConditionsText: '' // ✅ NEW FIELD
     };
     this.pdfAttachment = null;
     this.fieldErrors = {};
@@ -629,7 +632,7 @@ isValidEmail(email: string): boolean {
   }
 
   /**
-   * ✅ UPDATED: Now includes includeStaticFile
+   * ✅ UPDATED: Now includes includeTermsAndConditions
    */
   populateFormWithQuote(quote: PriceQuote): void {
     this.quoteForm = {
@@ -646,7 +649,8 @@ isValidEmail(email: string): boolean {
       taxRate: quote.taxRate,
       items: [...quote.items],
       customNotes: quote.customNotes || '',
-      includeStaticFile: quote.includeStaticFile || false // ✅ NEW FIELD
+      includeTermsAndConditions: quote.includeTermsAndConditions || false, // ✅ NEW FIELD
+      termsAndConditionsText: quote.termsAndConditionsText || '' // ✅ NEW FIELD
     };
   }
 
@@ -660,13 +664,59 @@ isValidEmail(email: string): boolean {
   }
 
   // ============================================
-  // LANGUAGE TOGGLE
+  // LANGUAGE TOGGLE - ✅ UPDATED
   // ============================================
 
-  toggleFormLanguage(lang: 'ar' | 'en'): void {
-    this.formLanguage = lang;
-    this.quoteForm.language = lang === 'ar' ? 'arabic' : 'english';
+toggleFormLanguage(lang: 'ar' | 'en'): void {
+  this.formLanguage = lang;
+  this.quoteForm.language = lang === 'ar' ? 'arabic' : 'english';
+
+  // ✅ IMPROVED: Update terms and conditions text when language changes
+  if (this.quoteForm.includeTermsAndConditions) {
+    // Only update if the text is still the default (hasn't been customized by user)
+    const currentDefaultArabic = this.priceQuoteService.getDefaultTermsAndConditions('arabic');
+    const currentDefaultEnglish = this.priceQuoteService.getDefaultTermsAndConditions('english');
+
+    // Check if current text matches either default (meaning user hasn't customized it)
+    const isDefaultText = this.quoteForm.termsAndConditionsText === currentDefaultArabic ||
+                          this.quoteForm.termsAndConditionsText === currentDefaultEnglish ||
+                          !this.quoteForm.termsAndConditionsText;
+
+    if (isDefaultText) {
+      // Update to the new language's default
+      this.quoteForm.termsAndConditionsText = this.priceQuoteService.getDefaultTermsAndConditions(
+        this.quoteForm.language
+      );
+    }
+    // If user has customized the text, don't overwrite it - just show a note
+    else {
+      console.log('Terms text has been customized - keeping user edits');
+    }
   }
+}
+
+  // ============================================
+  // ✅ NEW: TERMS AND CONDITIONS TOGGLE
+  // ============================================
+
+  /**
+   * Handle terms and conditions checkbox toggle
+   */
+toggleTermsAndConditions(enabled: boolean): void {
+  this.quoteForm.includeTermsAndConditions = enabled;
+
+  if (enabled) {
+    // Auto-populate with default terms if empty
+    if (!this.quoteForm.termsAndConditionsText || this.quoteForm.termsAndConditionsText.trim() === '') {
+      // ✅ FIX: Use formLanguage to determine which language template to use
+      const language: 'arabic' | 'english' = this.formLanguage === 'ar' ? 'arabic' : 'english';
+      this.quoteForm.termsAndConditionsText = this.priceQuoteService.getDefaultTermsAndConditions(language);
+    }
+  } else {
+    // Clear terms text when disabled
+    this.quoteForm.termsAndConditionsText = '';
+  }
+}
 
   // ============================================
   // STEP NAVIGATION - ✅ UPDATED FOR 4 STEPS
@@ -873,7 +923,7 @@ isValidEmail(email: string): boolean {
   }
 
   // ============================================
-  // SAVE QUOTE - ✅ INCLUDES includeStaticFile
+  // SAVE QUOTE - ✅ INCLUDES includeTermsAndConditions
   // ============================================
 
   saveQuote(): void {
@@ -912,7 +962,7 @@ isValidEmail(email: string): boolean {
     this.savingQuote = true;
     this.formError = '';
 
-    // ✅ quoteForm already includes includeStaticFile
+    // ✅ quoteForm already includes includeTermsAndConditions and termsAndConditionsText
     const quoteData: CreatePriceQuoteData = {
       ...this.quoteForm,
       attachment: this.pdfAttachment || undefined
@@ -1021,11 +1071,11 @@ isValidEmail(email: string): boolean {
     });
   }
 
-downloadGeneratedPDF(): void {
-  const quote = this.quotes.find(q => q.id === this.generatedQuoteId);
-  const filename = quote ? this.getDisplayFilename(quote) : `quote-${this.generatedQuoteId}.pdf`;
-  this.priceQuoteService.triggerPDFDownload(this.generatedQuoteId, filename);
-}
+  downloadGeneratedPDF(): void {
+    const quote = this.quotes.find(q => q.id === this.generatedQuoteId);
+    const filename = quote ? this.getDisplayFilename(quote) : `quote-${this.generatedQuoteId}.pdf`;
+    this.priceQuoteService.triggerPDFDownload(this.generatedQuoteId, filename);
+  }
 
   // ============================================
   // DELETE QUOTE
