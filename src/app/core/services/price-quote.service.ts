@@ -13,10 +13,12 @@ export interface UserInfo {
   username: string;
   email: string;
 }
+
 export interface EmailSendResponse {
   success: boolean;
   message: string;
 }
+
 export interface PriceQuoteItem {
   description: string;
   unit: string;
@@ -41,8 +43,8 @@ export interface PriceQuote {
   taxRate: number;
   items: PriceQuoteItem[];
   customNotes?: string | null;
-  includeTermsAndConditions?: boolean; // ✅ UPDATED FIELD NAME
-  termsAndConditionsText?: string | null; // ✅ NEW FIELD - Text content
+  includeTermsAndConditions?: boolean;
+  termsAndConditionsText?: string | null;
   subtotal: number;
   taxAmount: number;
   total: number;
@@ -69,8 +71,8 @@ export interface CreatePriceQuoteData {
   taxRate?: number;
   items: PriceQuoteItem[];
   customNotes?: string;
-  includeTermsAndConditions?: boolean; // ✅ UPDATED FIELD NAME
-  termsAndConditionsText?: string; // ✅ NEW FIELD - Text content
+  includeTermsAndConditions?: boolean;
+  termsAndConditionsText?: string;
   attachment?: File;
 }
 
@@ -88,8 +90,8 @@ export interface UpdatePriceQuoteData {
   taxRate?: number;
   items?: PriceQuoteItem[];
   customNotes?: string;
-  includeTermsAndConditions?: boolean; // ✅ UPDATED FIELD NAME
-  termsAndConditionsText?: string; // ✅ NEW FIELD - Text content
+  includeTermsAndConditions?: boolean;
+  termsAndConditionsText?: string;
   attachment?: File;
 }
 
@@ -158,12 +160,14 @@ export class PriceQuoteService {
 
     return quote.createdBy || '-';
   }
+
   getDisplayFilename(quote: PriceQuote): string {
     if (!quote.pdfPath) return 'N/A';
     const pathParts = quote.pdfPath.split(/[/\\]/);
     const filename = pathParts[pathParts.length - 1];
     return filename;
   }
+
   getCreatorEmail(quote: PriceQuote): string {
     return quote.createdByInfo?.email || 'N/A';
   }
@@ -173,7 +177,7 @@ export class PriceQuoteService {
   }
 
   // ============================================
-  // CREATE PRICE QUOTE - ✅ UPDATED
+  // CREATE PRICE QUOTE
   // ============================================
 
   createPriceQuote(quoteData: CreatePriceQuoteData): Observable<PriceQuoteResponse> {
@@ -212,12 +216,10 @@ export class PriceQuoteService {
       formData.append('customNotes', quoteData.customNotes);
     }
 
-    // ✅ NEW FIELD - Include terms and conditions checkbox
     if (quoteData.includeTermsAndConditions !== undefined) {
       formData.append('includeTermsAndConditions', quoteData.includeTermsAndConditions.toString());
     }
 
-    // ✅ NEW FIELD - Terms and conditions text content
     if (quoteData.termsAndConditionsText) {
       formData.append('termsAndConditionsText', quoteData.termsAndConditionsText);
     }
@@ -233,9 +235,8 @@ export class PriceQuoteService {
     );
   }
 
-
-    /**
-   * ✅ Send quote PDF by email
+  /**
+   * Send quote PDF by email
    */
   sendQuoteByEmail(id: string, email: string): Observable<{success: boolean; message: string}> {
     return this.http.post<{success: boolean; message: string}>(
@@ -244,6 +245,7 @@ export class PriceQuoteService {
       { headers: this.getAuthHeaders() }
     );
   }
+
   // ============================================
   // GET PRICE QUOTES
   // ============================================
@@ -290,7 +292,7 @@ export class PriceQuoteService {
   }
 
   // ============================================
-  // UPDATE PRICE QUOTE - ✅ UPDATED
+  // UPDATE PRICE QUOTE
   // ============================================
 
   updatePriceQuote(id: string, updateData: UpdatePriceQuoteData): Observable<PriceQuoteResponse> {
@@ -336,12 +338,10 @@ export class PriceQuoteService {
       formData.append('customNotes', updateData.customNotes);
     }
 
-    // ✅ NEW FIELD - Include terms and conditions checkbox
     if (updateData.includeTermsAndConditions !== undefined) {
       formData.append('includeTermsAndConditions', updateData.includeTermsAndConditions.toString());
     }
 
-    // ✅ NEW FIELD - Terms and conditions text content
     if (updateData.termsAndConditionsText !== undefined) {
       formData.append('termsAndConditionsText', updateData.termsAndConditionsText || '');
     }
@@ -503,7 +503,10 @@ export class PriceQuoteService {
     return `PQ${number.toString().padStart(4, '0')}`;
   }
 
-  // ✅ NEW METHOD - Get default terms and conditions text
+  // ============================================
+  // GET DEFAULT TERMS AND CONDITIONS TEXT
+  // ============================================
+
   getDefaultTermsAndConditions(language: 'arabic' | 'english'): string {
     if (language === 'arabic') {
       return `الشروط والأحكام
