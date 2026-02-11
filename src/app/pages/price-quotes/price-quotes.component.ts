@@ -51,7 +51,7 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
   // VIEW MANAGEMENT
   // ============================================
   currentView: 'list' | 'create' | 'edit' = 'list';
-  currentStep: 'basic' | 'items' | 'tax' | 'options' = 'basic'; // ✅ UPDATED: Added 'options' step
+  currentStep: 'basic' | 'items' | 'tax' | 'options' = 'basic';
   formLanguage: 'ar' | 'en' = 'ar';
 
   // ============================================
@@ -67,7 +67,7 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
   private toastTimeouts: Map<string, any> = new Map();
 
   // ============================================
-  // FORM DATA - ✅ UPDATED WITH includeTermsAndConditions
+  // FORM DATA
   // ============================================
   quoteForm: CreatePriceQuoteData = {
     clientName: '',
@@ -83,8 +83,8 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
     taxRate: 0,
     items: [],
     customNotes: '',
-    includeTermsAndConditions: false, // ✅ NEW FIELD
-    termsAndConditionsText: '' // ✅ NEW FIELD
+    includeTermsAndConditions: false,
+    termsAndConditionsText: ''
   };
 
   // File attachment
@@ -503,10 +503,16 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
     }
 
     this.resetForm();
+
+    // ✅ FIX: Ensure language is set correctly based on current UI language
+    this.quoteForm.language = this.formLanguage === 'ar' ? 'arabic' : 'english';
+
     this.currentView = 'create';
     this.currentStep = 'basic';
     this.formError = '';
     this.fieldErrors = {};
+
+    console.log('🆕 Creating new quote with language:', this.quoteForm.language);
   }
 
   editQuote(quote: PriceQuote): void {
@@ -564,7 +570,6 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
 
   /**
    * Confirm duplicate and create new quote with copied data
-   * ✅ UPDATED: Now includes includeTermsAndConditions
    */
   confirmDuplicate(): void {
     if (!this.quoteToDuplicate) return;
@@ -587,8 +592,8 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
       taxRate: quote.taxRate,
       items: [...quote.items.map(item => ({ ...item }))],
       customNotes: quote.customNotes || '',
-      includeTermsAndConditions: quote.includeTermsAndConditions || false, // ✅ NEW FIELD
-      termsAndConditionsText: quote.termsAndConditionsText || '' // ✅ NEW FIELD
+      includeTermsAndConditions: quote.includeTermsAndConditions || false,
+      termsAndConditionsText: quote.termsAndConditionsText || ''
     };
 
     this.currentView = 'create';
@@ -605,10 +610,13 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
   }
 
   // ============================================
-  // FORM MANAGEMENT - ✅ UPDATED WITH includeTermsAndConditions
+  // FORM MANAGEMENT
   // ============================================
 
   resetForm(): void {
+    // ✅ FIX: Use current formLanguage to set the initial language
+    const currentLanguage = this.formLanguage === 'ar' ? 'arabic' : 'english';
+
     this.quoteForm = {
       clientName: '',
       clientPhone: '',
@@ -618,22 +626,21 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
       date: this.getTodayDate(),
       revNumber: '00',
       validForDays: 30,
-      language: 'arabic',
+      language: currentLanguage, // ✅ Use current UI language
       includeTax: false,
       taxRate: 0,
       items: [],
       customNotes: '',
-      includeTermsAndConditions: false, // ✅ NEW FIELD
-      termsAndConditionsText: '' // ✅ NEW FIELD
+      includeTermsAndConditions: false,
+      termsAndConditionsText: ''
     };
     this.pdfAttachment = null;
     this.fieldErrors = {};
     this.formError = '';
+
+    console.log('📝 Form reset with language:', currentLanguage);
   }
 
-  /**
-   * ✅ UPDATED: Now includes includeTermsAndConditions
-   */
   populateFormWithQuote(quote: PriceQuote): void {
     this.quoteForm = {
       clientName: quote.clientName,
@@ -649,8 +656,8 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
       taxRate: quote.taxRate,
       items: [...quote.items],
       customNotes: quote.customNotes || '',
-      includeTermsAndConditions: quote.includeTermsAndConditions || false, // ✅ NEW FIELD
-      termsAndConditionsText: quote.termsAndConditionsText || '' // ✅ NEW FIELD
+      includeTermsAndConditions: quote.includeTermsAndConditions || false,
+      termsAndConditionsText: quote.termsAndConditionsText || ''
     };
   }
 
@@ -664,62 +671,61 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
   }
 
   // ============================================
-  // LANGUAGE TOGGLE - ✅ UPDATED
+  // LANGUAGE TOGGLE - ✅ FIXED
   // ============================================
 
-toggleFormLanguage(lang: 'ar' | 'en'): void {
-  this.formLanguage = lang;
-  this.quoteForm.language = lang === 'ar' ? 'arabic' : 'english';
+  toggleFormLanguage(lang: 'ar' | 'en'): void {
+    this.formLanguage = lang;
+    this.quoteForm.language = lang === 'ar' ? 'arabic' : 'english';
 
-  // ✅ IMPROVED: Update terms and conditions text when language changes
-  if (this.quoteForm.includeTermsAndConditions) {
-    // Only update if the text is still the default (hasn't been customized by user)
-    const currentDefaultArabic = this.priceQuoteService.getDefaultTermsAndConditions('arabic');
-    const currentDefaultEnglish = this.priceQuoteService.getDefaultTermsAndConditions('english');
+    console.log('🌐 Language toggled to:', this.formLanguage, '-> Backend language:', this.quoteForm.language);
 
-    // Check if current text matches either default (meaning user hasn't customized it)
-    const isDefaultText = this.quoteForm.termsAndConditionsText === currentDefaultArabic ||
-                          this.quoteForm.termsAndConditionsText === currentDefaultEnglish ||
-                          !this.quoteForm.termsAndConditionsText;
+    // Update terms and conditions text when language changes
+    if (this.quoteForm.includeTermsAndConditions) {
+      const currentDefaultArabic = this.priceQuoteService.getDefaultTermsAndConditions('arabic');
+      const currentDefaultEnglish = this.priceQuoteService.getDefaultTermsAndConditions('english');
 
-    if (isDefaultText) {
-      // Update to the new language's default
-      this.quoteForm.termsAndConditionsText = this.priceQuoteService.getDefaultTermsAndConditions(
-        this.quoteForm.language
-      );
-    }
-    // If user has customized the text, don't overwrite it - just show a note
-    else {
-      console.log('Terms text has been customized - keeping user edits');
+      // Check if current text matches either default (meaning user hasn't customized it)
+      const isDefaultText = this.quoteForm.termsAndConditionsText === currentDefaultArabic ||
+                            this.quoteForm.termsAndConditionsText === currentDefaultEnglish ||
+                            !this.quoteForm.termsAndConditionsText;
+
+      if (isDefaultText) {
+        // Update to the new language's default
+        this.quoteForm.termsAndConditionsText = this.priceQuoteService.getDefaultTermsAndConditions(
+          this.quoteForm.language
+        );
+        console.log('✅ Terms updated to', this.quoteForm.language, 'default');
+      } else {
+        console.log('⚠️ Terms text has been customized - keeping user edits');
+      }
     }
   }
-}
 
   // ============================================
-  // ✅ NEW: TERMS AND CONDITIONS TOGGLE
+  // TERMS AND CONDITIONS TOGGLE - ✅ FIXED
   // ============================================
 
-  /**
-   * Handle terms and conditions checkbox toggle
-   */
-toggleTermsAndConditions(enabled: boolean): void {
-  this.quoteForm.includeTermsAndConditions = enabled;
+  toggleTermsAndConditions(enabled: boolean): void {
+    this.quoteForm.includeTermsAndConditions = enabled;
 
-  if (enabled) {
-    // Auto-populate with default terms if empty
-    if (!this.quoteForm.termsAndConditionsText || this.quoteForm.termsAndConditionsText.trim() === '') {
-      // ✅ FIX: Use formLanguage to determine which language template to use
-      const language: 'arabic' | 'english' = this.formLanguage === 'ar' ? 'arabic' : 'english';
-      this.quoteForm.termsAndConditionsText = this.priceQuoteService.getDefaultTermsAndConditions(language);
+    if (enabled) {
+      // Auto-populate with default terms if empty
+      if (!this.quoteForm.termsAndConditionsText || this.quoteForm.termsAndConditionsText.trim() === '') {
+        // ✅ FIX: Use quoteForm.language (backend language) instead of formLanguage
+        this.quoteForm.termsAndConditionsText = this.priceQuoteService.getDefaultTermsAndConditions(
+          this.quoteForm.language!
+        );
+        console.log('✅ Terms populated with', this.quoteForm.language, 'default');
+      }
+    } else {
+      // Clear terms text when disabled
+      this.quoteForm.termsAndConditionsText = '';
     }
-  } else {
-    // Clear terms text when disabled
-    this.quoteForm.termsAndConditionsText = '';
   }
-}
 
   // ============================================
-  // STEP NAVIGATION - ✅ UPDATED FOR 4 STEPS
+  // STEP NAVIGATION
   // ============================================
 
   nextStep(): void {
@@ -732,14 +738,12 @@ toggleTermsAndConditions(enabled: boolean): void {
         this.currentStep = 'tax';
       }
     } else if (this.currentStep === 'tax') {
-      // ✅ From tax, go to options step
       this.currentStep = 'options';
     }
   }
 
   previousStep(): void {
     if (this.currentStep === 'options') {
-      // ✅ From options, go back to tax
       this.currentStep = 'tax';
     } else if (this.currentStep === 'tax') {
       this.currentStep = 'items';
@@ -865,8 +869,7 @@ toggleTermsAndConditions(enabled: boolean): void {
     this.fieldErrors = {};
     let isValid = true;
 
-    // ✅ Items are now optional - no error if empty
-    // Only validate if items exist
+    // Items are optional - only validate if items exist
     if (this.quoteForm.items.length > 0) {
       this.quoteForm.items.forEach((item, index) => {
         if (!item.description || item.description.trim() === '') {
@@ -923,7 +926,7 @@ toggleTermsAndConditions(enabled: boolean): void {
   }
 
   // ============================================
-  // SAVE QUOTE - ✅ INCLUDES includeTermsAndConditions
+  // SAVE QUOTE - ✅ WITH DEBUG LOGGING
   // ============================================
 
   saveQuote(): void {
@@ -959,10 +962,17 @@ toggleTermsAndConditions(enabled: boolean): void {
       return;
     }
 
+    // ✅ DEBUG LOGGING
+    console.log('💾 === SAVING QUOTE ===');
+    console.log('UI Language (formLanguage):', this.formLanguage);
+    console.log('Backend Language (quoteForm.language):', this.quoteForm.language);
+    console.log('Include Terms:', this.quoteForm.includeTermsAndConditions);
+    console.log('Terms Text Length:', this.quoteForm.termsAndConditionsText?.length || 0);
+    console.log('========================');
+
     this.savingQuote = true;
     this.formError = '';
 
-    // ✅ quoteForm already includes includeTermsAndConditions and termsAndConditionsText
     const quoteData: CreatePriceQuoteData = {
       ...this.quoteForm,
       attachment: this.pdfAttachment || undefined
@@ -1248,7 +1258,7 @@ toggleTermsAndConditions(enabled: boolean): void {
   }
 
   // ============================================
-  // PERMISSION METHODS - UPDATED
+  // PERMISSION METHODS
   // ============================================
 
   isSuperAdmin(): boolean {
