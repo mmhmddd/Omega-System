@@ -856,82 +856,117 @@
 
 
         <!-- STEP 3: PDF Options -->
-        <div *ngIf="currentStep === 'options'" class="step-content">
-          <h2 class="step-title">
-            {{ formLanguage === 'ar' ? 'الشروط والأحكام' : 'Terms & Conditions' }}
-          </h2>          
-          <!-- Info Alert -->
-          <div class="info-alert">
-            <i class="bi bi-info-circle"></i>
-            <div style="flex: 1;">
-              <p>
-                {{ formLanguage === 'ar'
-                  ? 'يمكنك اختيار إضافة ملف PDF ثابت (الشروط والأحكام) إلى طلب الشراء الخاص بك. سيتم دمج الملف تلقائياً في نهاية المستند عند تفعيل هذا الخيار.'
-                  : 'You can choose to include a static PDF file (Terms and Conditions) with your purchase order. The file will be automatically merged at the end of the document when this option is enabled.'
-                }}
-              </p>
-            </div>
-          </div>
+<!-- STEP 3: Terms & Conditions -->
+<div *ngIf="currentStep === 'options'" class="step-content">
+  <h2 class="step-title">
+    {{ formLanguage === 'ar' ? 'الشروط والأحكام' : 'Terms & Conditions' }}
+  </h2>
 
-          <!-- Static PDF Checkbox -->
-          <div class="static-pdf-option">
-            <div class="checkbox-container">
-              <input
-                type="checkbox"
-                id="includeStaticFile"
-                [(ngModel)]="poForm.includeStaticFile"
-                class="checkbox-input"
-              />
-              <label for="includeStaticFile" class="checkbox-label">
-                <i class="bi bi-file-earmark-pdf"></i>
-                <span>
-                  {{ formLanguage === 'ar'
-                    ? 'إضافة ملف الشروط والأحكام إلى طلب الشراء'
-                    : 'Include Terms and Conditions with Purchase Order'
-                  }}
-                </span>
-              </label>
-            </div>
-            
-            <small class="help-text">
-              {{ formLanguage === 'ar'
-                ? 'عند تفعيل هذا الخيار، سيتم إضافة ملف الشروط والأحكام الثابت تلقائياً في نهاية ملف PDF الخاص بطلب الشراء.'
-                : 'When enabled, the static Terms and Conditions file will be automatically added to the end of the purchase order PDF.'
-              }}
-            </small>
-          </div>
+  <!-- Info Alert -->
+  <div class="info-alert">
+    <i class="bi bi-info-circle"></i>
+    <div style="flex: 1;">
+      <p>
+        {{ formLanguage === 'ar'
+          ? 'يمكنك إضافة الشروط والأحكام كنص إلى طلب الشراء الخاص بك. سيتم إضافة النص تلقائياً في نهاية المستند عند تفعيل هذا الخيار.'
+          : 'You can add Terms and Conditions as text to your purchase order. The text will be automatically added at the end of the document when this option is enabled.'
+        }}
+      </p>
+    </div>
+  </div>
 
-          <!-- Navigation Buttons -->
-          <div class="form-navigation">
-            <button class="btn-secondary btn-back" (click)="previousStep()" type="button">
-              <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
-              {{ formLanguage === 'ar' ? 'السابق' : 'Back' }}
-            </button>
-            
-          </div>
+  <!-- ✅ Terms & Conditions Checkbox -->
+  <div class="terms-checkbox-container">
+    <div class="checkbox-wrapper">
+      <input
+        type="checkbox"
+        id="includeTermsAndConditions"
+        [(ngModel)]="poForm.includeTermsAndConditions"
+        (change)="onTermsAndConditionsToggle()"
+        class="checkbox-input"
+      />
+      <label for="includeTermsAndConditions" class="checkbox-label">
+        <i class="bi bi-file-text"></i>
+        <span>
+          {{ formLanguage === 'ar'
+            ? 'إضافة الشروط والأحكام إلى طلب الشراء'
+            : 'Include Terms and Conditions with Purchase Order'
+          }}
+        </span>
+      </label>
+    </div>
 
-          <!-- Final Save Section -->
-          <div class="final-save-section">
-            <button
-              class="btn-primary btn-save-final"
-              (click)="savePO()"
-              [disabled]="savingPO"
-              type="button">
-              <i class="bi bi-save"></i>
-              {{ savingPO
-                ? (formLanguage === 'ar' ? 'جاري الحفظ...' : 'Saving...')
-                : (formLanguage === 'ar' ? 'حفظ طلب الشراء' : 'Save Purchase Order')
-              }}
-            </button>
-            
-            <p class="save-info-text">
-              {{ formLanguage === 'ar'
-                ? 'سيتم إنشاء ملف PDF تلقائياً بعد الحفظ.'
-                : 'A PDF file will be generated automatically after saving.'
-              }}
-            </p>
-          </div>
-        </div>
+
+  </div>
+
+  <!-- ✅ Terms & Conditions Textarea (shows when checkbox is checked) -->
+  <div class="terms-text-container" *ngIf="poForm.includeTermsAndConditions">
+    <div class="terms-header">
+      <label class="terms-label">
+        <i class="bi bi-pencil-square"></i>
+        {{ formLanguage === 'ar' ? 'نص الشروط والأحكام' : 'Terms and Conditions Text' }}
+      </label>
+      <button
+        type="button"
+        class="btn-reset-terms"
+        (click)="resetTermsToDefault()"
+        [title]="formLanguage === 'ar' ? 'إعادة تعيين إلى النص الافتراضي' : 'Reset to default text'">
+        <i class="bi bi-arrow-counterclockwise"></i>
+        {{ formLanguage === 'ar' ? 'إعادة تعيين' : 'Reset' }}
+      </button>
+    </div>
+
+    <textarea
+      id="termsAndConditionsText"
+      [(ngModel)]="poForm.termsAndConditionsText"
+      class="terms-textarea"
+      rows="15"
+      [placeholder]="formLanguage === 'ar'
+        ? 'أدخل نص الشروط والأحكام هنا...'
+        : 'Enter your Terms and Conditions text here...'"
+    ></textarea>
+
+    <div class="terms-footer-info">
+      <i class="bi bi-lightbulb"></i>
+      <span>
+        {{ formLanguage === 'ar'
+          ? 'يمكنك تعديل النص حسب احتياجاتك. النص أعلاه هو نموذج افتراضي يمكن تخصيصه.'
+          : 'You can edit the text according to your needs. The text above is a default template that can be customized.'
+        }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Navigation Buttons -->
+  <div class="form-navigation">
+    <button class="btn-secondary btn-back" (click)="previousStep()" type="button">
+      <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
+      {{ formLanguage === 'ar' ? 'السابق' : 'Back' }}
+    </button>
+  </div>
+
+  <!-- Final Save Section -->
+  <div class="final-save-section">
+    <button
+      class="btn-primary btn-save-final"
+      (click)="savePO()"
+      [disabled]="savingPO"
+      type="button">
+      <i class="bi bi-save"></i>
+      {{ savingPO
+        ? (formLanguage === 'ar' ? 'جاري الحفظ...' : 'Saving...')
+        : (formLanguage === 'ar' ? 'حفظ طلب الشراء' : 'Save Purchase Order')
+      }}
+    </button>
+
+    <p class="save-info-text">
+      {{ formLanguage === 'ar'
+        ? 'سيتم إنشاء ملف PDF تلقائياً بعد الحفظ.'
+        : 'A PDF file will be generated automatically after saving.'
+      }}
+    </p>
+  </div>
+</div>
       </div>
     </div>
   </div>

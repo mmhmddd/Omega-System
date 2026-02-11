@@ -1,4 +1,4 @@
-// src/core/services/purchase.service.ts - UPDATED WITH includeStaticFile
+// src/core/services/purchase.service.ts
 
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
@@ -16,7 +16,7 @@ export interface POItem {
 }
 
 /**
- * Purchase Order Interface - UPDATED WITH includeStaticFile
+ * Purchase Order Interface 
  */
 export interface PurchaseOrder {
   id: string;
@@ -49,7 +49,9 @@ export interface PurchaseOrder {
   createdByRole: string;
   createdAt: string;
   updatedAt: string;
-  includeStaticFile?: boolean; // ✅ NEW FIELD
+  // ✅ NEW: Text-based Terms & Conditions
+  includeTermsAndConditions?: boolean;
+  termsAndConditionsText?: string;
 }
 
 /**
@@ -80,7 +82,7 @@ export interface EmailSendResponse {
 }
 
 /**
- * Create Purchase Order Data Interface - UPDATED WITH includeStaticFile
+ * Create Purchase Order Data Interface
  */
 export interface CreatePurchaseOrderData {
   date?: string;
@@ -95,7 +97,9 @@ export interface CreatePurchaseOrderData {
   taxRate: number;
   items: POItem[];
   notes?: string;
-  includeStaticFile?: boolean; // ✅ NEW FIELD
+  // ✅ NEW: Text-based Terms & Conditions
+  includeTermsAndConditions?: boolean;
+  termsAndConditionsText?: string;
 }
 
 /**

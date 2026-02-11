@@ -1,6 +1,5 @@
 // ============================================================
 // MATERIAL REQUEST COMPONENT - WITH TERMS & CONDITIONS SUPPORT
-// materials-request.component.ts (COMPLETE WITH includeStaticFile)
 // ============================================================
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
@@ -39,6 +38,78 @@ interface Toast {
   styleUrl: './materials-request.component.scss'
 })
 export class MaterialsRequestComponent implements OnInit, OnDestroy {
+
+
+private readonly DEFAULT_TERMS_AR = `الشروط والأحكام
+
+تُعتبر جميع المواد والبنود والخدمات غير المذكورة صراحةً في هذا المستند مستثناة. كما أن أي خدمات أو أعمال تقع خارج نطاق عمل المورد غير مشمولة. ضريبة القيمة المضافة وأي رسوم حكومية أو تصاريح أو موافقات رسمية غير مشمولة ما لم يُذكر خلاف ذلك صراحةً. كما أن الأعمال المدنية وأعمال الرفع والمناولة وفك وإعادة تركيب العوائق الموجودة في الموقع أو أي أعمال مشابهة غير مشمولة ما لم يتم ذكرها بشكل واضح.
+
+أي أعمال إضافية أو تغييرات أو تعديلات أو متطلبات غير مذكورة في هذا المستند تخضع لتكاليف إضافية وتعديل في مدة التنفيذ حسب الحالة. كما أن رسوم الدراسات واعتماد التصاميم والموافقات الرسمية والتصاريح وختم المخططات والحسابات الهندسية أو أي متطلبات فنية مشابهة غير مشمولة ما لم يُذكر خلاف ذلك صراحةً.
+
+الأسعار مبنية على أساس تنفيذ الطلب بالكامل كما هو محدد، وفي حال تنفيذ جزء من الطلب يحق للمورد تعديل الأسعار وفقًا لذلك.
+
+تكون شروط الدفع على النحو التالي:
+• ( )% دفعة مقدمة عند تأكيد الطلب  
+• ( )% أثناء التنفيذ / عند التوريد  
+• ( )% عند الانتهاء والتسليم النهائي  
+
+يسري هذا المستند لمدة ( ) يوم تقويمي / يوم عمل من تاريخ الإصدار ما لم يُذكر خلاف ذلك.
+
+تعتمد مدة التنفيذ والتوريد على تأكيد الطلب واستلام الموافقات اللازمة وجاهزية الموقع.  
+مدة التنفيذ التقديرية: ( ) يوم / أسبوع / شهر من تاريخ تأكيد الطلب.`;
+
+
+
+private readonly DEFAULT_TERMS_EN = `Terms and Conditions
+
+All materials, items, and services not explicitly stated in this document shall be considered excluded. Any services or works falling outside the Supplier’s scope are not included. Value Added Tax (VAT) and any applicable governmental fees, permits, or approvals are not included unless otherwise expressly stated. Civil works, lifting equipment, handling, dismantling, re-installation of existing site obstacles, or any similar activities are excluded unless clearly mentioned.
+
+Any additional work, variations, modifications, or requirements not specified in this document shall be subject to additional cost and corresponding time adjustments, as applicable. Fees related to studies, design approvals, authority approvals, permits, stamping, engineering calculations, or any similar technical requirements are not included unless explicitly stated.
+
+Prices are based on the execution of the complete order as specified. In the event of partial order execution, the Supplier reserves the right to revise and amend the prices accordingly.
+
+Payment terms shall be as follows:
+• ( )% advance payment upon order confirmation  
+• ( )% during project execution / upon delivery  
+• ( )% upon completion and final handover  
+
+This document is valid for ( ) calendar / working days from the date of issuance unless otherwise stated.
+
+Execution and delivery timelines are subject to order confirmation, receipt of required approvals, and readiness of the project/site conditions.  
+Estimated execution period: ( ) days / weeks / months from the date of order confirmation.`;
+
+
+
+
+/**
+ * ✅ Handle Terms & Conditions checkbox toggle
+ */
+onTermsAndConditionsToggle(): void {
+  if (this.mrForm.includeTermsAndConditions) {
+    // If checkbox is enabled and text is empty, populate with default
+    if (!this.mrForm.termsAndConditionsText || !this.mrForm.termsAndConditionsText.trim()) {
+      this.mrForm.termsAndConditionsText = this.getDefaultTermsAndConditions();
+    }
+  }
+  // If unchecked, keep the text (user might re-enable it later)
+}
+
+/**
+ * ✅ Get default T&C based on current form language
+ */
+getDefaultTermsAndConditions(): string {
+  return this.formLanguage === 'ar' ? this.DEFAULT_TERMS_AR : this.DEFAULT_TERMS_EN;
+}
+
+/**
+ * ✅ Reset T&C text to default template
+ */
+resetTermsToDefault(): void {
+  this.mrForm.termsAndConditionsText = this.getDefaultTermsAndConditions();
+  this.showToast('info', this.formLanguage === 'ar' 
+    ? 'تم إعادة تعيين الشروط والأحكام إلى القيم الافتراضية'
+    : 'Terms & Conditions reset to default');
+}
   // View states
   currentView: ViewMode = 'list';
   currentStep: FormStep = 'basic';
@@ -96,7 +167,6 @@ export class MaterialsRequestComponent implements OnInit, OnDestroy {
   formError: string = '';
   fieldErrors: { [key: string]: string } = {};
 
-  // Form data with includeStaticFile
   mrForm: CreateMaterialRequestData = {
     date: this.getTodayDate(),
     section: '',
@@ -105,7 +175,8 @@ export class MaterialsRequestComponent implements OnInit, OnDestroy {
     requestReason: '',
     items: [],
     additionalNotes: '',
-    includeStaticFile: false // ✅ NEW: Terms & Conditions flag
+    includeTermsAndConditions: false,         // ✅ NEW
+    termsAndConditionsText: '',                // ✅ NEW
   };
 
   // PDF generation
@@ -532,7 +603,8 @@ downloadPDFFromSuccess(): void {
           requestReason: sourceMR.requestReason || '',
           items: clonedItems,
           additionalNotes: sourceMR.additionalNotes || '',
-          includeStaticFile: sourceMR.includeStaticFile || false // ✅ Copy T&C flag
+          includeTermsAndConditions: sourceMR.includeTermsAndConditions || false,  // ✅ Copy T&C
+          termsAndConditionsText: sourceMR.termsAndConditionsText || '',            // ✅ Copy T&C text
         };
 
         this.currentView = 'create';
@@ -787,7 +859,8 @@ downloadPDFFromSuccess(): void {
           requestReason: freshMR.requestReason || '',
           items: clonedItems,
           additionalNotes: freshMR.additionalNotes || '',
-          includeStaticFile: freshMR.includeStaticFile || false // ✅ Load T&C flag
+          includeTermsAndConditions: freshMR.includeTermsAndConditions || false,   // ✅ Load T&C
+          termsAndConditionsText: freshMR.termsAndConditionsText || '',             // ✅ Load T&C text
         };
       },
       error: (error: any) => {
@@ -819,81 +892,83 @@ downloadPDFFromSuccess(): void {
     });
   }
 
-  saveMR(): void {
-    this.savingMR = true;
-    this.clearErrors();
+saveMR(): void {
+  this.savingMR = true;
+  this.clearErrors();
 
-    const formattedItems = this.mrForm.items.map(item => ({
-      description: item.description || '',
-      unit: item.unit || '',
-      quantity: item.quantity ? Number(item.quantity) : 0,
-      requiredDate: item.requiredDate || '',
-      priority: item.priority || ''
-    }));
+  const formattedItems = this.mrForm.items.map(item => ({
+    description: item.description || '',
+    unit: item.unit || '',
+    quantity: item.quantity ? Number(item.quantity) : 0,
+    requiredDate: item.requiredDate || '',
+    priority: item.priority || ''
+  }));
 
-    const mrData: CreateMaterialRequestData = {
-      date: this.mrForm.date,
-      section: this.mrForm.section,
-      project: this.mrForm.project,
-      requestPriority: this.mrForm.requestPriority,
-      requestReason: this.mrForm.requestReason,
-      items: formattedItems,
-      additionalNotes: this.mrForm.additionalNotes,
-      includeStaticFile: this.mrForm.includeStaticFile // ✅ Include T&C flag
-    };
+  // ✅ FIXED: Include Terms & Conditions in the payload
+  const mrData: CreateMaterialRequestData = {
+    date: this.mrForm.date,
+    section: this.mrForm.section,
+    project: this.mrForm.project,
+    requestPriority: this.mrForm.requestPriority,
+    requestReason: this.mrForm.requestReason,
+    items: formattedItems,
+    additionalNotes: this.mrForm.additionalNotes,
+    includeTermsAndConditions: this.mrForm.includeTermsAndConditions,  // ✅ ADD THIS
+    termsAndConditionsText: this.mrForm.termsAndConditionsText          // ✅ ADD THIS
+  };
 
-    if (this.currentView === 'create') {
-      this.materialService.createMaterialRequest(mrData).subscribe({
-        next: (response: any) => {
-          const createdMR = response.data;
-          this.materialService.generatePDF(createdMR.id, this.formPdfAttachment || undefined).subscribe({
-            next: () => {
-              this.savingMR = false;
-              this.showToast('success', this.t('messages.createdWithPdf'));
-              setTimeout(() => {
-                this.openSuccessModal(createdMR.id, createdMR.mrNumber);
-              }, 500);
-            },
-            error: () => {
-              this.savingMR = false;
-              this.showToast('warning', this.t('errors.pdfGenerationWarning'));
-              this.backToList();
-              this.loadMaterialRequests();
-            }
-          });
-        },
-        error: (error: any) => {
-          this.savingMR = false;
-          this.handleBackendError(error);
-        }
-      });
-    } else if (this.currentView === 'edit' && this.selectedMR) {
-      this.materialService.updateMaterialRequest(this.selectedMR.id, mrData).subscribe({
-        next: (response: any) => {
-          const updatedMR = response.data;
-          this.materialService.generatePDF(updatedMR.id, this.formPdfAttachment || undefined).subscribe({
-            next: () => {
-              this.savingMR = false;
-              this.showToast('success', this.t('messages.updatedWithPdf'));
-              setTimeout(() => {
-                this.openSuccessModal(updatedMR.id, updatedMR.mrNumber);
-              }, 500);
-            },
-            error: () => {
-              this.savingMR = false;
-              this.showToast('warning', this.t('errors.pdfUpdateWarning'));
-              this.backToList();
-              this.loadMaterialRequests();
-            }
-          });
-        },
-        error: (error: any) => {
-          this.savingMR = false;
-          this.handleBackendError(error);
-        }
-      });
-    }
+  if (this.currentView === 'create') {
+    this.materialService.createMaterialRequest(mrData).subscribe({
+      next: (response: any) => {
+        const createdMR = response.data;
+        this.materialService.generatePDF(createdMR.id, this.formPdfAttachment || undefined).subscribe({
+          next: () => {
+            this.savingMR = false;
+            this.showToast('success', this.t('messages.createdWithPdf'));
+            setTimeout(() => {
+              this.openSuccessModal(createdMR.id, createdMR.mrNumber);
+            }, 500);
+          },
+          error: () => {
+            this.savingMR = false;
+            this.showToast('warning', this.t('errors.pdfGenerationWarning'));
+            this.backToList();
+            this.loadMaterialRequests();
+          }
+        });
+      },
+      error: (error: any) => {
+        this.savingMR = false;
+        this.handleBackendError(error);
+      }
+    });
+  } else if (this.currentView === 'edit' && this.selectedMR) {
+    this.materialService.updateMaterialRequest(this.selectedMR.id, mrData).subscribe({
+      next: (response: any) => {
+        const updatedMR = response.data;
+        this.materialService.generatePDF(updatedMR.id, this.formPdfAttachment || undefined).subscribe({
+          next: () => {
+            this.savingMR = false;
+            this.showToast('success', this.t('messages.updatedWithPdf'));
+            setTimeout(() => {
+              this.openSuccessModal(updatedMR.id, updatedMR.mrNumber);
+            }, 500);
+          },
+          error: () => {
+            this.savingMR = false;
+            this.showToast('warning', this.t('errors.pdfUpdateWarning'));
+            this.backToList();
+            this.loadMaterialRequests();
+          }
+        });
+      },
+      error: (error: any) => {
+        this.savingMR = false;
+        this.handleBackendError(error);
+      }
+    });
   }
+}
 
   // ========================================
   // PDF OPERATIONS
@@ -1173,7 +1248,8 @@ isValidEmail(email: string): boolean {
       requestReason: '',
       items: [],
       additionalNotes: '',
-      includeStaticFile: false // ✅ Reset T&C flag
+      includeTermsAndConditions: false,       // ✅ Reset T&C
+      termsAndConditionsText: '',              // ✅ Reset T&C text
     };
     this.formPdfAttachment = null;
     this.clearErrors();

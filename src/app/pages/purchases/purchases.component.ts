@@ -32,6 +32,46 @@ interface Toast {
 })
 export class PurchasesComponent implements OnInit, OnDestroy {
   // View states
+
+private readonly DEFAULT_TERMS_AR = `الشروط والأحكام
+
+تُعتبر جميع المواد والبنود والخدمات غير المذكورة صراحةً في هذا المستند مستثناة. كما أن أي خدمات أو أعمال تقع خارج نطاق عمل المورد غير مشمولة. ضريبة القيمة المضافة وأي رسوم حكومية أو تصاريح أو موافقات رسمية غير مشمولة ما لم يُذكر خلاف ذلك صراحةً. كما أن الأعمال المدنية وأعمال الرفع والمناولة وفك وإعادة تركيب العوائق الموجودة في الموقع أو أي أعمال مشابهة غير مشمولة ما لم يتم ذكرها بشكل واضح.
+
+أي أعمال إضافية أو تغييرات أو تعديلات أو متطلبات غير مذكورة في هذا المستند تخضع لتكاليف إضافية وتعديل في مدة التنفيذ حسب الحالة. كما أن رسوم الدراسات واعتماد التصاميم والموافقات الرسمية والتصاريح وختم المخططات والحسابات الهندسية أو أي متطلبات فنية مشابهة غير مشمولة ما لم يُذكر خلاف ذلك صراحةً.
+
+الأسعار مبنية على أساس تنفيذ الطلب بالكامل كما هو محدد، وفي حال تنفيذ جزء من الطلب يحق للمورد تعديل الأسعار وفقًا لذلك.
+
+تكون شروط الدفع على النحو التالي:
+• ( )% دفعة مقدمة عند تأكيد الطلب  
+• ( )% أثناء التنفيذ / عند التوريد  
+• ( )% عند الانتهاء والتسليم النهائي  
+
+يسري هذا المستند لمدة ( ) يوم تقويمي / يوم عمل من تاريخ الإصدار ما لم يُذكر خلاف ذلك.
+
+تعتمد مدة التنفيذ والتوريد على تأكيد الطلب واستلام الموافقات اللازمة وجاهزية الموقع.  
+مدة التنفيذ التقديرية: ( ) يوم / أسبوع / شهر من تاريخ تأكيد الطلب.`;
+
+
+
+private readonly DEFAULT_TERMS_EN = `Terms and Conditions
+
+All materials, items, and services not explicitly stated in this document shall be considered excluded. Any services or works falling outside the Supplier’s scope are not included. Value Added Tax (VAT) and any applicable governmental fees, permits, or approvals are not included unless otherwise expressly stated. Civil works, lifting equipment, handling, dismantling, re-installation of existing site obstacles, or any similar activities are excluded unless clearly mentioned.
+
+Any additional work, variations, modifications, or requirements not specified in this document shall be subject to additional cost and corresponding time adjustments, as applicable. Fees related to studies, design approvals, authority approvals, permits, stamping, engineering calculations, or any similar technical requirements are not included unless explicitly stated.
+
+Prices are based on the execution of the complete order as specified. In the event of partial order execution, the Supplier reserves the right to revise and amend the prices accordingly.
+
+Payment terms shall be as follows:
+• ( )% advance payment upon order confirmation  
+• ( )% during project execution / upon delivery  
+• ( )% upon completion and final handover  
+
+This document is valid for ( ) calendar / working days from the date of issuance unless otherwise stated.
+
+Execution and delivery timelines are subject to order confirmation, receipt of required approvals, and readiness of the project/site conditions.  
+Estimated execution period: ( ) days / weeks / months from the date of order confirmation.`;
+
+
   suppliers: Supplier[] = [];
   loadingSuppliers: boolean = false;
   currentView: ViewMode = 'list';
@@ -72,7 +112,7 @@ export class PurchasesComponent implements OnInit, OnDestroy {
   formError: string = '';
   fieldErrors: { [key: string]: string } = {};
 
-  // Form data - ✅ ADDED includeStaticFile
+  // Form data -
   poForm: CreatePurchaseOrderData = {
     date: this.getTodayDate(),
     supplier: '',
@@ -86,8 +126,29 @@ export class PurchasesComponent implements OnInit, OnDestroy {
     taxRate: 0,
     items: [],
     notes: '',
-    includeStaticFile: false // ✅ NEW FIELD
+    // ✅ NEW: Text-based Terms & Conditions
+    includeTermsAndConditions: false,
+    termsAndConditionsText: ''
   };
+  /**
+   * Get default T&C based on current form language
+   */
+  getDefaultTermsAndConditions(): string {
+    return this.formLanguage === 'ar' ? this.DEFAULT_TERMS_AR : this.DEFAULT_TERMS_EN;
+  }
+  onTermsAndConditionsToggle(): void {
+    if (this.poForm.includeTermsAndConditions) {
+      if (!this.poForm.termsAndConditionsText || !this.poForm.termsAndConditionsText.trim()) {
+        this.poForm.termsAndConditionsText = this.getDefaultTermsAndConditions();
+      }
+    }
+  }
+  resetTermsToDefault(): void {
+    this.poForm.termsAndConditionsText = this.getDefaultTermsAndConditions();
+    this.showToast('info', this.formLanguage === 'ar' 
+      ? 'تم إعادة تعيين الشروط والأحكام إلى القيم الافتراضية'
+      : 'Terms & Conditions reset to default');
+  }
 
   // PDF generation
   showPDFModal: boolean = false;
@@ -356,7 +417,9 @@ sendingEmail: boolean = false;
       taxRate: po.taxRate || 0,
       items: JSON.parse(JSON.stringify(po.items || [])),
       notes: po.notes || '',
-      includeStaticFile: false // ✅ Reset to false on duplicate
+      // ✅ Copy Terms & Conditions
+      includeTermsAndConditions: po.includeTermsAndConditions || false,
+      termsAndConditionsText: po.termsAndConditionsText || ''
     };
 
     this.currentView = 'create';
@@ -908,7 +971,9 @@ isValidEmail(email: string): boolean {
           taxRate: freshPO.taxRate || 0,
           items: JSON.parse(JSON.stringify(freshPO.items || [])),
           notes: freshPO.notes || '',
-          includeStaticFile: freshPO.includeStaticFile || false // ✅ Load existing value
+          // ✅ NEW: Load Terms & Conditions
+          includeTermsAndConditions: freshPO.includeTermsAndConditions || false,
+          termsAndConditionsText: freshPO.termsAndConditionsText || ''
         };
       },
       error: (error: any) => {
@@ -940,7 +1005,7 @@ isValidEmail(email: string): boolean {
     });
   }
 
-  // ✅ UPDATED: Save with includeStaticFile
+  // ✅ UPDATED: Save 
   savePO(): void {
     this.savingPO = true;
     this.clearErrors();
@@ -958,7 +1023,9 @@ isValidEmail(email: string): boolean {
       taxRate: this.poForm.taxRate,
       items: this.poForm.items,
       notes: this.poForm.notes,
-      includeStaticFile: this.poForm.includeStaticFile // ✅ Include in save
+      // ✅ NEW: Include Terms & Conditions
+      includeTermsAndConditions: this.poForm.includeTermsAndConditions,
+      termsAndConditionsText: this.poForm.termsAndConditionsText
     };
 
     if (this.currentView === 'create') {
@@ -1137,7 +1204,9 @@ isValidEmail(email: string): boolean {
       taxRate: 0,
       items: [],
       notes: '',
-      includeStaticFile: false // ✅ Reset to false
+      // ✅ NEW: Reset Terms & Conditions
+      includeTermsAndConditions: false,
+      termsAndConditionsText: ''
     };
     this.formPdfAttachment = null;
     this.clearErrors();

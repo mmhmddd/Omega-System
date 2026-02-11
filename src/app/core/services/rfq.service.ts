@@ -37,7 +37,9 @@ export interface RFQ {
   urgent: boolean;
   items: RFQItem[];
   notes?: string;
-  includeStaticFile?: boolean;  // ✅ ADD THIS LINE
+  // ✅ NEW: Text-based Terms & Conditions
+  includeTermsAndConditions?: boolean;
+  termsAndConditionsText?: string;
   language?: string;
   status: 'pending' | 'approved' | 'rejected';
   pdfFilename?: string;
@@ -92,7 +94,9 @@ export interface CreateRFQData {
   urgent: boolean;
   items: RFQItem[];
   notes?: string;
-  includeStaticFile?: boolean;  // ✅ ADD THIS LINE
+  // ✅ NEW: Text-based Terms & Conditions
+  includeTermsAndConditions?: boolean;
+  termsAndConditionsText?: string;
 }
 
 /**

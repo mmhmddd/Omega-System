@@ -32,6 +32,9 @@ export interface Receipt {
   additionalText?: string;
   items: ReceiptItem[];
   notes?: string;
+  // ✅ NEW: Text-based Terms & Conditions
+  includeTermsAndConditions?: boolean;
+  termsAndConditionsText?: string;
   pdfFilename?: string;
   pdfLanguage?: string;
   pdfGeneratedAt?: string;
@@ -46,7 +49,6 @@ export interface Receipt {
   createdByRole: string;
   createdAt: string;
   updatedAt: string;
-  includeStaticFile?: boolean;
 }
 
 /**
@@ -88,7 +90,9 @@ export interface CreateReceiptData {
   additionalText?: string;
   items: ReceiptItem[];
   notes?: string;
-  includeStaticFile?: boolean;
+  // ✅ NEW: Text-based Terms & Conditions
+  includeTermsAndConditions?: boolean;
+  termsAndConditionsText?: string;
 }
 
 /**

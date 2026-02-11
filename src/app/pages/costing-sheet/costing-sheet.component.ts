@@ -35,35 +35,44 @@ interface Toast {
 export class CostingSheetComponent implements OnInit, OnDestroy {
   // ✅ DEFAULT TERMS & CONDITIONS TEXT
   // Replace these with your actual Terms & Conditions
-  private readonly DEFAULT_TERMS_AR = `الشروط والأحكام
+private readonly DEFAULT_TERMS_AR = `الشروط والأحكام
 
-١. الأسعار المذكورة سارية لمدة ٣٠ يوماً من تاريخ هذا العرض.
-٢. يتم الدفع على النحو التالي:
-   • ٣٠٪ دفعة مقدمة عند التوقيع على العقد
-   • ٤٠٪ عند منتصف المشروع
-   • ٣٠٪ عند الانتهاء والتسليم
-٣. جميع الأسعار لا تشمل ضريبة القيمة المضافة.
-٤. أي تغييرات في نطاق العمل قد تؤدي إلى تعديل الأسعار والجداول الزمنية.
-٥. الشركة غير مسؤولة عن التأخيرات الناجمة عن ظروف خارجة عن إرادتها.
-٦. يحتفظ المورد بحق ملكية البضائع حتى استلام الدفعة الكاملة.
-٧. يتم حل أي نزاعات بموجب قوانين [البلد/الدولة].
+تُعتبر جميع المواد والبنود والخدمات غير المذكورة صراحةً في هذا المستند مستثناة. كما أن أي خدمات أو أعمال تقع خارج نطاق عمل المورد غير مشمولة. ضريبة القيمة المضافة وأي رسوم حكومية أو تصاريح أو موافقات رسمية غير مشمولة ما لم يُذكر خلاف ذلك صراحةً. كما أن الأعمال المدنية وأعمال الرفع والمناولة وفك وإعادة تركيب العوائق الموجودة في الموقع أو أي أعمال مشابهة غير مشمولة ما لم يتم ذكرها بشكل واضح.
 
-نشكركم على ثقتكم بنا ونتطلع للعمل معكم.`;
+أي أعمال إضافية أو تغييرات أو تعديلات أو متطلبات غير مذكورة في هذا المستند تخضع لتكاليف إضافية وتعديل في مدة التنفيذ حسب الحالة. كما أن رسوم الدراسات واعتماد التصاميم والموافقات الرسمية والتصاريح وختم المخططات والحسابات الهندسية أو أي متطلبات فنية مشابهة غير مشمولة ما لم يُذكر خلاف ذلك صراحةً.
 
-  private readonly DEFAULT_TERMS_EN = `Terms and Conditions
+الأسعار مبنية على أساس تنفيذ الطلب بالكامل كما هو محدد، وفي حال تنفيذ جزء من الطلب يحق للمورد تعديل الأسعار وفقًا لذلك.
 
-1. Prices quoted are valid for 30 days from the date of this quotation.
-2. Payment terms are as follows:
-   • 30% deposit upon contract signing
-   • 40% at project milestone
-   • 30% upon completion and delivery
-3. All prices exclude applicable VAT/taxes.
-4. Any changes to scope of work may result in price and timeline adjustments.
-5. The company is not liable for delays due to circumstances beyond its control.
-6. The supplier retains title to goods until full payment is received.
-7. Any disputes shall be governed by the laws of [Country/State].
+تكون شروط الدفع على النحو التالي:
+• ( )% دفعة مقدمة عند تأكيد الطلب  
+• ( )% أثناء التنفيذ / عند التوريد  
+• ( )% عند الانتهاء والتسليم النهائي  
 
-Thank you for your trust and we look forward to working with you.`;
+يسري هذا المستند لمدة ( ) يوم تقويمي / يوم عمل من تاريخ الإصدار ما لم يُذكر خلاف ذلك.
+
+تعتمد مدة التنفيذ والتوريد على تأكيد الطلب واستلام الموافقات اللازمة وجاهزية الموقع.  
+مدة التنفيذ التقديرية: ( ) يوم / أسبوع / شهر من تاريخ تأكيد الطلب.`;
+
+
+
+private readonly DEFAULT_TERMS_EN = `Terms and Conditions
+
+All materials, items, and services not explicitly stated in this document shall be considered excluded. Any services or works falling outside the Supplier’s scope are not included. Value Added Tax (VAT) and any applicable governmental fees, permits, or approvals are not included unless otherwise expressly stated. Civil works, lifting equipment, handling, dismantling, re-installation of existing site obstacles, or any similar activities are excluded unless clearly mentioned.
+
+Any additional work, variations, modifications, or requirements not specified in this document shall be subject to additional cost and corresponding time adjustments, as applicable. Fees related to studies, design approvals, authority approvals, permits, stamping, engineering calculations, or any similar technical requirements are not included unless explicitly stated.
+
+Prices are based on the execution of the complete order as specified. In the event of partial order execution, the Supplier reserves the right to revise and amend the prices accordingly.
+
+Payment terms shall be as follows:
+• ( )% advance payment upon order confirmation  
+• ( )% during project execution / upon delivery  
+• ( )% upon completion and final handover  
+
+This document is valid for ( ) calendar / working days from the date of issuance unless otherwise stated.
+
+Execution and delivery timelines are subject to order confirmation, receipt of required approvals, and readiness of the project/site conditions.  
+Estimated execution period: ( ) days / weeks / months from the date of order confirmation.`;
+
 
   // View states
   currentView: ViewMode = 'list';

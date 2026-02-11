@@ -3058,6 +3058,313 @@
     font-style: italic;
   }
 }
+// ========================================
+// ✅ TERMS & CONDITIONS SECTION STYLES
+// ========================================
+
+// Checkbox Container
+.terms-checkbox-container {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  
+  .checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    
+    .checkbox-input {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+      accent-color: #1565C0;
+      flex-shrink: 0;
+    }
+    
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: #334155;
+      cursor: pointer;
+      user-select: none;
+      flex: 1;
+
+      i {
+        font-size: 1.125rem;
+        color: #1565C0;
+        flex-shrink: 0;
+      }
+
+      span {
+        line-height: 1.4;
+      }
+    }
+  }
+
+  &:hover {
+    background: linear-gradient(135deg, #f1f5f9 0%, #f8fafc 100%);
+    border-color: #cbd5e1;
+  }
+}
+
+// Textarea Container
+.terms-text-container {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  animation: slideDown 0.3s ease;
+  
+  .terms-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #e2e8f0;
+    flex-wrap: wrap;
+    gap: 1rem;
+
+    .terms-section-title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: #1565C0;
+      margin: 0;
+
+      i {
+        font-size: 1.25rem;
+      }
+    }
+    
+    .btn-reset-terms {
+      padding: 0.5rem 1rem;
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      color: #92400e;
+      border: 1px solid #fbbf24;
+      border-radius: 6px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      
+      i {
+        font-size: 0.875rem;
+      }
+
+      &:hover {
+        background: linear-gradient(135deg, #fde68a 0%, #fcd34d 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
+    }
+  }
+  
+  .terms-textarea {
+    width: 100%;
+    min-height: 350px;
+    padding: 1rem;
+    border: 2px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 0.9375rem;
+    font-family: 'Courier New', Courier, monospace;
+    line-height: 1.6;
+    color: #1e293b;
+    background: white;
+    resize: vertical;
+    outline: none;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+    
+    &:focus {
+      border-color: #1565C0;
+      box-shadow: 0 0 0 4px rgba(21, 101, 192, 0.1);
+    }
+
+    &::placeholder {
+      color: #94a3b8;
+      font-family: inherit;
+    }
+  }
+  
+  .terms-footer-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-left: 4px solid #3b82f6;
+    border-radius: 6px;
+
+    i {
+      font-size: 1.125rem;
+      color: #1d4ed8;
+      flex-shrink: 0;
+      margin-top: 0.125rem;
+    }
+
+    p {
+      color: #1e40af;
+      line-height: 1.5;
+    }
+  }
+}
+
+// Final Save Section
+.final-save-section {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 2px solid #e2e8f0;
+  text-align: center;
+
+  .btn-save-final {
+    padding: 0.875rem 2rem;
+    background: linear-gradient(135deg, #1565C0 0%, #0D47A1 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(21, 101, 192, 0.3);
+
+    &:hover:not(:disabled) {
+      background: linear-gradient(135deg, #0D47A1 0%, #0a3d8f 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(21, 101, 192, 0.4);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    i {
+      font-size: 1rem;
+    }
+  }
+
+  .save-info-text {
+    margin-top: 1rem;
+    color: #64748b;
+    font-size: 0.875rem;
+    font-style: italic;
+  }
+}
+
+// RTL Support
+[dir="rtl"] {
+  .terms-checkbox-container {
+    .checkbox-wrapper {
+      flex-direction: row-reverse;
+    }
+  }
+  
+  .terms-text-container {
+    .terms-header {
+      flex-direction: row-reverse;
+    }
+    
+    .terms-footer-info {
+      border-left: none;
+      border-right: 4px solid #3b82f6;
+    }
+    
+    .terms-textarea {
+      text-align: right;
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .terms-checkbox-container {
+    padding: 1.25rem;
+
+    .checkbox-wrapper {
+      .checkbox-label {
+        font-size: 0.875rem;
+
+        i {
+          font-size: 1rem;
+        }
+      }
+    }
+  }
+
+  .terms-text-container {
+    padding: 1.25rem;
+
+    .terms-header {
+      flex-direction: column;
+      align-items: flex-start;
+
+      .btn-reset-terms {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
+    .terms-textarea {
+      min-height: 300px;
+      font-size: 0.875rem;
+    }
+
+    .terms-footer-info {
+      padding: 0.625rem 0.875rem;
+
+      i {
+        font-size: 1rem;
+      }
+
+      p {
+        font-size: 0.8125rem;
+      }
+    }
+  }
+
+  .final-save-section {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+
+    .btn-save-final {
+      width: 100%;
+      max-width: 100%;
+      padding: 0.75rem 1.5rem;
+      font-size: 0.875rem;
+
+      i {
+        font-size: 0.9375rem;
+      }
+    }
+
+    .save-info-text {
+      font-size: 0.8125rem;
+    }
+  }
+}
 
 // RTL Support for new elements
 [dir="rtl"] {

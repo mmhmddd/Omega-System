@@ -339,7 +339,7 @@
           <span class="item-count" [class.error-count]="fieldErrors['items']">{{ getItemsCount() }}</span>
         </button>
         <!-- ✅ PDF Options Button -->
-        <button
+          <button
           class="sidebar-step"
           [class.active]="currentStep === 'options'"
           (click)="currentStep = 'options'">
@@ -750,81 +750,126 @@
         </div>
 
         <!-- ✅ STEP 3: PDF OPTIONS (NEW SECTION) -->
-        <div *ngIf="currentStep === 'options'" class="step-content">
-          <h2 class="step-title">
-            {{ formLanguage === 'ar' ? 'الشروط والأحكام' : 'Terms & Conditions' }}
-          </h2>           
-          <!-- Info Alert -->
-          <div class="info-alert">
-            <i class="bi bi-info-circle"></i>
-            <div style="flex: 1;">
-              <p>
-                {{ formLanguage === 'ar'
-                  ? 'يمكنك اختيار إضافة ملف PDF ثابت (الشروط والأحكام) إلى طلب المواد الخاص بك. سيتم دمج الملف تلقائياً في نهاية المستند عند تفعيل هذا الخيار.'
-                  : 'You can choose to include a static PDF file (Terms and Conditions) with your material request. The file will be automatically merged at the end of the document when this option is enabled.'
-                }}
-              </p>
-            </div>
-          </div>
+<!-- ✅ STEP 3: TERMS & CONDITIONS -->
+<div *ngIf="currentStep === 'options'" class="step-content">
+  <h2 class="step-title">
+    {{ formLanguage === 'ar' ? 'الشروط والأحكام' : 'Terms & Conditions' }}
+  </h2>
 
-          <!-- Static PDF Checkbox -->
-          <div class="static-pdf-option">
-            <div class="checkbox-container">
-              <input
-                type="checkbox"
-                id="includeStaticFile"
-                [(ngModel)]="mrForm.includeStaticFile"
-                class="checkbox-input"
-              />
-              <label for="includeStaticFile" class="checkbox-label">
-                <i class="bi bi-file-earmark-pdf"></i>
-                <span>
-                  {{ formLanguage === 'ar'
-                    ? 'إضافة ملف الشروط والأحكام إلى طلب المواد'
-                    : 'Include Terms and Conditions with Material Request'
-                  }}
-                </span>
-              </label>
-            </div>
-            
-            <small class="help-text">
-              {{ formLanguage === 'ar'
-                ? 'عند تفعيل هذا الخيار، سيتم إضافة ملف الشروط والأحكام الثابت تلقائياً في نهاية ملف PDF الخاص بطلب المواد.'
-                : 'When enabled, the static Terms and Conditions file will be automatically added to the end of the material request PDF.'
-              }}
-            </small>
-          </div>
+  <!-- Info Alert -->
+  <div class="info-alert">
+    <i class="bi bi-info-circle"></i>
+    <div style="flex: 1;">
+      <p>
+        {{ formLanguage === 'ar'
+          ? 'يمكنك إضافة نص الشروط والأحكام إلى طلب المواد. سيتم إضافة النص كصفحة منفصلة في نهاية ملف PDF عند تفعيل هذا الخيار.'
+          : 'You can add Terms and Conditions text to your material request. The text will be added as a separate page at the end of the PDF when this option is enabled.'
+        }}
+      </p>
+    </div>
+  </div>
 
-          <!-- Navigation Buttons -->
-          <div class="form-navigation">
-            <button class="btn-secondary btn-back" (click)="previousStep()" type="button">
-              <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
-              {{ formLanguage === 'ar' ? 'السابق' : 'Back' }}
-            </button>
-          </div>
+  <!-- ✅ CHECKBOX TO ENABLE T&C -->
+  <div class="terms-checkbox-container">
+    <div class="checkbox-wrapper">
+      <input
+        type="checkbox"
+        id="includeTermsAndConditions"
+        [(ngModel)]="mrForm.includeTermsAndConditions"
+        (change)="onTermsAndConditionsToggle()"
+        class="checkbox-input"
+      />
+      <label for="includeTermsAndConditions" class="checkbox-label">
+        <i class="bi bi-file-earmark-text"></i>
+        <span>
+          {{ formLanguage === 'ar'
+            ? 'إضافة الشروط والأحكام إلى طلب المواد'
+            : 'Include Terms and Conditions with Material Request'
+          }}
+        </span>
+      </label>
+      
+    </div>
+  </div>
 
-          <!-- Final Save Section -->
-          <div class="final-save-section">
-            <button
-              class="btn-primary btn-save-final"
-              (click)="saveMR()"
-              [disabled]="savingMR"
-              type="button">
-              <i class="bi bi-save"></i>
-              {{ savingMR
-                ? (formLanguage === 'ar' ? 'جاري الحفظ...' : 'Saving...')
-                : (formLanguage === 'ar' ? 'حفظ طلب المواد' : 'Save Material Request')
-              }}
-            </button>
-            
-            <p class="save-info-text">
-              {{ formLanguage === 'ar'
-                ? 'سيتم إنشاء ملف PDF تلقائياً بعد الحفظ.'
-                : 'A PDF file will be generated automatically after saving.'
-              }}
-            </p>
-          </div>
-        </div>
+  <!-- ✅ TEXTAREA (SHOWN WHEN ENABLED) -->
+  <div class="terms-text-container" *ngIf="mrForm.includeTermsAndConditions">
+    <!-- Header with Reset Button -->
+    <div class="terms-header">
+      <h3 class="terms-section-title">
+        <i class="bi bi-pencil-square"></i>
+        {{ formLanguage === 'ar' ? 'نص الشروط والأحكام' : 'Terms & Conditions Text' }}
+      </h3>
+      
+      <button
+        type="button"
+        class="btn-reset-terms"
+        (click)="resetTermsToDefault()"
+        [title]="formLanguage === 'ar' ? 'إعادة تعيين إلى القيمة الافتراضية' : 'Reset to Default'">
+        <i class="bi bi-arrow-counterclockwise"></i>
+        {{ formLanguage === 'ar' ? 'إعادة تعيين' : 'Reset to Default' }}
+      </button>
+    </div>
+
+    <!-- Textarea -->
+    <textarea
+      [(ngModel)]="mrForm.termsAndConditionsText"
+      class="terms-textarea"
+      [placeholder]="formLanguage === 'ar' 
+        ? 'أدخل نص الشروط والأحكام هنا...'
+        : 'Enter your Terms and Conditions text here...'"
+      rows="20"
+      [dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'"
+    ></textarea>
+
+    <!-- Help Text -->
+    <div class="terms-footer-info">
+      <i class="bi bi-lightbulb"></i>
+      <div>
+        <p style="margin: 0; font-weight: 600;">
+          {{ formLanguage === 'ar' ? 'نصيحة:' : 'Tip:' }}
+        </p>
+        <p style="margin: 0.25rem 0 0 0; font-size: 0.875rem; line-height: 1.5;">
+          {{ formLanguage === 'ar'
+            ? 'يمكنك تعديل النص حسب حاجتك. سيتم إضافة الشروط والأحكام كصفحة منفصلة في نهاية ملف PDF مع نفس رأس الصفحة الخاص بالشركة.'
+            : 'You can customize the text as needed. The Terms and Conditions will be added as a separate page at the end of the PDF with the same company header.'
+          }}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation Buttons -->
+  <div class="form-navigation">
+    <button class="btn-secondary btn-back" (click)="previousStep()" type="button">
+      <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
+      {{ formLanguage === 'ar' ? 'السابق' : 'Back' }}
+    </button>
+  </div>
+
+  <!-- Final Save Section -->
+  <div class="final-save-section">
+    <button
+      class="btn-primary btn-save-final"
+      (click)="saveMR()"
+      [disabled]="savingMR"
+      type="button">
+      <i class="bi bi-save"></i>
+      {{ savingMR
+        ? (formLanguage === 'ar' ? 'جاري الحفظ...' : 'Saving...')
+        : (formLanguage === 'ar' ? 'حفظ طلب المواد' : 'Save Material Request')
+      }}
+    </button>
+    
+    <p class="save-info-text">
+      {{ formLanguage === 'ar'
+        ? 'سيتم إنشاء ملف PDF تلقائياً بعد الحفظ.'
+        : 'A PDF file will be generated automatically after saving.'
+      }}
+    </p>
+  </div>
+</div>
+<!-- ✅ END OF TERMS & CONDITIONS STEP -->
         <!-- ✅ END OF OPTIONS STEP -->
 
       </div>

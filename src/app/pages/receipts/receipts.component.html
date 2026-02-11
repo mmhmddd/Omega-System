@@ -642,81 +642,122 @@
           </div>
         </div>
 
-        <!-- STEP 3: Terms & Conditions -->
-        <div *ngIf="currentStep === 'options'" class="step-content">
-          <h2 class="step-title">
-            {{ formLanguage === 'ar' ? 'الشروط والأحكام' : 'Terms & Conditions' }}
-          </h2>
+<!-- STEP 3: Terms & Conditions -->
+<div *ngIf="currentStep === 'options'" class="step-content">
+  <h2 class="step-title">
+    {{ formLanguage === 'ar' ? 'الشروط والأحكام' : 'Terms & Conditions' }}
+  </h2>
 
-          <div class="info-alert">
-            <i class="bi bi-info-circle"></i>
-            <div style="flex: 1;">
-              <p>
-                {{ formLanguage === 'ar'
-                  ? 'يمكنك اختيار إضافة الشروط والأحكام إلى الإشعار الخاص بك. سيتم إضافتها في نهاية المستند.'
-                  : 'You can choose to include terms and conditions with your receipt. They will be added at the end of the document.'
-                }}
-              </p>
-            </div>
-          </div>
+  <!-- Info Alert -->
+  <div class="info-alert">
+    <i class="bi bi-info-circle"></i>
+    <div style="flex: 1;">
+      <p>
+        {{ formLanguage === 'ar'
+          ? 'يمكنك إضافة الشروط والأحكام كنص إلى الإشعار الخاص بك. سيتم إضافة النص تلقائياً في نهاية المستند عند تفعيل هذا الخيار.'
+          : 'You can add Terms and Conditions as text to your receipt. The text will be automatically added at the end of the document when this option is enabled.'
+        }}
+      </p>
+    </div>
+  </div>
 
-          <div class="static-pdf-option">
-            <div class="checkbox-container">
-              <input
-                type="checkbox"
-                id="includeStaticFile"
-                [(ngModel)]="receiptForm.includeStaticFile"
-                class="checkbox-input"
-              />
-              <label for="includeStaticFile" class="checkbox-label">
-                <span class="checkbox-custom">
-                  <i class="bi bi-check"></i>
-                </span>
-                <span class="checkbox-text">
-                  <i class="bi bi-file-earmark-text"></i>
-                  {{ formLanguage === 'ar'
-                    ? 'إضافة الشروط والأحكام إلى الإشعار'
-                    : 'Include terms and conditions with receipt'
-                  }}
-                </span>
-              </label>
-            </div>
+  <!-- ✅ Terms & Conditions Checkbox -->
+  <div class="terms-checkbox-container">
+    <div class="checkbox-wrapper">
+      <input
+        type="checkbox"
+        id="includeTermsAndConditions"
+        [(ngModel)]="receiptForm.includeTermsAndConditions"
+        (change)="onTermsAndConditionsToggle()"
+        class="checkbox-input"
+      />
+      <label for="includeTermsAndConditions" class="checkbox-label">
+        <i class="bi bi-file-text"></i>
+        <span>
+          {{ formLanguage === 'ar'
+            ? 'إضافة الشروط والأحكام إلى الإشعار'
+            : 'Include Terms and Conditions with Receipt'
+          }}
+        </span>
+      </label>
+    </div>
 
-            <small class="help-text">
-              {{ formLanguage === 'ar'
-                ? 'عند تفعيل هذا الخيار، سيتم إضافة صفحة الشروط والأحكام إلى نهاية الإشعار الخاص بك.'
-                : 'When enabled, the terms and conditions page will be appended to the end of your receipt.'
-              }}
-            </small>
-          </div>
+    <small class="help-text">
+      {{ formLanguage === 'ar'
+        ? 'عند تفعيل هذا الخيار، سيتم إضافة نص الشروط والأحكام تلقائياً في نهاية ملف PDF الخاص بالإشعار.'
+        : 'When enabled, the Terms and Conditions text will be automatically added to the end of the receipt PDF.'
+      }}
+    </small>
+  </div>
 
-          <div class="form-navigation">
-            <button class="btn-secondary btn-back" (click)="previousStep()" type="button">
-              <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
-              {{ formLanguage === 'ar' ? 'السابق' : 'Back' }}
-            </button>
-          </div>
+  <!-- ✅ Terms & Conditions Textarea (shows when checkbox is checked) -->
+  <div class="terms-text-container" *ngIf="receiptForm.includeTermsAndConditions">
+    <div class="terms-header">
+      <label class="terms-label">
+        <i class="bi bi-pencil-square"></i>
+        {{ formLanguage === 'ar' ? 'نص الشروط والأحكام' : 'Terms and Conditions Text' }}
+      </label>
+      <button
+        type="button"
+        class="btn-reset-terms"
+        (click)="resetTermsToDefault()"
+        [title]="formLanguage === 'ar' ? 'إعادة تعيين إلى النص الافتراضي' : 'Reset to default text'">
+        <i class="bi bi-arrow-counterclockwise"></i>
+        {{ formLanguage === 'ar' ? 'إعادة تعيين' : 'Reset' }}
+      </button>
+    </div>
 
-          <!-- Final Save Section -->
-          <div class="final-save-section">
-            <button
-              class="btn-primary btn-save-final"
-              (click)="saveReceipt()"
-              [disabled]="savingReceipt">
-              <i class="bi bi-save"></i>
-              {{ savingReceipt
-                ? (formLanguage === 'ar' ? 'جاري الحفظ...' : 'Saving...')
-                : (formLanguage === 'ar' ? 'حفظ الإشعار' : 'Save Receipt')
-              }}
-            </button>
-            <p class="save-info-text">
-              {{ formLanguage === 'ar'
-                ? 'سيتم إنشاء ملف PDF تلقائياً بعد الحفظ'
-                : 'A PDF file will be generated automatically after saving'
-              }}{{ receiptForm.includeStaticFile ? (formLanguage === 'ar' ? ' مع الشروط والأحكام.' : ' with terms and conditions.') : '.' }}
-            </p>
-          </div>
-        </div>
+    <textarea
+      id="termsAndConditionsText"
+      [(ngModel)]="receiptForm.termsAndConditionsText"
+      class="terms-textarea"
+      rows="15"
+      [placeholder]="formLanguage === 'ar'
+        ? 'أدخل نص الشروط والأحكام هنا...'
+        : 'Enter your Terms and Conditions text here...'"
+    ></textarea>
+
+    <div class="terms-footer-info">
+      <i class="bi bi-lightbulb"></i>
+      <span>
+        {{ formLanguage === 'ar'
+          ? 'يمكنك تعديل النص حسب احتياجاتك. النص أعلاه هو نموذج افتراضي يمكن تخصيصه.'
+          : 'You can edit the text according to your needs. The text above is a default template that can be customized.'
+        }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Navigation Buttons -->
+  <div class="form-navigation">
+    <button class="btn-secondary btn-back" (click)="previousStep()" type="button">
+      <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
+      {{ formLanguage === 'ar' ? 'السابق' : 'Back' }}
+    </button>
+  </div>
+
+  <!-- Final Save Section -->
+  <div class="final-save-section">
+    <button
+      class="btn-primary btn-save-final"
+      (click)="saveReceipt()"
+      [disabled]="savingReceipt"
+      type="button">
+      <i class="bi bi-save"></i>
+      {{ savingReceipt
+        ? (formLanguage === 'ar' ? 'جاري الحفظ...' : 'Saving...')
+        : (formLanguage === 'ar' ? 'حفظ الإشعار' : 'Save Receipt')
+      }}
+    </button>
+
+    <p class="save-info-text">
+      {{ formLanguage === 'ar'
+        ? 'سيتم إنشاء ملف PDF تلقائياً بعد الحفظ.'
+        : 'A PDF file will be generated automatically after saving.'
+      }}
+    </p>
+  </div>
+</div>
 
       </div>
     </div>
