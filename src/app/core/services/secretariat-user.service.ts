@@ -7,6 +7,15 @@ import API_ENDPOINTS from '../constants/api-endpoints';
 // INTERFACES
 // ============================================
 
+// Account Statement Row Entry
+export interface AccountStatementRow {
+  date: string;
+  invoiceNumber: string;
+  projectName: string;
+  description: string;
+  amount: number;
+}
+
 export interface UserForm {
   id: string;
   formNumber: string;
@@ -61,6 +70,8 @@ export interface ManualFormData {
   toDate?: string;
   totalAmount?: number;
   description?: string;
+  // NEW: Account statement rows (up to 10)
+  accountRows?: AccountStatementRow[];
 }
 
 export interface CreateUserFormData {
@@ -287,6 +298,17 @@ export class SecretariatUserService {
             errors.push('To date cannot be before from date');
           }
         }
+        // Validate account rows
+        if (manualData.accountRows && manualData.accountRows.length > 0) {
+          if (manualData.accountRows.length > 8) {
+            errors.push('Maximum 8 rows allowed');
+          }
+          manualData.accountRows.forEach((row, index) => {
+            if (row.amount && row.amount < 0) {
+              errors.push(`Row ${index + 1}: Amount cannot be negative`);
+            }
+          });
+        }
         break;
     }
 
@@ -497,12 +519,26 @@ export class SecretariatUserService {
           fromDate: '',
           toDate: '',
           totalAmount: undefined,
-          description: ''
+          description: '',
+          accountRows: []
         };
 
       default:
         return baseData;
     }
+  }
+
+  /**
+   * Create empty account statement row
+   */
+  createEmptyAccountRow(): AccountStatementRow {
+    return {
+      date: '',
+      invoiceNumber: '',
+      projectName: '',
+      description: '',
+      amount: 0
+    };
   }
 
   /**
@@ -525,5 +561,13 @@ export class SecretariatUserService {
       month: 'short',
       day: 'numeric'
     });
+  }
+
+  /**
+   * Calculate total amount from account rows
+   */
+  calculateTotalFromRows(rows: AccountStatementRow[]): number {
+    if (!rows || rows.length === 0) return 0;
+    return rows.reduce((sum, row) => sum + (row.amount || 0), 0);
   }
 }
