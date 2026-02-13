@@ -93,11 +93,15 @@ export class CuttingComponent implements OnInit, OnDestroy {
   // MATERIAL TYPES
   // ============================================
   materialTypes = [
+    {value: 'dark steel', label: 'فولاذ أسود' , labelEn: 'Dark Steel'},
+    {value:'galvanized steel', label: 'فولاذ مجلفن', labelEn: 'Galvanized Steel'},
     { value: 'steel', label: 'فولاذ', labelEn: 'Steel' },
     { value: 'aluminum', label: 'ألومنيوم', labelEn: 'Aluminum' },
     { value: 'stainless', label: 'ستانلس ستيل', labelEn: 'Stainless Steel' },
     { value: 'copper', label: 'نحاس', labelEn: 'Copper' },
-    { value: 'brass', label: 'نحاس أصفر', labelEn: 'Brass' }
+    { value: 'brass', label: 'نحاس أصفر', labelEn: 'Brass' } ,
+    { value: 'titanium', label: 'تيتانيوم', labelEn: 'Titanium' },
+    {value:'أكريليك' , label: 'أكريليك', labelEn: 'Acrylic'},
   ];
 
   // ============================================
@@ -379,10 +383,8 @@ export class CuttingComponent implements OnInit, OnDestroy {
 
     const job = this.jobToDuplicate;
 
-    // Reset form first
     this.resetForm();
 
-    // Populate form with duplicated data
     this.formData = {
       projectName: job.projectName,
       pieceName: job.pieceName || '',
@@ -392,15 +394,12 @@ export class CuttingComponent implements OnInit, OnDestroy {
       notes: job.notes || ''
     };
 
-    // Set view to CREATE (not edit)
     this.currentView = 'create';
     this.fieldErrors = {};
     this.formError = '';
 
-    // Close modal
     this.closeDuplicateModal();
 
-    // Show success message
     const successMsg = this.formLanguage === 'ar'
       ? `تم نسخ بيانات مهمة القص ${job.id}. يمكنك التعديل وحفظ مهمة جديدة.`
       : `Cutting job ${job.id} data copied. You can modify and save as a new job.`;
@@ -453,7 +452,6 @@ export class CuttingComponent implements OnInit, OnDestroy {
   buildUserActivityHistory(job: CuttingJob): void {
     this.userActivities = [];
 
-    // ✅ NEW: Use updateHistory from backend if available
     if (job.updateHistory && job.updateHistory.length > 0) {
       job.updateHistory.forEach((historyEntry) => {
         const userName = historyEntry.updatedByInfo
@@ -469,7 +467,6 @@ export class CuttingComponent implements OnInit, OnDestroy {
             ? 'قام بإنشاء مهمة القص'
             : 'Created cutting job';
         } else if (historyEntry.changes.modifications && historyEntry.changes.modifications.length > 0) {
-          // Filter out meaningless modifications where both oldValue and newValue are undefined/null
           const modsRaw = historyEntry.changes.modifications;
           const mods = (modsRaw || []).filter(m => {
             const oldUndef = m.oldValue === undefined || m.oldValue === null;
@@ -477,13 +474,11 @@ export class CuttingComponent implements OnInit, OnDestroy {
             return !(oldUndef && newUndef);
           });
 
-          // If nothing meaningful remains, treat as a generic update
           if (mods.length === 0) {
             details = this.formLanguage === 'ar'
               ? 'قام بتحديث مهمة القص'
               : 'Updated cutting job';
           } else {
-            // Check if status was changed
             const statusChange = mods.find(m => m.field === 'fileStatus');
             if (statusChange) {
               actionType = 'status_changed';
@@ -491,7 +486,6 @@ export class CuttingComponent implements OnInit, OnDestroy {
                 ? `قام بتغيير الحالة من "${statusChange.oldValue}" إلى "${statusChange.newValue}"`
                 : `Changed status from "${statusChange.oldValue}" to "${statusChange.newValue}"`;
             } else {
-              // General update
               const changedFields = mods.map(m => m.field).join(', ');
               details = this.formLanguage === 'ar'
                 ? `قام بتحديث: ${changedFields}`
@@ -513,7 +507,6 @@ export class CuttingComponent implements OnInit, OnDestroy {
         });
       });
     } else {
-      // ✅ FALLBACK: Use old method if updateHistory is not available
       const creatorName = job.uploadedByInfo
         ? (job.uploadedByInfo.name || job.uploadedByInfo.username)
         : job.uploadedBy;
@@ -548,7 +541,6 @@ export class CuttingComponent implements OnInit, OnDestroy {
       }
     }
 
-    // Sort by timestamp (newest first)
     this.userActivities.sort((a, b) => {
       return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
     });
@@ -622,7 +614,6 @@ export class CuttingComponent implements OnInit, OnDestroy {
       : `${diffInMonths} months ago`;
   }
 
-  // Hide summaries that contain 'undefined' or are empty
   hasValidSummary(summary: any): boolean {
     if (!summary) return false;
     const text = this.formLanguage === 'ar' ? summary.ar : summary.en;
@@ -631,12 +622,10 @@ export class CuttingComponent implements OnInit, OnDestroy {
     return text.trim().length > 0;
   }
 
-  // Don't show a change if both old and new values are undefined/null
   shouldShowChange(change: any): boolean {
     if (!change) return false;
     const oldUndef = change.oldValue === undefined || change.oldValue === null;
     const newUndef = change.newValue === undefined || change.newValue === null;
-    // Always show status/progress changes
     if (change.field === 'fileStatus' || change.field === 'currentlyCut') return true;
     return !(oldUndef && newUndef);
   }
@@ -938,15 +927,34 @@ export class CuttingComponent implements OnInit, OnDestroy {
   }
 
   // ============================================
-  // TRACKING - FIXED IMPLEMENTATION
+  // ✅✅✅ TRACKING WITH AUTOMATIC 100% COMPLETION ✅✅✅
   // ============================================
 
   onJobSelected(): void {
     const job = this.cuttingJobs.find(j => j.id === this.trackingData.jobId);
     if (job) {
       this.selectedJob = job;
-      // Reset the input to 0 when selecting a job (user enters NEW batch amount)
+      // Reset the input to 0 when selecting a job
       this.trackingData.currentlyCut = 0;
+      this.trackingData.newStatus = 'قيد التنفيذ';
+    }
+  }
+
+  // ✅ NEW: Watch for changes in currentlyCut and auto-update status
+  onCurrentlyCutChange(): void {
+    if (!this.selectedJob) return;
+
+    const job = this.selectedJob;
+    const newTotalCut = (job.currentlyCut || 0) + this.trackingData.currentlyCut;
+
+    // ✅ AUTOMATICALLY SET STATUS BASED ON PROGRESS
+    if (newTotalCut === 0) {
+      this.trackingData.newStatus = 'معلق';
+    } else if (newTotalCut >= job.quantity) {
+      // ✅ AT 100% OR MORE, AUTOMATICALLY SET TO COMPLETED
+      this.trackingData.newStatus = 'مكتمل';
+    } else {
+      this.trackingData.newStatus = 'قيد التنفيذ';
     }
   }
 
@@ -961,10 +969,10 @@ export class CuttingComponent implements OnInit, OnDestroy {
     const job = this.cuttingJobs.find(j => j.id === this.trackingData.jobId);
     if (!job) return;
 
-    // ✅ CALCULATE THE NEW TOTAL: existing cut + this batch
+    // Calculate the new total
     const newTotalCut = (job.currentlyCut || 0) + this.trackingData.currentlyCut;
 
-    // Validate that we're not exceeding the total quantity
+    // Validate
     if (newTotalCut > job.quantity) {
       this.showToast('error', this.formLanguage === 'ar'
         ? `لا يمكن أن يتجاوز العدد المقصوص الكمية الإجمالية. المتبقي: ${job.quantity - (job.currentlyCut || 0)}`
@@ -972,7 +980,6 @@ export class CuttingComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Validate that the increment is non-negative
     if (this.trackingData.currentlyCut < 0) {
       this.showToast('error', this.formLanguage === 'ar'
         ? 'العدد المقصود يجب أن يكون صفر أو أكبر'
@@ -982,19 +989,29 @@ export class CuttingComponent implements OnInit, OnDestroy {
 
     this.updatingJob = true;
 
-    // ✅ SEND THE NEW TOTAL to the backend (not the increment)
+    // ✅ SEND THE NEW TOTAL with the automatically determined status
     const updateData: UpdateCuttingJobData = {
       currentlyCut: newTotalCut,
-      fileStatus: this.trackingData.newStatus,
+      fileStatus: this.trackingData.newStatus, // ✅ This is now automatically set
       notes: this.trackingData.notes || undefined
     };
 
     this.cuttingService.updateCuttingJob(this.trackingData.jobId, updateData).subscribe({
       next: (response) => {
-        const successMsg = this.formLanguage === 'ar'
-          ? `تم تحديث حالة القص بنجاح. تم قص ${newTotalCut} من ${job.quantity}`
-          : `Cutting status updated successfully. Cut ${newTotalCut} of ${job.quantity}`;
-        this.showToast('success', successMsg);
+        let successMsg = '';
+
+        // ✅ Show special message when automatically completed
+        if (this.trackingData.newStatus === 'مكتمل' && newTotalCut === job.quantity) {
+          successMsg = this.formLanguage === 'ar'
+            ? `🎉 تم إكمال المهمة تلقائياً! تم قص جميع القطع (${newTotalCut}/${job.quantity})`
+            : `🎉 Job automatically completed! All pieces cut (${newTotalCut}/${job.quantity})`;
+        } else {
+          successMsg = this.formLanguage === 'ar'
+            ? `تم تحديث حالة القص بنجاح. تم قص ${newTotalCut} من ${job.quantity}`
+            : `Cutting status updated successfully. Cut ${newTotalCut} of ${job.quantity}`;
+        }
+
+        this.showToast('success', successMsg, 4000);
         this.updatingJob = false;
         this.backToList();
       },
@@ -1004,7 +1021,6 @@ export class CuttingComponent implements OnInit, OnDestroy {
           ? 'حدث خطأ أثناء تحديث حالة القص'
           : 'Error updating cutting status';
 
-        // Show specific error message from backend if available
         if (error.error && error.error.message) {
           errorMsg = error.error.message;
         }
@@ -1184,17 +1200,14 @@ export class CuttingComponent implements OnInit, OnDestroy {
   getUserDisplayName(userId: string, job?: CuttingJob): string {
     if (!job) return userId;
 
-    // Check uploadedByInfo
     if (job.uploadedByInfo && job.uploadedByInfo.id === userId) {
       return job.uploadedByInfo.name || job.uploadedByInfo.username;
     }
 
-    // Check lastUpdatedByInfo
     if (job.lastUpdatedByInfo && job.lastUpdatedByInfo.id === userId) {
       return job.lastUpdatedByInfo.name || job.lastUpdatedByInfo.username;
     }
 
-    // Check cutByInfo
     if (job.cutByInfo && Array.isArray(job.cutByInfo)) {
       const user = job.cutByInfo.find(u => u.id === userId);
       if (user) {

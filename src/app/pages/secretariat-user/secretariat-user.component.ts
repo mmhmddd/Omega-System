@@ -1,3 +1,6 @@
+// secretariat-user.component.ts
+// COMPLETE VERSION WITH ACCOUNT STATEMENT SUPPORT
+
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -8,7 +11,8 @@ import {
   UserForm,
   CreateUserFormData,
   FormType,
-  ManualFormData
+  ManualFormData,
+  AccountStatementRow
 } from '../../core/services/secretariat-user.service';
 import { AuthService } from '../../core/services/auth.service';
 
@@ -29,23 +33,13 @@ interface Toast {
   animations: [
     trigger('slideIn', [
       transition(':enter', [
-        style({
-          opacity: 0,
-          transform: 'translateY(-20px)',
-          maxHeight: 0
-        }),
-        animate('400ms cubic-bezier(0.4, 0, 0.2, 1)', style({
-          opacity: 1,
-          transform: 'translateY(0)',
-          maxHeight: '3000px'
-        }))
+        style({ opacity: 0, transform: 'translateY(-20px)', maxHeight: 0 }),
+        animate('400ms cubic-bezier(0.4, 0, 0.2, 1)',
+          style({ opacity: 1, transform: 'translateY(0)', maxHeight: '3000px' }))
       ]),
       transition(':leave', [
-        animate('300ms cubic-bezier(0.4, 0, 1, 1)', style({
-          opacity: 0,
-          transform: 'translateY(-10px)',
-          maxHeight: 0
-        }))
+        animate('300ms cubic-bezier(0.4, 0, 1, 1)',
+          style({ opacity: 0, transform: 'translateY(-10px)', maxHeight: 0 }))
       ])
     ])
   ]
@@ -81,6 +75,8 @@ export class SecretariatUserComponent implements OnInit, OnDestroy {
   };
 
   manualData: ManualFormData = {};
+
+  accountRows: AccountStatementRow[] = [];
 
   // ============================================
   // FILTERS
@@ -150,7 +146,8 @@ export class SecretariatUserComponent implements OnInit, OnDestroy {
     const hasAccess =
       currentUser.role === 'super_admin' ||
       currentUser.role === 'admin' ||
-      (currentUser.role === 'employee' && this.authService.hasRouteAccess('secretariatUserManagement'));
+      (currentUser.role === 'employee' &&
+        this.authService.hasRouteAccess('secretariatUserManagement'));
 
     if (!hasAccess) {
       const errorMsg = this.formLanguage === 'ar'
@@ -282,32 +279,33 @@ export class SecretariatUserComponent implements OnInit, OnDestroy {
 
     const form = this.formToDuplicate;
 
-    // Reset form first
     this.resetForm();
 
-    // Populate form with duplicated data
     this.formData = {
       formType: form.formType,
       projectName: form.projectName || '',
-      date: this.getTodayDate() // Use today's date for new form
+      date: this.getTodayDate()
     };
 
-    // Copy manual data if it exists
     if (form.manualData) {
       this.manualData = { ...form.manualData };
+
+      if (form.manualData.accountRows && form.manualData.accountRows.length > 0) {
+        this.accountRows = form.manualData.accountRows.map(row => ({ ...row }));
+      }
     } else {
       this.manualData = this.secretariatUserService.createEmptyManualData(form.formType);
+      if (form.formType === 'account_statement') {
+        this.accountRows = [];
+      }
     }
 
-    // Set view to CREATE (not edit)
     this.currentView = 'create';
     this.fieldErrors = {};
     this.formError = '';
 
-    // Close modal
     this.closeDuplicateModal();
 
-    // Show success message
     const successMsg = this.formLanguage === 'ar'
       ? `تم نسخ بيانات النموذج ${form.formNumber}. يمكنك التعديل وحفظ نموذج جديد.`
       : `Form ${form.formNumber} data copied. You can modify and save as a new form.`;
@@ -325,6 +323,7 @@ export class SecretariatUserComponent implements OnInit, OnDestroy {
       date: this.getTodayDate()
     };
     this.manualData = {};
+    this.accountRows = [];
     this.fieldErrors = {};
     this.formError = '';
   }
@@ -333,23 +332,53 @@ export class SecretariatUserComponent implements OnInit, OnDestroy {
     return this.secretariatUserService.getTodayDate();
   }
 
-  // ============================================
-  // FORM TYPE SELECTION
-  // ============================================
-
   selectFormType(formType: string): void {
     this.formData.formType = formType as any;
-
-    // Initialize manual data based on form type - now empty by default
     this.manualData = this.secretariatUserService.createEmptyManualData(formType);
 
-    // Clear field errors
+    if (formType === 'account_statement') {
+      this.accountRows = [];
+    }
+
     delete this.fieldErrors['formType'];
   }
 
-  // ============================================
-  // VALIDATION
-  // ============================================
+  addAccountRow(): void {
+    if (this.accountRows.length < 8) {
+      this.accountRows.push(this.secretariatUserService.createEmptyAccountRow());
+
+      const successMsg = this.formLanguage === 'ar'
+        ? `تم إضافة الصف ${this.accountRows.length}`
+        : `Row ${this.accountRows.length} added`;
+      this.showToast('success', successMsg, 2000);
+    } else {
+      const errorMsg = this.formLanguage === 'ar'
+        ? 'الحد الأقصى هو 8 صفوف'
+        : 'Maximum 8 rows allowed';
+      this.showToast('warning', errorMsg);
+    }
+  }
+
+  removeAccountRow(index: number): void {
+    if (index >= 0 && index < this.accountRows.length) {
+      this.accountRows.splice(index, 1);
+
+      const successMsg = this.formLanguage === 'ar'
+        ? 'تم حذف الصف بنجاح'
+        : 'Row deleted successfully';
+      this.showToast('info', successMsg, 2000);
+
+      this.calculateTotal();
+    }
+  }
+
+  calculateTotal(): void {
+    // Calculation handled reactively via getAccountRowsTotal()
+  }
+
+  getAccountRowsTotal(): number {
+    return this.secretariatUserService.calculateTotalFromRows(this.accountRows);
+  }
 
   validateForm(): boolean {
     this.fieldErrors = {};
@@ -369,7 +398,10 @@ export class SecretariatUserComponent implements OnInit, OnDestroy {
       isValid = false;
     }
 
-    // Validate manual data if provided
+    if (this.formData.formType === 'account_statement') {
+      this.manualData.accountRows = this.accountRows;
+    }
+
     if (Object.keys(this.manualData).length > 0) {
       const validation = this.secretariatUserService.validateManualData(
         this.formData.formType,
@@ -401,20 +433,28 @@ export class SecretariatUserComponent implements OnInit, OnDestroy {
     this.creatingForm = true;
     this.formError = '';
 
-    // Prepare form data with optional manual inputs
     const submitData: CreateUserFormData = {
       formType: this.formData.formType,
       projectName: this.formData.projectName,
       date: this.formData.date
     };
 
-    // Add manual data if provided (filter out empty values)
     if (Object.keys(this.manualData).length > 0) {
       const filteredManualData: ManualFormData = {};
+
       for (const [key, value] of Object.entries(this.manualData)) {
         if (value !== null && value !== undefined && value !== '') {
-          filteredManualData[key as keyof ManualFormData] = value;
+          if (key === 'accountRows' && Array.isArray(value)) {
+            filteredManualData[key as keyof ManualFormData] = value as any;
+          } else {
+            filteredManualData[key as keyof ManualFormData] = value;
+          }
         }
+      }
+
+      // Always include accountRows for account_statement
+      if (this.formData.formType === 'account_statement' && this.accountRows) {
+        filteredManualData.accountRows = this.accountRows;
       }
 
       if (Object.keys(filteredManualData).length > 0) {
@@ -472,9 +512,7 @@ export class SecretariatUserComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('Error viewing PDF:', error);
-          const errorMsg = this.formLanguage === 'ar'
-            ? 'حدث خطأ أثناء عرض الملف'
-            : 'Error viewing PDF';
+          const errorMsg = this.formLanguage === 'ar' ? 'حدث خطأ أثناء عرض الملف' : 'Error viewing PDF';
           this.showToast('error', errorMsg);
         }
       });
@@ -484,14 +522,10 @@ export class SecretariatUserComponent implements OnInit, OnDestroy {
   printGeneratedPDF(): void {
     if (this.generatedFormId) {
       this.secretariatUserService.downloadPDF(this.generatedFormId).subscribe({
-        next: (blob) => {
-          this.printPDFBlob(blob);
-        },
+        next: (blob) => { this.printPDFBlob(blob); },
         error: (error) => {
           console.error('Error printing PDF:', error);
-          const errorMsg = this.formLanguage === 'ar'
-            ? 'حدث خطأ أثناء طباعة الملف'
-            : 'Error printing PDF';
+          const errorMsg = this.formLanguage === 'ar' ? 'حدث خطأ أثناء طباعة الملف' : 'Error printing PDF';
           this.showToast('error', errorMsg);
         }
       });
@@ -521,9 +555,7 @@ export class SecretariatUserComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         console.error('Error viewing PDF:', error);
-        const errorMsg = this.formLanguage === 'ar'
-          ? 'حدث خطأ أثناء عرض الملف'
-          : 'Error viewing PDF';
+        const errorMsg = this.formLanguage === 'ar' ? 'حدث خطأ أثناء عرض الملف' : 'Error viewing PDF';
         this.showToast('error', errorMsg);
       }
     });
@@ -531,14 +563,10 @@ export class SecretariatUserComponent implements OnInit, OnDestroy {
 
   printPDF(form: UserForm): void {
     this.secretariatUserService.downloadPDF(form.id).subscribe({
-      next: (blob) => {
-        this.printPDFBlob(blob);
-      },
+      next: (blob) => { this.printPDFBlob(blob); },
       error: (error) => {
         console.error('Error printing PDF:', error);
-        const errorMsg = this.formLanguage === 'ar'
-          ? 'حدث خطأ أثناء طباعة الملف'
-          : 'Error printing PDF';
+        const errorMsg = this.formLanguage === 'ar' ? 'حدث خطأ أثناء طباعة الملف' : 'Error printing PDF';
         this.showToast('error', errorMsg);
       }
     });
@@ -569,7 +597,6 @@ export class SecretariatUserComponent implements OnInit, OnDestroy {
             iframe.contentWindow.focus();
             iframe.contentWindow.print();
           }
-
           setTimeout(() => {
             document.body.removeChild(iframe);
             window.URL.revokeObjectURL(url);
@@ -647,22 +674,11 @@ export class SecretariatUserComponent implements OnInit, OnDestroy {
   }
 
   // ============================================
-  // CHECK IF FORM TYPE HAS SPECIFIC FIELDS
+  // FORM TYPE CHECKS
   // ============================================
 
-  isDepartureForm(): boolean {
-    return this.formData.formType === 'departure';
-  }
-
-  isVacationForm(): boolean {
-    return this.formData.formType === 'vacation';
-  }
-
-  isAdvanceForm(): boolean {
-    return this.formData.formType === 'advance';
-  }
-
-  isAccountStatementForm(): boolean {
-    return this.formData.formType === 'account_statement';
-  }
+  isDepartureForm(): boolean        { return this.formData.formType === 'departure'; }
+  isVacationForm(): boolean         { return this.formData.formType === 'vacation'; }
+  isAdvanceForm(): boolean          { return this.formData.formType === 'advance'; }
+  isAccountStatementForm(): boolean { return this.formData.formType === 'account_statement'; }
 }

@@ -666,72 +666,85 @@
       </div>
 
       <!-- Update Section -->
-      <div class="form-section" *ngIf="selectedJob">
-        <h2 class="section-title">
-          {{ formLanguage === 'ar' ? 'تحديث حالة القص' : 'Update Cutting Status' }}
-        </h2>
+<div class="form-section" *ngIf="selectedJob">
+  <h2 class="section-title">
+    {{ formLanguage === 'ar' ? 'تحديث حالة القص' : 'Update Cutting Status' }}
+  </h2>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">
-              <i class="bi bi-scissors"></i>
-              {{ formLanguage === 'ar' ? 'العدد الذي تم قصه في هذه الدفعة' : 'Quantity Cut in This Batch' }}
-            </label>
-            <input
-              type="number"
-              class="form-input"
-              [(ngModel)]="trackingData.currentlyCut"
-              min="0"
-              [max]="selectedJob.remaining || selectedJob.quantity"
-              [placeholder]="formLanguage === 'ar' ? 'أدخل العدد المقصود' : 'Enter cut quantity'"
-            />
-            <small class="help-text">
-              {{ formLanguage === 'ar' ? 'الحد الأقصى:' : 'Maximum:' }} {{ selectedJob.remaining }}
-            </small>
-          </div>
+  <div class="form-row">
+    <div class="form-group">
+      <label class="form-label">
+        <i class="bi bi-scissors"></i>
+        {{ formLanguage === 'ar' ? 'العدد الذي تم قصه في هذه الدفعة' : 'Quantity Cut in This Batch' }}
+      </label>
+      <input
+        type="number"
+        class="form-input"
+        [(ngModel)]="trackingData.currentlyCut"
+        (ngModelChange)="onCurrentlyCutChange()"
+        min="0"
+        [max]="selectedJob.remaining || selectedJob.quantity"
+        [placeholder]="formLanguage === 'ar' ? 'أدخل العدد المقصود' : 'Enter cut quantity'"
+      />
+      <small class="help-text">
+        {{ formLanguage === 'ar' ? 'الحد الأقصى:' : 'Maximum:' }} {{ selectedJob.remaining }}
+      </small>
+    </div>
 
-          <div class="form-group">
-            <label class="form-label">
-              <i class="bi bi-flag"></i>
-              {{ formLanguage === 'ar' ? 'الحالة الجديدة' : 'New Status' }}
-            </label>
-            <select
-              class="form-select"
-              [(ngModel)]="trackingData.newStatus">
-              <option value="معلق">{{ formLanguage === 'ar' ? 'معلق' : 'Pending' }}</option>
-              <option value="قيد التنفيذ">{{ formLanguage === 'ar' ? 'قيد التنفيذ' : 'In Progress' }}</option>
-              <option value="مكتمل">{{ formLanguage === 'ar' ? 'مكتمل' : 'Completed' }}</option>
-              <option value="جزئي">{{ formLanguage === 'ar' ? 'جزئي' : 'Partial' }}</option>
-            </select>
-          </div>
-        </div>
+    <div class="form-group">
+      <label class="form-label">
+        <i class="bi bi-flag"></i>
+        {{ formLanguage === 'ar' ? 'الحالة الجديدة' : 'New Status' }}
+        <span class="auto-status-indicator" *ngIf="trackingData.newStatus === 'مكتمل'">
+          ✓ {{ formLanguage === 'ar' ? 'تلقائي' : 'Auto' }}
+        </span>
+      </label>
+      <select
+        class="form-select"
+        [(ngModel)]="trackingData.newStatus"
+        [class.auto-completed]="trackingData.newStatus === 'مكتمل' && (selectedJob.currentlyCut || 0) + trackingData.currentlyCut === selectedJob.quantity">
+        <option value="معلق">{{ formLanguage === 'ar' ? 'معلق' : 'Pending' }}</option>
+        <option value="قيد التنفيذ">{{ formLanguage === 'ar' ? 'قيد التنفيذ' : 'In Progress' }}</option>
+        <option value="مكتمل">{{ formLanguage === 'ar' ? 'مكتمل' : 'Completed' }}</option>
+        <option value="جزئي">{{ formLanguage === 'ar' ? 'جزئي' : 'Partial' }}</option>
+      </select>
+      <!-- ✅ NEW: Show automatic completion message -->
+      <small class="auto-complete-message" *ngIf="trackingData.newStatus === 'مكتمل' && (selectedJob.currentlyCut || 0) + trackingData.currentlyCut === selectedJob.quantity">
+        <i class="bi bi-check-circle-fill"></i>
+        {{ formLanguage === 'ar'
+          ? '✨ سيتم إكمال المهمة تلقائياً عند 100%'
+          : '✨ Job will auto-complete at 100%'
+        }}
+      </small>
+    </div>
+  </div>
 
-        <div class="form-group">
-          <label class="form-label">
-            <i class="bi bi-chat-text"></i>
-            {{ formLanguage === 'ar' ? 'ملاحظات القص' : 'Cutting Notes' }}
-          </label>
-          <textarea
-            class="form-input"
-            [(ngModel)]="trackingData.notes"
-            rows="3"
-            [placeholder]="formLanguage === 'ar' ? 'أدخل أي ملاحظات حول عملية القص (اختياري)' : 'Enter any notes about the cutting process (optional)'"
-          ></textarea>
-        </div>
+  <div class="form-group">
+    <label class="form-label">
+      <i class="bi bi-chat-text"></i>
+      {{ formLanguage === 'ar' ? 'ملاحظات القص' : 'Cutting Notes' }}
+    </label>
+    <textarea
+      class="form-input"
+      [(ngModel)]="trackingData.notes"
+      rows="3"
+      [placeholder]="formLanguage === 'ar' ? 'أدخل أي ملاحظات حول عملية القص (اختياري)' : 'Enter any notes about the cutting process (optional)'"
+    ></textarea>
+  </div>
 
-        <div class="form-actions-bottom">
-          <button
-            class="btn btn-primary btn-large"
-            (click)="updateTracking()"
-            [disabled]="updatingJob">
-            <i class="bi" [ngClass]="updatingJob ? 'bi-arrow-clockwise spin' : 'bi-check-circle'"></i>
-            {{ updatingJob
-              ? (formLanguage === 'ar' ? 'جاري التحديث...' : 'Updating...')
-              : (formLanguage === 'ar' ? 'تحديث الحالة' : 'Update Status')
-            }}
-          </button>
-        </div>
-      </div>
+  <div class="form-actions-bottom">
+    <button
+      class="btn btn-primary btn-large"
+      (click)="updateTracking()"
+      [disabled]="updatingJob">
+      <i class="bi" [ngClass]="updatingJob ? 'bi-arrow-clockwise spin' : 'bi-check-circle'"></i>
+      {{ updatingJob
+        ? (formLanguage === 'ar' ? 'جاري التحديث...' : 'Updating...')
+        : (formLanguage === 'ar' ? 'تحديث الحالة' : 'Update Status')
+      }}
+    </button>
+  </div>
+</div>
 
       <!-- No Job Selected Message -->
       <div class="no-selection-message" *ngIf="!selectedJob">
