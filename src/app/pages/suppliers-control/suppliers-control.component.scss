@@ -51,6 +51,53 @@ $info-color: #3b82f6;
 }
 
 // ============================================
+// suppliers-control.component.scss - ADD THESE STYLES
+// ============================================
+
+// Success button style for Excel export
+.btn-success {
+  background: #22c55e;
+  color: white;
+
+  &:hover:not(:disabled) {
+    background: #16a34a;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  i.bi-file-earmark-excel {
+    font-size: 1rem;
+  }
+}
+
+// Responsive adjustments for header actions
+.header-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    
+    .btn {
+      flex: 1;
+      min-width: 140px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+    
+    .btn {
+      width: 100%;
+    }
+  }
+}
+// ============================================
 // TOAST NOTIFICATIONS
 // ============================================
 .toast-container {
@@ -595,6 +642,12 @@ $info-color: #3b82f6;
 
     span {
       color: $medium-text;
+      &.phone-number {
+        direction: ltr;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.3px;
+        font-weight: 500;
+      }
     }
   }
 }

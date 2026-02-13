@@ -1,4 +1,4 @@
-// src/app/core/services/users.service.ts
+// src/app/core/services/users.service.ts - CORRECTED VERSION
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -10,9 +10,10 @@ import { API_ENDPOINTS } from '../constants/api-endpoints';
 
 export interface User {
   id: string;
-  username: string;
+  username: string; // Auto-generated, kept for compatibility
   name: string;
-  email: string;
+  phone: string; // ✅ REQUIRED
+  email?: string; // ✅ OPTIONAL
   role: 'super_admin' | 'admin' | 'employee' | 'secretariat';
   active: boolean;
   systemAccess: {
@@ -25,7 +26,8 @@ export interface User {
 
 export interface CreateUserData {
   name: string;
-  email: string;
+  phone: string; // ✅ REQUIRED
+  email?: string; // ✅ OPTIONAL
   password: string;
   role: 'super_admin' | 'admin' | 'employee' | 'secretariat';
   systemAccess?: {
@@ -36,7 +38,8 @@ export interface CreateUserData {
 
 export interface UpdateUserData {
   name?: string;
-  email?: string;
+  phone?: string; // ✅ Can update phone
+  email?: string; // ✅ OPTIONAL
   password?: string;
   role?: 'super_admin' | 'admin' | 'employee' | 'secretariat';
   active?: boolean;
@@ -79,6 +82,14 @@ export interface UsernameCheckResponse {
   success: boolean;
   available: boolean;
   message: string;
+}
+
+export interface PhoneCheckResponse {
+  success: boolean;
+  data: {
+    phone: string;
+    available: boolean;
+  };
 }
 
 export interface UsersFilters {
@@ -141,6 +152,7 @@ export class UsersService {
     if (userData.routeAccess && userData.routeAccess.length > 0) {
       console.log('📝 Creating user with route access:', {
         name: userData.name,
+        phone: userData.phone,
         role: userData.role,
         routeAccess: userData.routeAccess
       });
@@ -297,7 +309,7 @@ export class UsersService {
   }
 
   // ============================================
-  // USERNAME AVAILABILITY
+  // USERNAME & PHONE AVAILABILITY
   // ============================================
 
   /**
@@ -306,6 +318,16 @@ export class UsersService {
   checkUsernameAvailability(username: string): Observable<UsernameCheckResponse> {
     return this.http.get<UsernameCheckResponse>(
       API_ENDPOINTS.USERS.CHECK_USERNAME(username),
+      { headers: this.getAuthHeaders() }
+    );
+  }
+
+  /**
+   * ✅ NEW: Check if phone number is available
+   */
+  checkPhoneAvailability(phone: string): Observable<PhoneCheckResponse> {
+    return this.http.get<PhoneCheckResponse>(
+      `${API_ENDPOINTS.USERS.GET_ALL}/check/phone/${phone}`,
       { headers: this.getAuthHeaders() }
     );
   }
@@ -346,6 +368,29 @@ export class UsersService {
   isValidEmail(email: string): boolean {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
+  }
+
+  /**
+   * ✅ NEW: Validate Jordanian phone number
+   */
+  isValidJordanianPhone(phone: string): boolean {
+    const phoneRegex = /^07[0-9]{8}$/;
+    return phoneRegex.test(phone);
+  }
+
+  /**
+   * ✅ NEW: Format phone number for display
+   */
+  formatPhoneNumber(phone: string): string {
+    if (!phone || phone.length !== 10) return phone;
+    return `${phone.slice(0, 3)} ${phone.slice(3, 7)} ${phone.slice(7)}`;
+  }
+
+  /**
+   * ✅ NEW: Clean phone number (remove spaces and dashes)
+   */
+  cleanPhoneNumber(phone: string): string {
+    return phone.replace(/[\s-]/g, '');
   }
 
   /**

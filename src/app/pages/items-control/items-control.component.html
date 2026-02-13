@@ -38,6 +38,14 @@
     <div class="page-header">
       <h1 class="page-title">إدارة الأصناف</h1>
       <div class="header-actions">
+        <button 
+          class="btn-excel" 
+          (click)="exportToExcel()" 
+          [disabled]="exportingExcel || items.length === 0"
+          title="تصدير إلى Excel">
+          <i class="bi" [ngClass]="exportingExcel ? 'bi-arrow-clockwise spin' : 'bi-file-earmark-excel'"></i>
+          {{ exportingExcel ? 'جاري التصدير...' : 'تصدير Excel' }}
+        </button>
         <button class="btn-primary" (click)="createItem()" *ngIf="hasAccess()">
           <i class="bi bi-plus-lg"></i>
           إنشاء صنف جديد

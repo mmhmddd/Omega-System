@@ -63,7 +63,7 @@
         <input
           type="text"
           class="filter-input"
-          placeholder="ابحث بالاسم، البريد الإلكتروني، أو اسم المستخدم..."
+          placeholder="ابحث بالاسم، البريد الإلكتروني، أو رقم الهاتف..."
           [(ngModel)]="searchTerm"
           (input)="onSearchChange()"
         />
@@ -154,7 +154,7 @@
         <tr>
           <th>المستخدم</th>
           <th>البريد الإلكتروني</th>
-          <th>اسم المستخدم</th>
+          <th>رقم الهاتف</th>
           <th>الدور</th>
           <th>الحالة</th>
           <th>تاريخ الإنشاء</th>
@@ -164,7 +164,7 @@
 
       <tbody *ngIf="!loading && filteredUsers.length > 0">
         <tr *ngFor="let user of filteredUsers">
-          <!-- User Info -->
+          <!-- ✅ FIXED: User Info with proper alignment -->
           <td>
             <div class="user-cell">
               <div class="user-avatar"
@@ -180,12 +180,23 @@
 
           <!-- Email -->
           <td>
-            <span class="user-email" [class.inactive-text]="!user.active">{{ user.email }}</span>
+            <span class="user-email" [class.inactive-text]="!user.active">
+              {{ user.email || 'غير محدد' }}
+            </span>
           </td>
 
-          <!-- Username -->
+          <!-- ✅ FIXED: Phone Number with proper formatting -->
           <td>
-            <span class="username-badge" [class.inactive-badge]="!user.active">{{ user.username }}</span>
+            <span class="phone-badge" 
+                  *ngIf="user.phone"
+                  [class.inactive-badge]="!user.active">
+              <i class="bi bi-telephone-fill"></i>
+              <span class="phone-number">{{ formatPhone(user.phone) }}</span>
+            </span>
+            <span class="phone-badge phone-badge-empty" *ngIf="!user.phone">
+              <i class="bi bi-telephone-x"></i>
+              <span>غير محدد</span>
+            </span>
           </td>
 
           <!-- Role -->
@@ -346,11 +357,34 @@
           </small>
         </div>
 
-        <!-- Email -->
+        <!-- ✅ Phone Number (REQUIRED) -->
+        <div class="form-group">
+          <label class="form-label">
+            <i class="bi bi-telephone"></i>
+            رقم الهاتف
+            <span class="required-badge">مطلوب</span>
+          </label>
+          <input
+            type="tel"
+            class="form-input"
+            formControlName="phone"
+            placeholder="07XXXXXXXX"
+            maxlength="10"
+            [class.error]="createUserForm.get('phone')?.touched && createUserForm.get('phone')?.invalid"
+          />
+
+          <small class="error-message" *ngIf="getFormError(createUserForm, 'phone')">
+            <i class="bi bi-exclamation-circle"></i>
+            {{ getFormError(createUserForm, 'phone') }}
+          </small>
+        </div>
+
+        <!-- ✅ Email (OPTIONAL) -->
         <div class="form-group">
           <label class="form-label">
             <i class="bi bi-envelope"></i>
             البريد الإلكتروني
+            <span class="optional-badge">اختياري</span>
           </label>
           <input
             type="email"
@@ -400,6 +434,7 @@
               <option value="admin">المهندس</option>
             </optgroup>
             <optgroup label="الموظفين">
+              <option value="employee">موظف</option>
               <option value="employee">المحاسبة</option>
               <option value="employee">HR</option>
               <option value="employee">مسؤول مستودع</option>
@@ -490,11 +525,31 @@
           </small>
         </div>
 
-        <!-- Email -->
+        <!-- ✅ Phone Number (REQUIRED) -->
+        <div class="form-group">
+          <label class="form-label">
+            <i class="bi bi-telephone"></i>
+            رقم الهاتف
+          </label>
+          <input
+            type="tel"
+            class="form-input"
+            formControlName="phone"
+            placeholder="07XXXXXXXX"
+            maxlength="10"
+          />
+          <small class="error-message" *ngIf="getFormError(editUserForm, 'phone')">
+            <i class="bi bi-exclamation-circle"></i>
+            {{ getFormError(editUserForm, 'phone') }}
+          </small>
+        </div>
+
+        <!-- ✅ Email (OPTIONAL) -->
         <div class="form-group">
           <label class="form-label">
             <i class="bi bi-envelope"></i>
             البريد الإلكتروني
+            <span class="optional-badge">اختياري</span>
           </label>
           <input
             type="email"
@@ -538,6 +593,7 @@
               <option value="admin">المهندس</option>
             </optgroup>
             <optgroup label="الموظفين">
+              <option value="employee">موظف</option>
               <option value="employee">المحاسبة</option>
               <option value="employee">HR</option>
               <option value="employee">مسؤول مستودع</option>

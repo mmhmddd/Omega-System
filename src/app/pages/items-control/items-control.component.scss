@@ -989,3 +989,51 @@ $breakpoint-xl: 1200px;
     to { transform: rotate(360deg); }
   }
 }
+// Add this to your existing items-control.component.scss file
+// Place it within the .list-view .page-header section
+
+.btn-excel {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  i {
+    font-size: 1rem;
+  }
+
+  @media (max-width: $breakpoint-md) {
+    flex: 1;
+    justify-content: center;
+  }
+
+  @media (max-width: $breakpoint-sm) {
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    i {
+      font-size: 0.9rem;
+    }
+  }
+}

@@ -46,7 +46,8 @@ export const API_ENDPOINTS = {
     CREATE: `${environment.apiUrl}/items`,
     UPDATE: (id: string) => `${environment.apiUrl}/items/${id}`,
     DELETE: (id: string) => `${environment.apiUrl}/items/${id}`,
-    GET_SIMPLE: `${environment.apiUrl}/items/simple`
+    GET_SIMPLE: `${environment.apiUrl}/items/simple`,
+    EXPORT_EXCEL: `${environment.apiUrl}/items/export/excel` // NEW: Excel export endpoint
   },
 
   // ============================================

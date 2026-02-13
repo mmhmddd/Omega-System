@@ -29,6 +29,7 @@ export class SuppliersControlComponent implements OnInit {
   suppliers: SupplierTableData[] = [];
   filteredSuppliers: SupplierTableData[] = [];
   selectedSupplier: Supplier | null = null;
+  exportingExcel: boolean = false;
 
   // Available material types
   availableMaterials: string[] = [
@@ -91,7 +92,7 @@ export class SuppliersControlComponent implements OnInit {
   ];
 
   // Countries
-  countries: string[] = ['Egypt', 'UAE', 'Saudi Arabia', 'Kuwait', 'Qatar', 'Bahrain', 'Oman'];
+  countries: string[] = ['Jordan','Egypt', 'UAE', 'Saudi Arabia', 'Kuwait', 'Qatar', 'Bahrain', 'Oman'];
 
   // Actions menu
   activeActionsMenu: string | null = null;
@@ -132,6 +133,39 @@ export class SuppliersControlComponent implements OnInit {
     this.toastTimeouts.clear();
   }
 
+
+  /**
+ * Export suppliers to Excel
+ */
+exportToExcel(): void {
+  this.exportingExcel = true;
+
+  // Build filters based on current selections
+  const filters: any = {};
+  if (this.selectedStatus) filters.status = this.selectedStatus;
+  if (this.selectedCountry) filters.country = this.selectedCountry;
+  if (this.selectedCity) filters.city = this.selectedCity;
+  if (this.selectedMaterial) filters.materialType = this.selectedMaterial;
+  if (this.minRating > 0) filters.minRating = this.minRating;
+
+  this.supplierService.exportToExcel(filters).subscribe({
+    next: (blob) => {
+      // Generate filename with current date
+      const filename = `suppliers-export-${new Date().toISOString().split('T')[0]}.xlsx`;
+      
+      // Download the file
+      this.supplierService.downloadExcelFile(blob, filename);
+      
+      this.showToast('success', 'تم تصدير الموردين بنجاح');
+      this.exportingExcel = false;
+    },
+    error: (error) => {
+      console.error('Error exporting to Excel:', error);
+      this.showToast('error', 'حدث خطأ أثناء تصدير الموردين');
+      this.exportingExcel = false;
+    }
+  });
+}
   // ============================================
   // TOAST NOTIFICATIONS
   // ============================================
@@ -370,6 +404,11 @@ export class SuppliersControlComponent implements OnInit {
     return this.activeActionsMenu === supplierId;
   }
 
+  formatPhone(phone: string): string {
+  if (!phone || phone.length !== 10) return phone;
+  // Format as: 079 1234 567
+  return `${phone.slice(0, 3)} ${phone.slice(3, 7)} ${phone.slice(7)}`;
+}
   // ============================================
   // ACTION HANDLERS
   // ============================================

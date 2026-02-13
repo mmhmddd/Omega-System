@@ -1,5 +1,5 @@
 <div class="suppliers-control-container" dir="rtl">
-  <!-- ============================================ -->
+ <!-- ============================================ -->
   <!-- TOAST NOTIFICATIONS CONTAINER -->
   <!-- ============================================ -->
   <div class="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 99999 !important; pointer-events: none;">
@@ -45,6 +45,15 @@
         <p class="page-subtitle">إضافة وتعديل وإدارة الموردين والمزودين</p>
       </div>
       <div class="header-actions">
+         <!-- Export to Excel Button -->
+      <button
+        class="btn btn-success"
+        (click)="exportToExcel()"
+        [disabled]="exportingExcel || loading">
+        <i class="bi bi-file-earmark-excel" *ngIf="!exportingExcel"></i>
+        <i class="bi bi-arrow-clockwise spin" *ngIf="exportingExcel"></i>
+        {{ exportingExcel ? 'جاري التصدير...' : 'تصدير Excel' }}
+      </button>
         <button
           class="btn btn-primary"
           (click)="openCreateModal()"
@@ -229,19 +238,19 @@
             <span class="company-name" [class.inactive-text]="supplier.status !== 'active'">{{ supplier.companyName }}</span>
           </td>
 
-          <!-- Contact Info -->
+          <!-- ✅ FIXED: Contact Info with Proper Phone Formatting -->
           <td>
             <div class="contact-info">
-              <div class="contact-item">
-                <i class="bi bi-person"></i>
+              <div class="contact-item" *ngIf="supplier.contactPerson">
+                <i class="bi bi-person-fill"></i>
                 <span>{{ supplier.contactPerson }}</span>
               </div>
-              <div class="contact-item">
-                <i class="bi bi-telephone"></i>
-                <span>{{ supplier.phone }}</span>
+              <div class="contact-item" *ngIf="supplier.phone">
+                <i class="bi bi-telephone-fill"></i>
+                <span class="phone-number">{{ formatPhone(supplier.phone) }}</span>
               </div>
               <div class="contact-item" *ngIf="supplier.email">
-                <i class="bi bi-envelope"></i>
+                <i class="bi bi-envelope-fill"></i>
                 <span>{{ supplier.email }}</span>
               </div>
             </div>
@@ -282,10 +291,9 @@
             </span>
           </td>
 
-          <!-- Actions Dropdown Menu - ALWAYS ACTIVE -->
+          <!-- Actions Dropdown Menu -->
           <td>
             <div class="actions-dropdown" (click)="$event.stopPropagation()">
-              <!-- ✅ زر الإجراءات مع event.stopPropagation() -->
               <button
                 class="actions-trigger"
                 type="button"
@@ -295,7 +303,6 @@
                 <i class="bi bi-three-dots-vertical"></i>
               </button>
 
-              <!-- ✅ القائمة تظهر عند isMenuOpen() -->
               <div
                 class="actions-menu"
                 [class.show]="isMenuOpen(supplier.id)"
@@ -303,7 +310,6 @@
                 *ngIf="isMenuOpen(supplier.id)"
                 (click)="$event.stopPropagation()"
               >
-                <!-- ✅ تغيير الحالة متاح دائماً -->
                 <button 
                   type="button" 
                   class="action-menu-item" 
@@ -312,7 +318,6 @@
                   <span>تغيير الحالة</span>
                 </button>
 
-                <!-- ✅ التعديل متاح للـ super_admin فقط -->
                 <button 
                   type="button" 
                   class="action-menu-item" 
@@ -322,10 +327,8 @@
                   <span>تعديل</span>
                 </button>
 
-                <!-- ✅ خط فاصل -->
                 <div class="menu-divider" *ngIf="canManageSuppliers"></div>
 
-                <!-- ✅ الحذف متاح للـ super_admin فقط -->
                 <button 
                   type="button" 
                   class="action-menu-item danger" 
@@ -381,14 +384,10 @@
   </div>
 </div>
 
-<!-- ============================================ -->
-<!-- MENU BACKDROP (Click Outside to Close) -->
-<!-- ============================================ -->
+<!-- MENU BACKDROP -->
 <div class="menu-backdrop" *ngIf="activeActionsMenu" (click)="closeActionsMenu()"></div>
 
-<!-- ============================================ -->
 <!-- CREATE SUPPLIER MODAL -->
-<!-- ============================================ -->
 <div class="modal-overlay" *ngIf="showCreateModal" (click)="closeCreateModal()">
   <div class="modal-container modal-large" (click)="$event.stopPropagation()">
     <div class="modal-header">
@@ -477,7 +476,8 @@
                   type="tel"
                   class="form-input"
                   formControlName="phone"
-                  placeholder="07 XXXX XXXX"
+                  placeholder="07XXXXXXXX"
+                  maxlength="10"
                 />
               </div>
             </div>
@@ -550,6 +550,7 @@
     </form>
   </div>
 </div>
+
 
 <!-- ============================================ -->
 <!-- EDIT SUPPLIER MODAL -->

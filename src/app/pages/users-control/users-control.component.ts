@@ -105,6 +105,7 @@ export class UsersControlComponent implements OnInit, OnDestroy {
     { value: 'admin', label: 'المدير العام', color: '#ea580c', displayName: 'المدير العام' },
     { value: 'admin', label: 'المهندس', color: '#ea580c', displayName: 'المهندس' },
     { value: 'secretariat', label: 'سكرتيرة', color: '#7c3aed', displayName: 'سكرتيرة' },
+    { value: 'employee', label: 'موظف', color: '#0891b2', displayName: 'موظف' },
     { value: 'employee', label: 'المحاسبة', color: '#0891b2', displayName: 'المحاسبة' },
     { value: 'employee', label: 'HR', color: '#0891b2', displayName: 'HR' },
     { value: 'employee', label: 'مسؤول مستودع', color: '#0891b2', displayName: 'مسؤول مستودع' }
@@ -226,27 +227,34 @@ export class UsersControlComponent implements OnInit, OnDestroy {
   // INITIALIZATION
   // ============================================
 
-  private initializeForms(): void {
-    this.createUserForm = this.fb.group({
-      name: ['', [Validators.required, Validators.minLength(3)]],
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]],
-      role: ['employee', Validators.required],
-      systemAccess: this.fb.group({
-        laserCuttingManagement: [false]
-      }),
-      routeAccess: [[]]
-    });
+private initializeForms(): void {
+  this.createUserForm = this.fb.group({
+    name: ['', [Validators.required, Validators.minLength(3)]],
+    phone: ['', [
+      Validators.required,
+      Validators.pattern(/^07[0-9]{8}$/) // ✅ Jordanian phone validation
+    ]],
+    email: ['', [Validators.email]], // ✅ OPTIONAL - removed Validators.required
+    password: ['', [Validators.required, Validators.minLength(6)]],
+    role: ['employee', Validators.required],
+    systemAccess: this.fb.group({
+      laserCuttingManagement: [false]
+    }),
+    routeAccess: [[]]
+  });
 
-    this.editUserForm = this.fb.group({
-      name: ['', [Validators.required, Validators.minLength(3)]],
-      email: ['', [Validators.required, Validators.email]],
-      password: [''],
-      role: ['', Validators.required],
-      active: [true]
-    });
-  }
-
+  this.editUserForm = this.fb.group({
+    name: ['', [Validators.required, Validators.minLength(3)]],
+    phone: ['', [
+      Validators.required,
+      Validators.pattern(/^07[0-9]{8}$/) // ✅ Jordanian phone validation
+    ]],
+    email: ['', [Validators.email]], // ✅ OPTIONAL - removed Validators.required
+    password: [''],
+    role: ['', Validators.required],
+    active: [true]
+  });
+}
   // ============================================
   // DATA LOADING
   // ============================================
@@ -507,17 +515,18 @@ export class UsersControlComponent implements OnInit, OnDestroy {
   // EDIT USER
   // ============================================
 
-  openEditModal(user: User): void {
-    this.selectedUser = user;
-    this.editUserForm.patchValue({
-      name: user.name,
-      email: user.email,
-      password: '',
-      role: user.role,
-      active: user.active
-    });
-    this.showEditModal = true;
-  }
+openEditModal(user: User): void {
+  this.selectedUser = user;
+  this.editUserForm.patchValue({
+    name: user.name,
+    phone: user.phone, // ✅ Added phone
+    email: user.email || '', // ✅ Handle optional email
+    password: '',
+    role: user.role,
+    active: user.active
+  });
+  this.showEditModal = true;
+}
 
   closeEditModal(): void {
     this.showEditModal = false;
@@ -874,19 +883,71 @@ saveSystemAccess(): void {
     }));
   }
 
-  getFormError(formGroup: FormGroup, fieldName: string): string {
-    const field = formGroup.get(fieldName);
-    if (!field?.touched || !field?.errors) return '';
+getFormError(formGroup: FormGroup, fieldName: string): string {
+  const field = formGroup.get(fieldName);
+  if (!field?.touched || !field?.errors) return '';
 
-    if (field.errors['required']) return 'هذا الحقل مطلوب';
-    if (field.errors['email']) return 'البريد الإلكتروني غير صالح';
-    if (field.errors['minlength']) {
-      const minLength = field.errors['minlength'].requiredLength;
-      return `يجب أن يكون ${minLength} أحرف على الأقل`;
-    }
-
-    return '';
+  if (field.errors['required']) {
+    if (fieldName === 'phone') return 'رقم الهاتف مطلوب';
+    if (fieldName === 'name') return 'الاسم مطلوب';
+    if (fieldName === 'password') return 'كلمة المرور مطلوبة';
+    return 'هذا الحقل مطلوب';
   }
+
+  if (field.errors['pattern'] && fieldName === 'phone') {
+    return 'رقم الهاتف يجب أن يكون أردني بصيغة 07XXXXXXXX';
+  }
+
+  if (field.errors['email']) return 'البريد الإلكتروني غير صالح';
+  
+  if (field.errors['minlength']) {
+    const minLength = field.errors['minlength'].requiredLength;
+    return `يجب أن يكون ${minLength} أحرف على الأقل`;
+  }
+
+  return '';
+}
+
+// ✅ ADD these new helper methods at the end of the class (before the closing }):
+/**
+ * ✅ Validate Jordanian phone number
+ */
+isValidPhone(phone: string): boolean {
+  const phoneRegex = /^07[0-9]{8}$/;
+  return phoneRegex.test(phone);
+}
+
+/**
+ * ✅ Format phone for display
+ */
+formatPhone(phone: string | null | undefined): string {
+  if (!phone) {
+    return 'غير محدد';
+  }
+
+  // Remove any non-digit characters
+  const cleaned = phone.toString().replace(/\D/g, '');
+
+  // Format Iraqi phone numbers (10 digits starting with 07)
+  if (cleaned.length === 10 && cleaned.startsWith('07')) {
+    // Format as: 079 123 4567
+    return `${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)} ${cleaned.slice(6)}`;
+  }
+
+  // Format other 10-digit numbers
+  if (cleaned.length === 10) {
+    return `${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)} ${cleaned.slice(6)}`;
+  }
+
+  // Format 11-digit numbers
+  if (cleaned.length === 11) {
+    return `${cleaned.slice(0, 4)} ${cleaned.slice(4, 7)} ${cleaned.slice(7)}`;
+  }
+
+  // Return original if doesn't match expected format
+  return phone;
+}
+
 
   get canCreateUsers(): boolean {
     const currentUser = this.authService.currentUserValue;

@@ -1,4 +1,4 @@
-// src/app/core/services/auth.service.ts - FIXED VERSION
+// src/app/core/services/auth.service.ts - CORRECTED VERSION
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { BehaviorSubject, Observable, throwError, interval } from 'rxjs';
@@ -8,9 +8,10 @@ import { API_ENDPOINTS } from '../constants/api-endpoints';
 
 export interface User {
   id: string;
-  username: string;
+  username: string; // Auto-generated, kept for compatibility
   name: string;
-  email: string;
+  phone: string; // ✅ REQUIRED
+  email?: string; // ✅ OPTIONAL
   role: 'super_admin' | 'admin' | 'employee' | 'secretariat';
   active: boolean;
   systemAccess: {
@@ -21,8 +22,9 @@ export interface User {
   updatedAt: string;
 }
 
+// ✅ CORRECTED: Changed from username to phone
 export interface LoginCredentials {
-  username: string;
+  phone: string; // ✅ Changed from username to phone
   password: string;
 }
 
@@ -43,19 +45,19 @@ export class AuthService {
   public currentUser$: Observable<User | null>;
   private refreshInterval: any;
 
-  // ✅ FIXED: Complete list matching backend exactly (11 routes)
+  // ✅ Complete list matching backend (11 routes)
   private readonly ALLOWED_EMPLOYEE_ROUTES = [
-    'suppliers',              // إدارة الموردين
-    'itemsControl',           // إدارة الأصناف
-    'receipts',               // إيصالات الاستلام
-    'rfqs',                   // طلبات عروض الأسعار
-    'purchases',              // أوامر الشراء
-    'materialRequests',       // طلبات المواد
-    'priceQuotes',            // عروض الأسعار
-    'proformaInvoice',        // فاتورة مُقدمة
-    'costingSheet',           // كشف التكاليف
-    'secretariatUserManagement', // نماذج الموظف
-    'filesControl'            // إدارة الملفات
+    'suppliers',
+    'itemsControl',
+    'receipts',
+    'rfqs',
+    'purchases',
+    'materialRequests',
+    'priceQuotes',
+    'proformaInvoice',
+    'costingSheet',
+    'secretariatUserManagement',
+    'filesControl'
   ];
 
   private readonly SECRETARIAT_ROUTES = [
@@ -71,7 +73,6 @@ export class AuthService {
     this.currentUserSubject = new BehaviorSubject<User | null>(storedUser);
     this.currentUser$ = this.currentUserSubject.asObservable();
 
-    // Log allowed routes on initialization
     console.log('✅ Auth Service Initialized');
     console.log('📋 Allowed Employee Routes:', this.ALLOWED_EMPLOYEE_ROUTES);
 
@@ -83,7 +84,6 @@ export class AuthService {
   // ============================================
 
   private startAutoRefresh(): void {
-    // Refresh user data every 30 seconds
     this.refreshInterval = interval(30000).subscribe(() => {
       if (this.isAuthenticated()) {
         this.refreshUserDataSilently();
@@ -146,7 +146,7 @@ export class AuthService {
   // ============================================
 
   login(credentials: LoginCredentials): Observable<LoginResponse> {
-    console.log('🔐 Attempting login for:', credentials.username);
+    console.log('🔐 Attempting login with phone:', credentials.phone);
     
     return this.http.post<LoginResponse>(API_ENDPOINTS.AUTH.LOGIN, credentials).pipe(
       tap(response => {
@@ -155,9 +155,9 @@ export class AuthService {
           
           console.log('✅ Login successful');
           console.log('👤 User:', response.data.user.name);
+          console.log('📞 Phone:', response.data.user.phone);
           console.log('🎭 Role:', response.data.user.role);
           console.log('🔑 Route Access:', response.data.user.routeAccess);
-          console.log('⚙️ System Access:', response.data.user.systemAccess);
         }
       }),
       catchError(error => {
@@ -183,14 +183,9 @@ export class AuthService {
   }
 
   // ============================================
-  // ✅ ROUTE ACCESS CONTROL
+  // ROUTE ACCESS CONTROL
   // ============================================
 
-  /**
-   * Check if user has access to a specific route
-   * This is ONLY used for Angular route guards (navigation)
-   * NOT used for HTTP API requests
-   */
   hasRouteAccess(routeKey: string): boolean {
     const user = this.currentUserValue;
     
@@ -200,87 +195,47 @@ export class AuthService {
     }
 
     console.log(`🔍 Checking route access for: ${routeKey}`);
-    console.log('User role:', user.role);
 
-    // Super admins have access to everything
     if (user.role === 'super_admin') {
-      console.log('✅ Super admin - access granted');
       return true;
     }
 
-    // Admins have access to everything except user management
     if (user.role === 'admin') {
-      const hasAccess = routeKey !== 'users';
-      console.log(`${hasAccess ? '✅' : '❌'} Admin access: ${routeKey}`);
-      return hasAccess;
+      return routeKey !== 'users';
     }
 
-    // Secretariat has access to specific routes
     if (user.role === 'secretariat') {
-      const hasAccess = this.SECRETARIAT_ROUTES.includes(routeKey);
-      console.log(`${hasAccess ? '✅' : '❌'} Secretariat access: ${routeKey}`);
-      return hasAccess;
+      return this.SECRETARIAT_ROUTES.includes(routeKey);
     }
 
-    // Employees check their routeAccess array
     if (user.role === 'employee') {
-      // First check: Is this route allowed for employees at all?
       if (!this.ALLOWED_EMPLOYEE_ROUTES.includes(routeKey)) {
         console.warn(`⚠️ Route '${routeKey}' is NOT in allowed employee routes`);
-        console.log('Allowed routes:', this.ALLOWED_EMPLOYEE_ROUTES);
         return false;
       }
 
-      // Second check: Does this specific employee have access?
       const userRoutes = user.routeAccess || [];
       const hasAccess = userRoutes.includes(routeKey);
       
-      if (hasAccess) {
-        console.log(`✅ Employee has access to: ${routeKey}`);
-      } else {
-        console.warn(`❌ Employee does NOT have access to: ${routeKey}`);
-        console.log('Employee routes:', userRoutes);
-      }
-      
+      console.log(hasAccess ? `✅ Access granted` : `❌ Access denied`);
       return hasAccess;
     }
 
-    console.warn(`⚠️ Unknown role or access check failed for: ${user.role}`);
     return false;
   }
 
-  /**
-   * Get accessible routes for current user
-   */
   getAccessibleRoutes(): string[] {
     const user = this.currentUserValue;
     
-    if (!user) {
-      return [];
-    }
-
-    if (user.role === 'super_admin') {
-      return ['*']; // All routes
-    }
-
-    if (user.role === 'admin') {
-      return ['*', '!users']; // All except users
-    }
-
-    if (user.role === 'secretariat') {
-      return this.SECRETARIAT_ROUTES;
-    }
-
-    if (user.role === 'employee') {
-      return user.routeAccess || [];
-    }
+    if (!user) return [];
+    if (user.role === 'super_admin') return ['*'];
+    if (user.role === 'admin') return ['*', '!users'];
+    if (user.role === 'secretariat') return this.SECRETARIAT_ROUTES;
+    if (user.role === 'employee') return user.routeAccess || [];
 
     return [];
   }
 
-  /**
-   * Check if user has specific role(s)
-   */
   hasRole(role: string | string[]): boolean {
     const user = this.currentUserValue;
     if (!user) return false;
@@ -292,26 +247,12 @@ export class AuthService {
     return user.role === role;
   }
 
-  /**
-   * Check if user has system access permission
-   */
   hasSystemAccess(accessKey: keyof User['systemAccess']): boolean {
     const user = this.currentUserValue;
     
-    if (!user) {
-      console.warn('⚠️ No user found');
-      return false;
-    }
-
-    // Super admins always have system access
-    if (user.role === 'super_admin') {
-      return true;
-    }
-
-    if (!user.systemAccess) {
-      console.warn('⚠️ No systemAccess object found');
-      return false;
-    }
+    if (!user) return false;
+    if (user.role === 'super_admin') return true;
+    if (!user.systemAccess) return false;
 
     return user.systemAccess[accessKey] === true;
   }
@@ -321,15 +262,8 @@ export class AuthService {
   // ============================================
 
   private setSession(token: string, user: User): void {
-    // Ensure routeAccess exists
-    if (!user.routeAccess) {
-      user.routeAccess = [];
-    }
-
-    // Ensure systemAccess exists
-    if (!user.systemAccess) {
-      user.systemAccess = {};
-    }
+    if (!user.routeAccess) user.routeAccess = [];
+    if (!user.systemAccess) user.systemAccess = {};
 
     localStorage.setItem('token', token);
     localStorage.setItem('currentUser', JSON.stringify(user));
@@ -343,15 +277,8 @@ export class AuthService {
 
       const user = JSON.parse(userStr);
       
-      // Ensure routeAccess exists
-      if (!user.routeAccess) {
-        user.routeAccess = [];
-      }
-
-      // Ensure systemAccess exists
-      if (!user.systemAccess) {
-        user.systemAccess = {};
-      }
+      if (!user.routeAccess) user.routeAccess = [];
+      if (!user.systemAccess) user.systemAccess = {};
 
       return user;
     } catch (error) {
@@ -361,25 +288,17 @@ export class AuthService {
   }
 
   updateStoredUser(user: User): void {
-    // Ensure required fields exist
-    if (!user.routeAccess) {
-      user.routeAccess = [];
-    }
-
-    if (!user.systemAccess) {
-      user.systemAccess = {};
-    }
+    if (!user.routeAccess) user.routeAccess = [];
+    if (!user.systemAccess) user.systemAccess = {};
 
     console.log('💾 Updating stored user:', {
       name: user.name,
-      role: user.role,
-      systemAccess: user.systemAccess,
-      routeAccess: user.routeAccess
+      phone: user.phone,
+      role: user.role
     });
 
     localStorage.setItem('currentUser', JSON.stringify(user));
     this.currentUserSubject.next(user);
-    console.log('✅ User data updated in storage');
   }
 
   getToken(): string | null {
@@ -398,8 +317,8 @@ export class AuthService {
   // PASSWORD MANAGEMENT
   // ============================================
 
-  requestPasswordReset(email: string): Observable<any> {
-    return this.http.post(API_ENDPOINTS.AUTH.FORGET_PASSWORD, { email });
+  requestPasswordReset(emailOrPhone: string): Observable<any> {
+    return this.http.post(API_ENDPOINTS.AUTH.FORGET_PASSWORD, { emailOrPhone });
   }
 
   resetPassword(token: string, newPassword: string): Observable<any> {
@@ -431,9 +350,6 @@ export class AuthService {
     return roleNames[role] || role;
   }
 
-  /**
-   * Refresh user data from server
-   */
   refreshUserData(): Observable<User> {
     const userId = this.currentUserValue?.id;
     
@@ -450,38 +366,22 @@ export class AuthService {
       map(response => response.data),
       tap(user => {
         this.updateStoredUser(user);
-        console.log('✅ User data refreshed:', {
-          systemAccess: user.systemAccess,
-          routeAccess: user.routeAccess
-        });
+        console.log('✅ User data refreshed');
       })
     );
   }
 
-  /**
-   * Force refresh user permissions
-   */
   forceRefresh(): Observable<User> {
     return this.refreshUserData();
   }
 
-  /**
-   * Get the complete list of routes allowed for employees
-   */
   getAllowedEmployeeRoutes(): string[] {
     return [...this.ALLOWED_EMPLOYEE_ROUTES];
   }
 
-  /**
-   * Check if a route is allowed for employees
-   */
   isRouteAllowedForEmployees(routeKey: string): boolean {
     return this.ALLOWED_EMPLOYEE_ROUTES.includes(routeKey);
   }
-
-  // ============================================
-  // CLEANUP
-  // ============================================
 
   ngOnDestroy(): void {
     this.stopAutoRefresh();

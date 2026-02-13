@@ -130,6 +130,7 @@ export class ProformaInvoiceComponent implements OnInit, OnDestroy {
   showSuccessModal: boolean = false;
   showDuplicateModal: boolean = false;
   generatedInvoiceId: string = '';
+  generatedInvoiceFilename: string = '';  // ✅ NEW: Store the filename
   invoiceToDuplicate: ProformaInvoice | null = null;
   showShareModal: boolean = false;
   shareInvoiceId: string = '';
@@ -351,7 +352,7 @@ export class ProformaInvoiceComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Share from success modal
+   * ✅ FIXED: Share from success modal - now gets the correct filename
    */
   shareFromSuccessModal(): void {
     if (this.generatedInvoiceId) {
@@ -838,7 +839,7 @@ export class ProformaInvoiceComponent implements OnInit, OnDestroy {
   }
 
   // ============================================
-  // VALIDATION
+  // VALIDATION - ✅ UPDATED: PHONE IS OPTIONAL
   // ============================================
 
   validateBasicInfo(): boolean {
@@ -852,17 +853,8 @@ export class ProformaInvoiceComponent implements OnInit, OnDestroy {
       isValid = false;
     }
 
-    if (!this.invoiceForm.clientPhone || this.invoiceForm.clientPhone.trim() === '') {
-      this.fieldErrors['clientPhone'] = this.formLanguage === 'ar'
-        ? 'رقم هاتف العميل مطلوب'
-        : 'Phone number is required';
-      isValid = false;
-    } else if (!this.proformaInvoiceService.validatePhoneNumber(this.invoiceForm.clientPhone)) {
-      this.fieldErrors['clientPhone'] = this.formLanguage === 'ar'
-        ? 'رقم الهاتف غير صالح'
-        : 'Invalid phone number';
-      isValid = false;
-    }
+    // ✅ REMOVED: Phone number validation - it's now optional
+    // Phone validation has been completely removed
 
     if (!this.invoiceForm.date) {
       this.fieldErrors['date'] = this.formLanguage === 'ar'
@@ -1005,6 +997,10 @@ export class ProformaInvoiceComponent implements OnInit, OnDestroy {
 
         this.savingInvoice = false;
         this.generatedInvoiceId = response.data.id;
+        
+        // ✅ NEW: Store the filename from the created invoice
+        this.generatedInvoiceFilename = this.getDisplayFilename(response.data);
+        
         this.showSuccessModal = true;
         const successMsg = this.formLanguage === 'ar'
           ? 'تم إنشاء الفاتورة الأولية بنجاح'
@@ -1033,6 +1029,10 @@ export class ProformaInvoiceComponent implements OnInit, OnDestroy {
 
         this.savingInvoice = false;
         this.generatedInvoiceId = response.data.id;
+        
+        // ✅ NEW: Store the filename from the updated invoice
+        this.generatedInvoiceFilename = this.getDisplayFilename(response.data);
+        
         this.showSuccessModal = true;
         const successMsg = this.formLanguage === 'ar'
           ? 'تم تحديث الفاتورة الأولية بنجاح'
@@ -1052,12 +1052,13 @@ export class ProformaInvoiceComponent implements OnInit, OnDestroy {
   }
 
   // ============================================
-  // SUCCESS MODAL ACTIONS
+  // SUCCESS MODAL ACTIONS - ✅ FIXED FILENAME
   // ============================================
 
   closeSuccessModal(): void {
     this.showSuccessModal = false;
     this.generatedInvoiceId = '';
+    this.generatedInvoiceFilename = '';  // ✅ Clear the filename
     this.backToList();
   }
 
@@ -1098,9 +1099,12 @@ export class ProformaInvoiceComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * ✅ FIXED: Download uses the stored filename
+   */
   downloadGeneratedPDF(): void {
-    const invoice = this.invoices.find(i => i.id === this.generatedInvoiceId);
-    const filename = invoice ? this.getDisplayFilename(invoice) : `invoice-${this.generatedInvoiceId}.pdf`;
+    // Use the stored filename instead of trying to find the invoice
+    const filename = this.generatedInvoiceFilename || `invoice-${this.generatedInvoiceId}.pdf`;
     this.proformaInvoiceService.triggerPDFDownload(this.generatedInvoiceId, filename);
   }
 

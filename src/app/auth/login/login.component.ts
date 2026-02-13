@@ -1,3 +1,4 @@
+// src/app/auth/login/login.component.ts (UPDATED - Phone Login)
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
@@ -45,21 +46,24 @@ export class LoginComponent implements OnInit {
   }
 
   /**
-   * Initialize login form
+   * ✅ UPDATED: Initialize login form with phone number
    */
   private initializeForm(): void {
     this.loginForm = this.fb.group({
-      username: ['', [Validators.required, Validators.minLength(3)]],
+      phone: ['', [
+        Validators.required,
+        Validators.pattern(/^07[0-9]{8}$/) // Jordanian phone format
+      ]],
       password: ['', [Validators.required, Validators.minLength(6)]]
     });
   }
 
   /**
-   * Initialize forgot password form
+   * ✅ UPDATED: Initialize forgot password form (supports phone or email)
    */
   private initializeForgotPasswordForm(): void {
     this.forgotPasswordForm = this.fb.group({
-      email: ['', [Validators.required, Validators.email]]
+      emailOrPhone: ['', [Validators.required]]
     });
   }
 
@@ -91,8 +95,7 @@ export class LoginComponent implements OnInit {
   }
 
   /**
-   * Submit forgot password request
-   * ✅ FIXED: Changed from forgotPassword to requestPasswordReset
+   * ✅ UPDATED: Submit forgot password request
    */
   onForgotPasswordSubmit(): void {
     if (this.forgotPasswordForm.invalid) {
@@ -103,10 +106,9 @@ export class LoginComponent implements OnInit {
     this.forgotPasswordLoading = true;
     this.forgotPasswordError = '';
 
-    const email = this.forgotPasswordForm.value.email;
+    const emailOrPhone = this.forgotPasswordForm.value.emailOrPhone;
 
-    // ✅ FIXED: Use requestPasswordReset instead of forgotPassword
-    this.authService.requestPasswordReset(email).subscribe({
+    this.authService.requestPasswordReset(emailOrPhone).subscribe({
       next: (response) => {
         console.log('Forgot password success:', response);
         this.forgotPasswordLoading = false;
@@ -131,8 +133,7 @@ export class LoginComponent implements OnInit {
   }
 
   /**
-   * Handle form submission
-   * ✅ FIXED: Changed to use credentials object with username field
+   * ✅ UPDATED: Handle form submission with phone number
    */
   onSubmit(): void {
     if (this.loginForm.invalid) {
@@ -143,15 +144,16 @@ export class LoginComponent implements OnInit {
     this.errorMessage = '';
     this.loading = true;
 
-    const { username, password } = this.loginForm.value;
+    const { phone, password } = this.loginForm.value;
 
-    // ✅ FIXED: Backend expects 'username' and 'password' fields
+    // ✅ Send phone and password to backend
     const credentials = {
-      username: username,
+      phone: phone,
       password: password
     };
 
-    // ✅ FIXED: Pass credentials object instead of separate parameters
+    console.log('📞 Logging in with phone:', phone);
+
     this.authService.login(credentials).subscribe({
       next: (response) => {
         console.log('Login successful:', response);
@@ -215,7 +217,7 @@ export class LoginComponent implements OnInit {
   }
 
   /**
-   * Check if field has error
+   * ✅ UPDATED: Check if field has error (now handles phone)
    */
   hasError(fieldName: string, errorType: string): boolean {
     const field = this.loginForm.get(fieldName);
@@ -223,7 +225,7 @@ export class LoginComponent implements OnInit {
   }
 
   /**
-   * Get error message for field
+   * ✅ UPDATED: Get error message for field (now handles phone)
    */
   getErrorMessage(fieldName: string): string {
     const field = this.loginForm.get(fieldName);
@@ -231,16 +233,18 @@ export class LoginComponent implements OnInit {
     if (!field?.touched) return '';
 
     if (field?.hasError('required')) {
-      return fieldName === 'username'
-        ? 'اسم المستخدم مطلوب'
+      return fieldName === 'phone'
+        ? 'رقم الهاتف مطلوب'
         : 'كلمة المرور مطلوبة';
+    }
+
+    if (field?.hasError('pattern') && fieldName === 'phone') {
+      return 'رقم الهاتف يجب أن يكون أردني بصيغة 07XXXXXXXX';
     }
 
     if (field?.hasError('minlength')) {
       const minLength = field?.errors?.['minlength']?.requiredLength;
-      return fieldName === 'username'
-        ? `اسم المستخدم يجب أن يكون ${minLength} أحرف على الأقل`
-        : `كلمة المرور يجب أن تكون ${minLength} أحرف على الأقل`;
+      return `كلمة المرور يجب أن تكون ${minLength} أحرف على الأقل`;
     }
 
     return '';

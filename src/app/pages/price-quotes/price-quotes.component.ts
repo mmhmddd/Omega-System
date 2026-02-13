@@ -829,7 +829,7 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
   }
 
   // ============================================
-  // VALIDATION
+  // VALIDATION - ✅ UPDATED: Phone number is now optional
   // ============================================
 
   validateBasicInfo(): boolean {
@@ -843,16 +843,14 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
       isValid = false;
     }
 
-    if (!this.quoteForm.clientPhone || this.quoteForm.clientPhone.trim() === '') {
-      this.fieldErrors['clientPhone'] = this.formLanguage === 'ar'
-        ? 'رقم هاتف العميل مطلوب'
-        : 'Phone number is required';
-      isValid = false;
-    } else if (!this.priceQuoteService.validatePhoneNumber(this.quoteForm.clientPhone)) {
-      this.fieldErrors['clientPhone'] = this.formLanguage === 'ar'
-        ? 'رقم الهاتف غير صالح'
-        : 'Invalid phone number';
-      isValid = false;
+    // ✅ Phone number is now optional - only validate format if provided
+    if (this.quoteForm.clientPhone && this.quoteForm.clientPhone.trim() !== '') {
+      if (!this.priceQuoteService.validatePhoneNumber(this.quoteForm.clientPhone)) {
+        this.fieldErrors['clientPhone'] = this.formLanguage === 'ar'
+          ? 'رقم الهاتف غير صالح'
+          : 'Invalid phone number';
+        isValid = false;
+      }
     }
 
     if (!this.quoteForm.date) {
@@ -1082,9 +1080,27 @@ export class PriceQuotesComponent implements OnInit, OnDestroy {
   }
 
   downloadGeneratedPDF(): void {
-    const quote = this.quotes.find(q => q.id === this.generatedQuoteId);
-    const filename = quote ? this.getDisplayFilename(quote) : `quote-${this.generatedQuoteId}.pdf`;
-    this.priceQuoteService.triggerPDFDownload(this.generatedQuoteId, filename);
+    // First, try to get the quote from the current list
+    let quote = this.quotes.find(q => q.id === this.generatedQuoteId);
+    
+    if (quote) {
+      // Quote found in list - use the display filename
+      const filename = this.getDisplayFilename(quote);
+      this.priceQuoteService.triggerPDFDownload(this.generatedQuoteId, filename);
+    } else {
+      // Quote not in list yet - fetch it to get the proper filename
+      this.priceQuoteService.getPriceQuoteById(this.generatedQuoteId).subscribe({
+        next: (response: any) => {
+          const filename = this.getDisplayFilename(response.data);
+          this.priceQuoteService.triggerPDFDownload(this.generatedQuoteId, filename);
+        },
+        error: (error) => {
+          console.error('Error fetching quote:', error);
+          // Fallback to generic filename if fetch fails
+          this.priceQuoteService.triggerPDFDownload(this.generatedQuoteId, `quote-${this.generatedQuoteId}.pdf`);
+        }
+      });
+    }
   }
 
   // ============================================

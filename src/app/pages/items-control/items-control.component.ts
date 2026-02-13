@@ -67,6 +67,7 @@ export class ItemsControlComponent implements OnInit, OnDestroy {
   loading: boolean = false;
   savingItem: boolean = false;
   deletingItem: boolean = false;
+  exportingExcel: boolean = false;  // NEW: Excel export loading state
 
   // ============================================
   // VALIDATION ERRORS
@@ -181,6 +182,39 @@ export class ItemsControlComponent implements OnInit, OnDestroy {
         console.error('Error loading items:', error);
         this.showToast('error', error.error?.message || 'حدث خطأ في تحميل الأصناف');
         this.loading = false;
+      }
+    });
+  }
+
+  // ============================================
+  // EXCEL EXPORT
+  // ============================================
+
+  /**
+   * Export items to Excel file
+   */
+  exportToExcel(): void {
+    this.exportingExcel = true;
+    this.showToast('info', 'جاري تحضير ملف Excel...', 2000);
+
+    this.itemsService.exportToExcel(this.searchTerm || undefined).subscribe({
+      next: (blob) => {
+        // Generate filename with current date and time
+        const now = new Date();
+        const dateStr = now.toISOString().split('T')[0];
+        const timeStr = now.toISOString().split('T')[1].split('.')[0].replace(/:/g, '-');
+        const filename = `items-export-${dateStr}-${timeStr}.xlsx`;
+
+        // Download the file
+        this.itemsService.downloadExcelFile(blob, filename);
+
+        this.exportingExcel = false;
+        this.showToast('success', 'تم تصدير الأصناف إلى Excel بنجاح');
+      },
+      error: (error) => {
+        console.error('Error exporting to Excel:', error);
+        this.exportingExcel = false;
+        this.showToast('error', 'حدث خطأ أثناء تصدير الأصناف إلى Excel');
       }
     });
   }

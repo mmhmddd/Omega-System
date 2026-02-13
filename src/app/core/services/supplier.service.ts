@@ -374,6 +374,52 @@ export class SupplierService {
     };
   }
 
+
+  /**
+ * Export suppliers to Excel
+ */
+exportToExcel(filters?: SuppliersFilters): Observable<Blob> {
+  let params = new HttpParams();
+
+  if (filters) {
+    if (filters.status) {
+      params = params.set('status', filters.status);
+    }
+    if (filters.materialType) {
+      params = params.set('materialType', filters.materialType);
+    }
+    if (filters.country) {
+      params = params.set('country', filters.country);
+    }
+    if (filters.city) {
+      params = params.set('city', filters.city);
+    }
+    if (filters.minRating) {
+      params = params.set('minRating', filters.minRating.toString());
+    }
+  }
+
+  return this.http.get(
+    `${environment.apiUrl}/suppliers/export/excel`,
+    {
+      headers: this.getAuthHeaders(),
+      params,
+      responseType: 'blob'
+    }
+  );
+}
+
+/**
+ * Download Excel file
+ */
+downloadExcelFile(blob: Blob, filename?: string): void {
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename || `suppliers-export-${new Date().toISOString().split('T')[0]}.xlsx`;
+  link.click();
+  window.URL.revokeObjectURL(url);
+}
   /**
    * Format currency
    */

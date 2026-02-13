@@ -1,3 +1,7 @@
+// ============================================
+// items.service.ts - COMPLETE WITH EXCEL EXPORT
+// ============================================
+
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -187,6 +191,72 @@ export class ItemsService {
       API_ENDPOINTS.ITEMS.DELETE(id),
       { headers: this.getAuthHeaders() }
     );
+  }
+
+  // ============================================
+  // EXPORT TO EXCEL
+  // ============================================
+
+  /**
+   * Export items to Excel file
+   * @param search Optional search filter
+   * @returns Observable<Blob> - Binary blob for Excel file
+   */
+  exportToExcel(search?: string): Observable<Blob> {
+    let params = new HttpParams();
+    
+    // Add search parameter if provided
+    if (search && search.trim() !== '') {
+      params = params.set('search', search);
+    }
+
+    // Get token for authorization
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${token}`
+      // NOTE: Do NOT set Content-Type for blob responses
+    });
+
+    // Make HTTP GET request expecting binary blob response
+    return this.http.get(
+      API_ENDPOINTS.ITEMS.EXPORT_EXCEL,
+      {
+        headers,
+        params,
+        responseType: 'blob' // CRITICAL: Request binary data, not JSON
+      }
+    );
+  }
+
+  /**
+   * Download Excel file
+   * Triggers browser download of the Excel blob
+   * @param blob Excel file blob from exportToExcel()
+   * @param filename Optional custom filename (auto-generated if not provided)
+   */
+  downloadExcelFile(blob: Blob, filename?: string): void {
+    // Create temporary URL for the blob
+    const url = window.URL.createObjectURL(blob);
+    
+    // Create invisible anchor element
+    const link = document.createElement('a');
+    link.href = url;
+    
+    // Generate filename with current date and time if not provided
+    if (!filename) {
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+      const timeStr = now.toISOString().split('T')[1].split('.')[0].replace(/:/g, '-');
+      filename = `items-export-${dateStr}-${timeStr}.xlsx`;
+    }
+    
+    link.download = filename;
+    
+    // Trigger download
+    link.click();
+    
+    // Clean up: revoke temporary URL to free memory
+    window.URL.revokeObjectURL(url);
   }
 
   // ============================================

@@ -1,3 +1,4 @@
+<!-- src/app/auth/login/login.component.html (UPDATED - Phone Login) -->
 <div class="login-container" [class.fade-out]="loginSuccess">
   <div class="login-wrapper">
     <div class="blob blob-1"></div>
@@ -27,21 +28,23 @@
       </div>
 
       <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+        <!-- ✅ UPDATED: Phone Number Field -->
         <div class="form-group">
-          <label for="username">
-            <i class="fas fa-user"></i>
-            اسم المستخدم
+          <label for="phone">
+            <i class="fas fa-phone"></i>
+            رقم الهاتف
           </label>
           <input
-            type="text"
-            id="username"
-            formControlName="username"
-            placeholder="أدخل اسم المستخدم"
-            [class.error]="hasError('username', 'required') || hasError('username', 'minlength')"
-            autocomplete="username"
+            type="tel"
+            id="phone"
+            formControlName="phone"
+            placeholder="07XXXXXXXX"
+            [class.error]="hasError('phone', 'required') || hasError('phone', 'pattern')"
+            autocomplete="tel"
+            maxlength="10"
           />
-          <small class="error-message" *ngIf="getErrorMessage('username')">
-            {{ getErrorMessage('username') }}
+          <small class="error-message" *ngIf="getErrorMessage('phone')">
+            {{ getErrorMessage('phone') }}
           </small>
         </div>
 
@@ -103,7 +106,7 @@
   </div>
 </div>
 
-<!-- Forgot Password Modal -->
+<!-- ✅ UPDATED: Forgot Password Modal (supports phone or email) -->
 <div class="modal-overlay" *ngIf="showForgotPasswordModal" (click)="closeForgotPasswordModal()">
   <div class="forgot-password-modal" (click)="$event.stopPropagation()">
 
@@ -124,7 +127,7 @@
           <i class="fas fa-key"></i>
         </div>
         <h3>نسيت كلمة المرور؟</h3>
-        <p>أدخل بريدك الإلكتروني وسنرسل لك رابط إعادة تعيين كلمة المرور</p>
+        <p>أدخل رقم هاتفك أو بريدك الإلكتروني وسنرسل لك رابط إعادة تعيين كلمة المرور</p>
       </div>
 
       <div class="error-alert" *ngIf="forgotPasswordError">
@@ -134,22 +137,19 @@
 
       <form [formGroup]="forgotPasswordForm" (ngSubmit)="onForgotPasswordSubmit()">
         <div class="form-group">
-          <label for="email">
+          <label for="emailOrPhone">
             <i class="fas fa-envelope"></i>
-            البريد الإلكتروني
+            رقم الهاتف أو البريد الإلكتروني
           </label>
           <input
-            type="email"
-            id="email"
-            formControlName="email"
-            placeholder="أدخل بريدك الإلكتروني"
-            [class.error]="forgotPasswordForm.get('email')?.invalid && forgotPasswordForm.get('email')?.touched"
+            type="text"
+            id="emailOrPhone"
+            formControlName="emailOrPhone"
+            placeholder="07XXXXXXXX أو email@example.com"
+            [class.error]="forgotPasswordForm.get('emailOrPhone')?.invalid && forgotPasswordForm.get('emailOrPhone')?.touched"
           />
-          <small class="error-message" *ngIf="forgotPasswordForm.get('email')?.hasError('required') && forgotPasswordForm.get('email')?.touched">
-            البريد الإلكتروني مطلوب
-          </small>
-          <small class="error-message" *ngIf="forgotPasswordForm.get('email')?.hasError('email') && forgotPasswordForm.get('email')?.touched">
-            البريد الإلكتروني غير صالح
+          <small class="error-message" *ngIf="forgotPasswordForm.get('emailOrPhone')?.hasError('required') && forgotPasswordForm.get('emailOrPhone')?.touched">
+            رقم الهاتف أو البريد الإلكتروني مطلوب
           </small>
         </div>
 
