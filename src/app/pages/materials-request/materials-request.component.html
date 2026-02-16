@@ -578,40 +578,94 @@
                   <div class="item-card-body">
 
                     <!-- Row 1: Item Selection Dropdown -->
-                    <div class="item-field">
-                      <label class="field-label">
-                        <i class="bi bi-box-seam"></i>
-                        {{ formLanguage === 'ar' ? 'الصنف' : 'Item' }}
-                      </label>
+<!-- ✅ UPDATED: Item Selection with Search/Filter -->
 
-                      <!-- Dropdown to select from Items API -->
-                      <select
-                        [value]="getSelectedItemId(i)"
-                        (change)="onItemSelected(i, $any($event.target).value)"
-                        class="item-input item-select"
-                        [class.error]="fieldErrors['item_' + i + '_description']">
-                        <option value="">
-                          {{ formLanguage === 'ar' ? 'اختر من القائمة أو أدخل يدوياً' : 'Select from list or enter manually' }}
-                        </option>
-                        <optgroup [label]="formLanguage === 'ar' ? '📦 الأصناف المتاحة' : '📦 Available Items'">
-                          <option *ngFor="let availableItem of availableItems" [value]="availableItem.id">
-                            {{ availableItem.name }}
-                            <span *ngIf="availableItem.unit"> ({{ availableItem.unit }})</span>
-                          </option>
-                        </optgroup>
-                      </select>
+  <div class="item-field" style="position: relative;">
+  <label class="field-label">
+    <i class="bi bi-box-seam"></i>
+    {{ formLanguage === 'ar' ? 'الصنف' : 'Item' }}
+  </label>
 
-                      <!-- Loading indicator -->
-                      <div *ngIf="loadingItems" class="loading-items">
-                        <i class="bi bi-arrow-clockwise spin"></i>
-                        {{ formLanguage === 'ar' ? 'جاري تحميل الأصناف...' : 'Loading items...' }}
-                      </div>
+  <!-- Search Input -->
+  <div class="searchable-dropdown">
+    <input
+      type="text"
+      [(ngModel)]="mrForm.items[i].description"
+      (focus)="toggleItemDropdown(i, true)"
+      (input)="filterItems($any($event.target).value)"
+      class="item-input"
+      [class.error]="fieldErrors['item_' + i + '_description']"
+      [placeholder]="formLanguage === 'ar' ? 'ابحث أو اختر من القائمة' : 'Search or select from list'"
+      autocomplete="off"
+    />
+    
+    <!-- Clear Button -->
+    <button
+      *ngIf="mrForm.items[i].description"
+      type="button"
+      class="clear-btn"
+      (click)="clearItemSelection(i)"
+      [title]="formLanguage === 'ar' ? 'مسح' : 'Clear'">
+      <i class="bi bi-x"></i>
+    </button>
 
-                      <small class="error-message" *ngIf="fieldErrors['item_' + i + '_description']">
-                        <i class="bi bi-exclamation-circle"></i>
-                        {{ fieldErrors['item_' + i + '_description'] }}
-                      </small>
-                    </div>
+    <!-- Dropdown Icon -->
+    <button
+      type="button"
+      class="dropdown-toggle-btn"
+      (click)="toggleItemDropdown(i, !showItemDropdown[i])"
+      [title]="formLanguage === 'ar' ? 'إظهار القائمة' : 'Show list'">
+      <i class="bi" [ngClass]="showItemDropdown[i] ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+    </button>
+
+    <!-- Dropdown List -->
+    <div 
+      *ngIf="showItemDropdown[i]" 
+      class="items-dropdown-list"
+      [attr.dir]="formLanguage === 'ar' ? 'rtl' : 'ltr'">
+      
+      <!-- Loading State -->
+      <div *ngIf="loadingItems" class="dropdown-loading">
+        <i class="bi bi-arrow-clockwise spin"></i>
+        {{ formLanguage === 'ar' ? 'جاري التحميل...' : 'Loading...' }}
+      </div>
+
+      <!-- Items List -->
+      <div *ngIf="!loadingItems && filteredItems.length > 0" class="dropdown-items">
+        <button
+          *ngFor="let availableItem of filteredItems"
+          type="button"
+          class="dropdown-item"
+          (click)="selectItemFromDropdown(i, availableItem)"
+          [class.selected]="mrForm.items[i].description === availableItem.name">
+          <div class="item-info">
+            <i class="bi bi-box"></i>
+            <span class="item-name">{{ availableItem.name }}</span>
+            <span *ngIf="availableItem.unit" class="item-unit">({{ availableItem.unit }})</span>
+          </div>
+          <i *ngIf="mrForm.items[i].description === availableItem.name" class="bi bi-check-lg"></i>
+        </button>
+      </div>
+
+      <!-- No Results -->
+      <div *ngIf="!loadingItems && filteredItems.length === 0" class="dropdown-empty">
+        <i class="bi bi-inbox"></i>
+        <p>{{ formLanguage === 'ar' ? 'لا توجد نتائج' : 'No results found' }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Auto-filled badge (shows when item is selected from list) -->
+  <div *ngIf="getSelectedItemId(i)" class="auto-selection-badge">
+    <i class="bi bi-check-circle-fill"></i>
+    {{ formLanguage === 'ar' ? 'تم الاختيار من القائمة' : 'Selected from list' }}
+  </div>
+
+  <small class="error-message" *ngIf="fieldErrors['item_' + i + '_description']">
+    <i class="bi bi-exclamation-circle"></i>
+    {{ fieldErrors['item_' + i + '_description'] }}
+  </small>
+</div>
 
                     <!-- Custom Description Input (shows when no item is selected or custom item) -->
                     <div class="item-field" *ngIf="!getSelectedItemId(i) || isCustomItem(i)">

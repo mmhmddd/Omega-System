@@ -38,7 +38,10 @@ interface Toast {
   styleUrl: './materials-request.component.scss'
 })
 export class MaterialsRequestComponent implements OnInit, OnDestroy {
-
+  // ✅ NEW: Search/Filter properties for Items dropdown
+  itemSearchTerm: string = '';
+  filteredItems: SimpleItem[] = [];
+  showItemDropdown: { [key: number]: boolean } = {};
 
 private readonly DEFAULT_TERMS_AR = `الشروط والأحكام
 
@@ -371,6 +374,7 @@ sendingEmail: boolean = false;
     this.itemsService.getSimpleItems().subscribe({
       next: (response) => {
         this.availableItems = response.data;
+        this.filteredItems = [...this.availableItems]; // Initialize filtered list
         this.loadingItems = false;
       },
       error: (error) => {
@@ -380,7 +384,52 @@ sendingEmail: boolean = false;
       }
     });
   }
+filterItems(searchTerm: string): void {
+    this.itemSearchTerm = searchTerm;
+    
+    if (!searchTerm || searchTerm.trim() === '') {
+      this.filteredItems = [...this.availableItems];
+      return;
+    }
+    
+    const searchLower = searchTerm.toLowerCase().trim();
+    this.filteredItems = this.availableItems.filter(item => 
+      item.name.toLowerCase().includes(searchLower) ||
+      (item.unit && item.unit.toLowerCase().includes(searchLower))
+    );
+  }
 
+    /**
+   * ✅ Toggle dropdown visibility
+   */
+  toggleItemDropdown(index: number, show: boolean): void {
+    this.showItemDropdown[index] = show;
+    
+    // Reset search when closing
+    if (!show) {
+      this.itemSearchTerm = '';
+      this.filteredItems = [...this.availableItems];
+    }
+  }
+  
+  /**
+   * ✅ Select item from filtered dropdown
+   */
+  selectItemFromDropdown(index: number, item: SimpleItem): void {
+    this.mrForm.items[index].description = item.name;
+    this.mrForm.items[index].unit = item.unit || '';
+    
+    // Close dropdown
+    this.toggleItemDropdown(index, false);
+  }
+  
+  /**
+   * ✅ Clear item selection
+   */
+  clearItemSelection(index: number): void {
+    this.mrForm.items[index].description = '';
+    this.mrForm.items[index].unit = '';
+  }
   /**
    * عند اختيار عنصر من القائمة، يتم ملء الوحدة تلقائياً
    */

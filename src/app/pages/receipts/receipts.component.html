@@ -541,106 +541,120 @@
         </div>
 
         <!-- STEP 2: Items (OPTIONAL) -->
-        <div *ngIf="currentStep === 'items'" class="step-content">
-          <h2 class="step-title">
-            {{ formLanguage === 'ar' ? 'عناصر الإشعار (اختياري)' : 'Receipt Items (Optional)' }}
-            <span class="optional-badge">{{ formLanguage === 'ar' ? 'اختياري' : 'Optional' }}</span>
-          </h2>
+<!-- STEP 2: Items (OPTIONAL) -->
+<div *ngIf="currentStep === 'items'" class="step-content">
+  <h2 class="step-title">
+    {{ formLanguage === 'ar' ? 'عناصر الإشعار (اختياري)' : 'Receipt Items (Optional)' }}
+    <span class="optional-badge">{{ formLanguage === 'ar' ? 'اختياري' : 'Optional' }}</span>
+  </h2>
 
-          <!-- Info Alert -->
-          <div class="info-alert">
-            <i class="bi bi-info-circle"></i>
-            <div style="flex: 1;">
-              <p>
-                {{ formLanguage === 'ar'
-                  ? 'إضافة العناصر اختيارية. إذا لم تقم بإضافة أي عناصر، فلن يظهر الجدول في ملف PDF.'
-                  : 'Adding items is optional. If you don\'t add any items, the table won\'t appear in the PDF.'
-                }}
-              </p>
-            </div>
-          </div>
+  <!-- Info Alert -->
+  <div class="info-alert">
+    <i class="bi bi-info-circle"></i>
+    <div style="flex: 1;">
+      <p>
+        {{ formLanguage === 'ar'
+          ? 'إضافة العناصر اختيارية. إذا لم تقم بإضافة أي عناصر، فلن يظهر الجدول في ملف PDF.'
+          : 'Adding items is optional. If you don\'t add any items, the table won\'t appear in the PDF.'
+        }}
+      </p>
+    </div>
+  </div>
 
-          <div class="items-section">
-            <div class="items-body" *ngIf="receiptForm.items.length > 0">
-              <ng-container *ngFor="let item of receiptForm.items; let i = index">
-                <div class="item-card">
-                  <div class="item-card-header">
-                    <span class="item-number">{{ formLanguage === 'ar' ? 'عنصر' : 'Item' }} #{{ i + 1 }}</span>
-                    <button class="btn-remove" (click)="removeItem(i)" type="button">
-                      <i class="bi bi-trash"></i>
-                      {{ formLanguage === 'ar' ? 'حذف' : 'Delete' }}
-                    </button>
-                  </div>
-
-                  <div class="item-card-body">
-                    <!-- Quantity -->
-                    <div class="item-field">
-                      <label class="field-label">
-                        {{ formLanguage === 'ar' ? 'الكمية' : 'Quantity' }}
-                      </label>
-                      <input
-                        type="text"
-                        [(ngModel)]="item.quantity"
-                        class="item-input"
-                        [placeholder]="formLanguage === 'ar' ? 'العدد' : 'Qty'"
-                      />
-                    </div>
-
-                    <!-- Description -->
-                    <div class="item-field">
-                      <label class="field-label">
-                        {{ formLanguage === 'ar' ? 'الوصف' : 'Description' }}
-                      </label>
-                      <input
-                        type="text"
-                        [(ngModel)]="item.description"
-                        class="item-input"
-                        [placeholder]="formLanguage === 'ar' ? 'الوصف' : 'Description'"
-                      />
-                    </div>
-
-                    <!-- Element -->
-                    <div class="item-field">
-                      <label class="field-label">
-                        {{ formLanguage === 'ar' ? 'العنصر' : 'Element' }}
-                      </label>
-                      <input
-                        type="text"
-                        [(ngModel)]="item.element"
-                        class="item-input"
-                        [placeholder]="formLanguage === 'ar' ? 'العنصر' : 'Element'"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </ng-container>
-            </div>
-
-            <!-- Empty State -->
-            <div class="items-empty" *ngIf="receiptForm.items.length === 0">
-              <i class="bi bi-inbox" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
-              <p style="margin: 0; color: #64748b;">
-                {{ formLanguage === 'ar' ? 'لم يتم إضافة عناصر. يمكنك إضافة عناصر أو تخطي هذه الخطوة.' : 'No items added. You can add items or skip this step.' }}
-              </p>
-            </div>
-
-            <button class="btn-add-item" (click)="addItem()" type="button">
-              <i class="bi bi-plus-lg"></i>
-              {{ formLanguage === 'ar' ? 'إضافة عنصر' : 'Add Item' }}
+  <div class="items-section">
+    <!-- Items List - CARD DESIGN -->
+    <div class="items-body" *ngIf="receiptForm.items.length > 0">
+      <ng-container *ngFor="let item of receiptForm.items; let i = index">
+        <div class="item-card">
+          <!-- Card Header -->
+          <div class="item-card-header">
+            <span class="item-number">
+              {{ formLanguage === 'ar' ? 'عنصر' : 'Item' }} #{{ i + 1 }}
+            </span>
+            <button class="btn-remove" (click)="removeItem(i)" type="button">
+              <i class="bi bi-trash"></i>
+              {{ formLanguage === 'ar' ? 'حذف' : 'Delete' }}
             </button>
           </div>
 
-          <div class="form-navigation">
-            <button class="btn-secondary btn-back" (click)="previousStep()" type="button">
-              <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
-              {{ formLanguage === 'ar' ? 'السابق' : 'Back' }}
-            </button>
-            <button class="btn-primary btn-next" (click)="nextStep()">
-              {{ formLanguage === 'ar' ? 'التالي' : 'Next' }}
-              <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-left' : 'bi-arrow-right'"></i>
-            </button>
+          <!-- Card Body -->
+          <div class="item-card-body">
+            <!-- Quantity Field -->
+            <div class="item-field">
+              <label class="field-label">
+                <i class="bi bi-123"></i>
+                {{ formLanguage === 'ar' ? 'الكمية' : 'Quantity' }}
+              </label>
+              <input
+                type="text"
+                [(ngModel)]="item.quantity"
+                class="item-input"
+                [placeholder]="formLanguage === 'ar' ? 'العدد' : 'Qty'"
+              />
+            </div>
+
+            <!-- Description Field -->
+            <div class="item-field">
+              <label class="field-label">
+                <i class="bi bi-text-paragraph"></i>
+                {{ formLanguage === 'ar' ? 'الوصف' : 'Description' }}
+              </label>
+              <input
+                type="text"
+                [(ngModel)]="item.description"
+                class="item-input"
+                [placeholder]="formLanguage === 'ar' ? 'الوصف' : 'Description'"
+              />
+            </div>
+
+            <!-- Element Field -->
+            <div class="item-field">
+              <label class="field-label">
+                <i class="bi bi-box-seam"></i>
+                {{ formLanguage === 'ar' ? 'العنصر' : 'Element' }}
+              </label>
+              <input
+                type="text"
+                [(ngModel)]="item.element"
+                class="item-input"
+                [placeholder]="formLanguage === 'ar' ? 'العنصر' : 'Element'"
+              />
+            </div>
           </div>
         </div>
+      </ng-container>
+    </div>
+
+    <!-- Empty State -->
+    <div class="items-empty" *ngIf="receiptForm.items.length === 0">
+      <i class="bi bi-inbox"></i>
+      <p>
+        {{ formLanguage === 'ar' 
+          ? 'لم يتم إضافة عناصر. يمكنك إضافة عناصر أو تخطي هذه الخطوة.' 
+          : 'No items added. You can add items or skip this step.' 
+        }}
+      </p>
+    </div>
+
+    <!-- Add Item Button -->
+    <button class="btn-add-item" (click)="addItem()" type="button">
+      <i class="bi bi-plus-lg"></i>
+      {{ formLanguage === 'ar' ? 'إضافة عنصر' : 'Add Item' }}
+    </button>
+  </div>
+
+  <!-- Navigation Buttons -->
+  <div class="form-navigation">
+    <button class="btn-secondary btn-back" (click)="previousStep()" type="button">
+      <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-right' : 'bi-arrow-left'"></i>
+      {{ formLanguage === 'ar' ? 'السابق' : 'Back' }}
+    </button>
+    <button class="btn-primary btn-next" (click)="nextStep()">
+      {{ formLanguage === 'ar' ? 'التالي' : 'Next' }}
+      <i class="bi" [ngClass]="formLanguage === 'ar' ? 'bi-arrow-left' : 'bi-arrow-right'"></i>
+    </button>
+  </div>
+</div>
 
 <!-- STEP 3: Terms & Conditions -->
 <div *ngIf="currentStep === 'options'" class="step-content">

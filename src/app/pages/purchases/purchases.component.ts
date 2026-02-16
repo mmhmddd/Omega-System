@@ -31,6 +31,10 @@ interface Toast {
   styleUrl: './purchases.component.scss'
 })
 export class PurchasesComponent implements OnInit, OnDestroy {
+
+  itemSearchTerm: string = '';
+  filteredItems: SimpleItem[] = [];
+  showItemDropdown: { [key: number]: boolean } = {};
   // View states
 
 private readonly DEFAULT_TERMS_AR = `الشروط والأحكام
@@ -325,6 +329,7 @@ sendingEmail: boolean = false;
     this.itemsService.getSimpleItems().subscribe({
       next: (response) => {
         this.availableItems = response.data;
+        this.filteredItems = [...this.availableItems];
         this.loadingItems = false;
       },
       error: (error) => {
@@ -333,6 +338,42 @@ sendingEmail: boolean = false;
         this.showToast('error', this.t('errors.loadItemsFailed'));
       }
     });
+  }
+  
+  filterItems(searchTerm: string): void {
+    this.itemSearchTerm = searchTerm;
+    
+    if (!searchTerm || searchTerm.trim() === '') {
+      this.filteredItems = [...this.availableItems];
+      return;
+    }
+    
+    const searchLower = searchTerm.toLowerCase().trim();
+    this.filteredItems = this.availableItems.filter(item => 
+      item.name.toLowerCase().includes(searchLower) ||
+      (item.unit && item.unit.toLowerCase().includes(searchLower))
+    );
+  }
+  
+  toggleItemDropdown(index: number, show: boolean): void {
+    this.showItemDropdown[index] = show;
+    
+    if (!show) {
+      this.itemSearchTerm = '';
+      this.filteredItems = [...this.availableItems];
+    }
+  }
+  
+  selectItemFromDropdown(index: number, item: SimpleItem): void {
+    this.poForm.items[index].description = item.name;
+    this.poForm.items[index].unit = item.unit || '';
+    
+    this.toggleItemDropdown(index, false);
+  }
+  
+  clearItemSelection(index: number): void {
+    this.poForm.items[index].description = '';
+    this.poForm.items[index].unit = '';
   }
 
   onItemSelected(index: number, itemId: string): void {
